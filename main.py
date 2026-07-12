@@ -3,6 +3,7 @@ import re
 import time
 import asyncio
 import aiohttp
+from backend.config import settings
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -343,12 +344,12 @@ async def setup_bot_ui():
     await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
 
 async def main():
-    if not IS_DEVELOPMENT:
+    if not settings.IS_DEVELOPMENT:
         await start_web_server()
         asyncio.create_task(keep_alive_pinger())
     await bot.delete_webhook(drop_pending_updates=True)
     await setup_bot_ui()
-    print(f"🚀 Бот запущен в режиме: {ENV}")
+    print(f"🚀 Бот запущен в режиме: {settings.ENV}")
     await dp.start_polling(bot)
     
 if __name__ == '__main__':
