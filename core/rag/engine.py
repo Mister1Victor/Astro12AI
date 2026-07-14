@@ -1,12 +1,18 @@
 import re
 
-from collections import Counter
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 from langchain_community.retrievers import BM25Retriever
+
 from core.knowledge.weights import get_document_weight
 
 
 class AstroRetriever:
+    """
+    Собственный поисковый движок Astro12AI.
+
+    Вся логика поиска постепенно переносится сюда.
+    main.py изменять не потребуется.
+    """
 
     REPLACE = {
         "квадратура": "квадрат",
@@ -19,19 +25,61 @@ class AstroRetriever:
         "оппозиции": "оппозиция",
     }
 
-    """
-        Поисковый движок Astro12AI.
+    PLANETS = {
+        "солнце",
+        "луна",
+        "меркурий",
+        "венера",
+        "марс",
+        "юпитер",
+        "сатурн",
+        "уран",
+        "нептун",
+        "плутон",
+    }
 
-        Сейчас используется BM25.
-        В дальнейшем сюда будет перенесён весь интеллектуальный поиск,
-        не меняя main.py.
-        """
+    SIGNS = {
+        "овен",
+        "телец",
+        "близнецы",
+        "рак",
+        "лев",
+        "дева",
+        "весы",
+        "скорпион",
+        "стрелец",
+        "козерог",
+        "водолей",
+        "рыбы",
+    }
+
+    ASPECTS = {
+        "соединение",
+        "квадрат",
+        "оппозиция",
+        "трин",
+        "секстиль",
+    }
+
+    HOUSES = {
+        "1 дом",
+        "2 дом",
+        "3 дом",
+        "4 дом",
+        "5 дом",
+        "6 дом",
+        "7 дом",
+        "8 дом",
+        "9 дом",
+        "10 дом",
+        "11 дом",
+        "12 дом",
+    }
 
     def __init__(self, documents, k=8):
 
         self.documents = documents
 
-        # Назначаем вес каждому документу
         for doc in self.documents:
 
             source = doc.metadata.get("source", "")
@@ -43,43 +91,38 @@ class AstroRetriever:
         self.retriever = BM25Retriever.from_documents(self.documents)
         self.retriever.k = k
 
+    # =====================================================
+    # PUBLIC
+    # =====================================================
+
     def search(self, query):
-        """
-        Полноценный поиск Astro12AI.
-        """
+
         query = self.normalize_query(query)
+
         docs = self.retriever.invoke(query)
+
         docs = self.remove_duplicates(docs)
+
         docs = self.filter_short_documents(docs)
-        docs = self.limit_same_source(docs)
-        docs = self.sort_by_weight(
-            docs,
+
+        docs = self.filter_by_entities(
             query,
+            docs,
         )
+
+        docs = self.limit_same_source(docs)
+
+        docs = self.sort_documents(
+            query,
+            docs,
+        )
+
         return docs
-
-    def limit_same_source(self, docs, max_per_source=2):
-
-        result = []
-        counter = {}
-
-        for doc in docs:
-
-            source = doc.metadata.get("source", "")
-            counter[source] = counter.get(source, 0)
-
-            if counter[source] >= max_per_source:
-                continue
-
-            counter[source] += 1
-            result.append(doc)
-
-        return result
 
     def get_retriever(self):
         """
-        Пока возвращаем BM25Retriever
-        для совместимости с LangChain.
+        Пока оставляем совместимость
+        с create_retrieval_chain().
         """
 
         return self.retriever
@@ -91,10 +134,80 @@ class AstroRetriever:
             "k": self.retriever.k,
         }
 
+    # =====================================================
+    # NORMALIZATION
+    # =====================================================
+
+    def normalize_query(self, query):
+
+        query = query.lower()
+
+        query = re.sub(r"[^\w\s]", " ", query)
+
+        for old, new in self.REPLACE.items():
+            query = query.replace(old, new)
+
+        query = re.sub(r"\s+", " ", query)
+
+        return query.strip()
+
+    def tokenize(self, text):
+
+        text = self.normalize_query(text)
+
+        return [
+            word
+            for word in text.split()
+            if len(word) > 2
+        ]
+
+    # =====================================================
+    # ENTITIES
+    # =====================================================
+
+    def extract_entities(self, text):
+
+        text = self.normalize_query(text)
+
+        entities = set()
+
+        for planet in self.PLANETS:
+            if planet in text:
+                entities.add(planet)
+
+        for sign in self.SIGNS:
+            if sign in text:
+                entities.add(sign)
+
+        for aspect in self.ASPECTS:
+            if aspect in text:
+                entities.add(aspect)
+
+        for house in self.HOUSES:
+            if house in text:
+                entities.add(house)
+
+        return entities
+
+    def entity_score(
+        self,
+        query,
+        document,
+    ):
+
+        q = self.extract_entities(query)
+
+        d = self.extract_entities(
+            document.page_content
+        )
+
+        return len(q & d)
+
+    # =====================================================
+    # FILTERS
+    # =====================================================
+
     def remove_duplicates(self, docs):
-        """
-        Удаляет одинаковые куски текста.
-        """
 
         unique = OrderedDict()
 
@@ -107,52 +220,83 @@ class AstroRetriever:
 
         return list(unique.values())
 
-    def filter_short_documents(self, docs, min_chars=350):
-        """
-        Убирает слишком короткие куски.
-        """
+    def filter_short_documents(
+        self,
+        docs,
+        min_chars=350,
+    ):
+
+        return [
+            doc
+            for doc in docs
+            if len(doc.page_content) >= min_chars
+        ]
+
+    def filter_by_entities(
+        self,
+        query,
+        docs,
+    ):
+
+        query_entities = self.extract_entities(query)
+
+        if not query_entities:
+            return docs
 
         result = []
 
         for doc in docs:
 
-            if len(doc.page_content) >= min_chars:
+            doc_entities = self.extract_entities(
+                doc.page_content
+            )
+
+            matches = len(
+                query_entities & doc_entities
+            )
+
+            if matches >= max(
+                1,
+                len(query_entities) // 2,
+            ):
                 result.append(doc)
 
         return result
 
-    def sort_by_weight(
+    def limit_same_source(
         self,
         docs,
-        query,
+        max_per_source=2,
     ):
 
-        docs.sort(
-            key=lambda doc:
-                self.calculate_score(
-                    query,
-                    doc,
-                ),
-            reverse=True,
-        )
+        counter = {}
 
-        return docs
+        result = []
 
-    def normalize_query(self, query: str):
+        for doc in docs:
 
-        query = query.lower()
-        query = re.sub(r"[^\w\s]", " ", query)
+            source = doc.metadata.get(
+                "source",
+                "",
+            )
 
-        for old, new in self.REPLACE.items():
-            query = query.replace(old, new)
-            query = re.sub(r"\s+", " ", query)
-        return query.strip()
+            counter[source] = counter.get(
+                source,
+                0,
+            )
 
-    def tokenize(self, text: str):
+            if counter[source] >= max_per_source:
+                continue
 
-        text = self.normalize_query(text)
+            counter[source] += 1
 
-        return [word for word in text.split() if len(word) > 2]
+            result.append(doc)
+
+        return result
+
+    # =====================================================
+    # RANKING
+    # =====================================================
 
     def calculate_score(
         self,
@@ -160,19 +304,54 @@ class AstroRetriever:
         document,
     ):
 
-        query_words = Counter(self.tokenize(query))
+        query_words = Counter(
+            self.tokenize(query)
+        )
 
-        document_words = Counter(self.tokenize(document.page_content))
+        document_words = Counter(
+            self.tokenize(
+                document.page_content
+            )
+        )
 
-        score = 0
+        keyword_score = 0
 
         for word, count in query_words.items():
 
-            score += document_words[word] * count
+            keyword_score += (
+                document_words[word] * count
+            )
 
-        score *= document.metadata.get(
+        entity_score = self.entity_score(
+            query,
+            document,
+        )
+
+        weight = document.metadata.get(
             "weight",
             5,
         )
 
+        score = (
+            entity_score * 100
+            + keyword_score * 10
+            + weight
+        )
+
         return score
+
+    def sort_documents(
+        self,
+        query,
+        docs,
+    ):
+
+        docs.sort(
+            key=lambda doc: self.calculate_score(
+                query,
+                doc,
+            ),
+            reverse=True,
+        )
+
+        return docs
