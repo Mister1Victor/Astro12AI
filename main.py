@@ -5,6 +5,7 @@ import asyncio
 import aiohttp
 from backend.config import settings
 from dotenv import load_dotenv
+from backend.validators import validate_settings
 
 load_dotenv()
 ENV = os.getenv("ENV", "production").lower()
@@ -23,6 +24,9 @@ from langchain_community.retrievers import BM25Retriever
 from langchain_classic.chains import create_retrieval_chain
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
+from backend.logger import get_logger
+
+logger = get_logger()
 
 print("=== ИНИЦИАЛИЗАЦИЯ ПРОДАКШН АСТРО-БОТА (ИНТЕРПРЕТАЦИЯ) ===")
 
@@ -344,6 +348,7 @@ async def setup_bot_ui():
     await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
 
 async def main():
+    validate_settings()
     if not settings.IS_DEVELOPMENT:
         await start_web_server()
         asyncio.create_task(keep_alive_pinger())
