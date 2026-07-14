@@ -1,5 +1,6 @@
 import os
 
+from core.knowledge.cache import load_cache, save_cache
 from langchain_community.document_loaders import (
     PyPDFLoader,
     Docx2txtLoader,
@@ -9,6 +10,11 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
 def load_knowledge_base(folder_path="knowledge_base"):
+    cached = load_cache()
+
+    if cached is not None:
+        print("⚡ Загружена база знаний из кэша.")
+        return cached
 
     split_docs = []
 
@@ -67,5 +73,6 @@ def load_knowledge_base(folder_path="knowledge_base"):
         raise RuntimeError(
             "База знаний пустая."
         )
-
+    save_cache(split_docs)
+    
     return split_docs
