@@ -100,7 +100,20 @@ async def get_ai_interpretation(query: str) -> str:
         try:
             loop = asyncio.get_running_loop()
             response = await loop.run_in_executor(None, lambda: rag_chain.invoke({"input": query}))
+            if "context" in response:
+                print("\n===== ИСПОЛЬЗОВАННЫЕ ДОКУМЕНТЫ =====")
+
+                used = set()
+
+            for doc in response["context"]:
+                source = doc.metadata.get("source", "Неизвестно")
+
+                if source not in used:
+                 used.add(source)
+                 print(source)
+                 
             return response['answer']
+        
         except Exception as e:
             logger.info(f"⚠️ Ошибка вызова Groq (Попытка {attempt+1}): {e}")
             await asyncio.sleep(3)

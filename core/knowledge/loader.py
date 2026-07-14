@@ -40,6 +40,7 @@ def load_knowledge_base(folder_path="knowledge_base"):
                 loader = PyPDFLoader(path)
 
                 for page in loader.lazy_load():
+                    page.metadata["source"] = file
                     split_docs.extend(
                         splitter.split_documents([page])
                     )
@@ -51,6 +52,7 @@ def load_knowledge_base(folder_path="knowledge_base"):
                 loader = Docx2txtLoader(path)
 
                 for doc in loader.lazy_load():
+                    doc.metadata["source"] = file
                     split_docs.extend(
                         splitter.split_documents([doc])
                     )
