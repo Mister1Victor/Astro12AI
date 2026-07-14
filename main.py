@@ -19,8 +19,7 @@ from aiogram.enums import ChatAction
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import BotCommand, MenuButtonCommands
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from core.knowledge.loader import load_knowledge_base
 from langchain_community.retrievers import BM25Retriever
 from langchain_classic.chains import create_retrieval_chain
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
@@ -29,7 +28,7 @@ from backend.logger import get_logger
 
 logger = get_logger()
 
-print("=== ИНИЦИАЛИЗАЦИЯ ПРОДАКШН АСТРО-БОТА (ИНТЕРПРЕТАЦИЯ) ===")
+logger.info("=== ИНИЦИАЛИЗАЦИЯ ПРОДАКШН АСТРО-БОТА ===")
 
 # Render автоматически прокидывает переменную RENDER_EXTERNAL_URL с публичным адресом
 # сервиса — на неё и будем "стучаться" сами, чтобы не давать Render усыплять сервис.
@@ -42,7 +41,7 @@ from core.knowledge.loader import load_knowledge_base
 
 split_docs = load_knowledge_base()
 
-print(
+logger.info(
     f"🔥 Успешно создано фрагментов: {len(split_docs)}"
 )
 retriever = BM25Retriever.from_documents(split_docs)
@@ -103,7 +102,7 @@ async def get_ai_interpretation(query: str) -> str:
             response = await loop.run_in_executor(None, lambda: rag_chain.invoke({"input": query}))
             return response['answer']
         except Exception as e:
-            print(f"⚠️ Ошибка вызова Groq (Попытка {attempt+1}): {e}")
+            logger.info(f"⚠️ Ошибка вызова Groq (Попытка {attempt+1}): {e}")
             await asyncio.sleep(3)
     return "❌ Извините, шлюз ИИ-интерпретации сейчас перегружен. Повторите отправку выбранной сферы через 5-10 секунд."
 
@@ -292,9 +291,9 @@ async def keep_alive_pinger():
         while True:
             try:
                 async with session.get(SELF_URL) as resp:
-                    print(f"🔁 Self-ping OK: {resp.status}")
+                    logger.info(f"🔁 Self-ping OK: {resp.status}")
             except Exception as e:
-                print(f"⚠️ Self-ping не удался: {e}")
+                logger.info(f"⚠️ Self-ping не удался: {e}")
             await asyncio.sleep(KEEP_ALIVE_INTERVAL)
 
 
@@ -322,7 +321,7 @@ async def main():
         asyncio.create_task(keep_alive_pinger())
     await bot.delete_webhook(drop_pending_updates=True)
     await setup_bot_ui()
-    print(f"🚀 Бот запущен в режиме: {settings.ENV}")
+    logger.info(f"🚀 Бот запущен в режиме: {settings.ENV}")
     await dp.start_polling(bot)
     
 if __name__ == '__main__':
