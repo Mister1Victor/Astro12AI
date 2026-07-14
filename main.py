@@ -345,7 +345,17 @@ async def main():
     await bot.delete_webhook(drop_pending_updates=True)
     await setup_bot_ui()
     logger.info(f"🚀 Бот запущен в режиме: {settings.ENV}")
-    await dp.start_polling(bot)
+    logger.info("=" * 60)
+    logger.info("Astro12AI")
+    logger.info(f"ENV: {settings.ENV}")
+    logger.info(f"Documents: {len(split_docs)}")
+    logger.info(f"Chunks: {len(split_docs)}")
+    logger.info("=" * 60)
+    try:
+        await dp.start_polling(bot)
+
+    finally:
+        await bot.session.close()
     
 if __name__ == '__main__':
     asyncio.run(main())
