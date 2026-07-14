@@ -1,5 +1,5 @@
 from langchain_community.retrievers import BM25Retriever
-
+from collections import OrderedDict
 
 class AstroRetriever:
     """
@@ -15,12 +15,13 @@ class AstroRetriever:
         self.retriever = BM25Retriever.from_documents(documents)
         self.retriever.k = k
 
-    def search(self, query: str):
-        """
-        Выполняет поиск документов.
-        """
+    def search(self, query):
 
         docs = self.retriever.invoke(query)
+
+        docs = self.remove_duplicates(docs)
+
+        docs = self.filter_short_documents(docs)
 
         docs.sort(
             key=lambda d: d.metadata.get("weight", 5),
@@ -46,3 +47,34 @@ class AstroRetriever:
             "documents": len(self.documents),
             "k": self.retriever.k,
         }
+        
+    def remove_duplicates(self, docs):
+        """
+        Удаляет одинаковые фрагменты.
+        """
+
+        unique = OrderedDict()
+
+        for doc in docs:
+
+            text = doc.page_content.strip()
+
+            if text not in unique:
+                unique[text] = doc
+
+        return list(unique.values())
+    
+    def filter_short_documents(self, docs, min_chars=250):
+        """
+        Удаляет слишком короткие документы.
+        """
+
+        result = []
+
+        for doc in docs:
+
+            if len(doc.page_content) >= min_chars:
+                result.append(doc)
+
+        return result
+    

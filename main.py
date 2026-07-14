@@ -4,6 +4,7 @@ import time
 import asyncio
 import aiohttp
 
+from core.prompts.system_prompt import SYSTEM_PROMPT
 from core.rag.engine import AstroRetriever
 from core.rag.context import context_statistics
 from core.llm.model import create_llm
@@ -22,7 +23,6 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import BotCommand, MenuButtonCommands
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from core.knowledge.loader import load_knowledge_base
-from langchain_community.retrievers import BM25Retriever
 from langchain_classic.chains import create_retrieval_chain
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
@@ -39,31 +39,23 @@ KEEP_ALIVE_INTERVAL = 3600  # 10 минут — с запасом до 15-мин
 APP_STARTED_AT = time.time()
 
 # 1. СТРИМИНГОВАЯ ЗАГРУЗКА И ОПТИМИЗАЦИЯ БАЗЫ ЗНАНИЙ
-from core.knowledge.loader import load_knowledge_base
 
-split_docs = load_knowledge_base()
+documents = load_knowledge_base()
 
 logger.info(
-    f"🔥 Успешно создано фрагментов: {len(split_docs)}"
+    f"🔥 Успешно создано фрагментов: {len(documents)}"
 )
 
-astro_retriever = AstroRetriever(split_docs)
+astro_retriever = AstroRetriever(documents)
 
 llm = create_llm()
 
-system_prompt = (
-    "Ты — ведущий ИИ-астролог, эксперт Высшей Школы Астрологии 12 Планет.\n"
-    "Твоя задача — давать точные интерпретации на основании ключевых слов из контекста базы данных школы. \n"
-    "СТРОГО на основе предоставленного авторского контекста документов и книг школы.\n\n"
-    "ИНСТРУКЦИИ ДЛЯ СТРУКТУРИРОВАНИЯ ОТВЕТА:\n"
-    "1. Давай кратко и точно по документации ответ.\n"
-    "2. Оформляй ответ профессионально: используй абзацы, списки и выделяй ключевые астрологические маркеры жирным шрифтом.\n"
-    "3. Делай упор на ту СФЕРУ ЖИЗНИ, которую выбрал пользователь в запросе.\n"
-    "4. Если в контексте Школы нет прямой трактовки, используй фундаментальную логику Школы 12 Планет для синтеза ответа, не копируя банальные тексты из интернета.\n\n"
-    "Контекст из книг Школы 12 Планет:\n{context}"
+prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", SYSTEM_PROMPT),
+        ("human", "{input}")
+    ]
 )
-
-prompt = ChatPromptTemplate.from_messages([("system", system_prompt), ("human", "{input}")])
 question_answer_chain = create_stuff_documents_chain(llm, prompt)
 rag_chain = create_retrieval_chain(
     astro_retriever.get_retriever(),
@@ -111,7 +103,7 @@ async def get_ai_interpretation(query: str) -> str:
                 logger.info(stats)
                 logger.info("=" * 60)
             if "context" in response:
-                print("\n===== ИСПОЛЬЗОВАННЫЕ ДОКУМЕНТЫ =====")
+                logger.info("===== ИСПОЛЬЗОВАННЫЕ ДОКУМЕНТЫ =====")
 
                 used = set()
 
@@ -119,8 +111,8 @@ async def get_ai_interpretation(query: str) -> str:
                 source = doc.metadata.get("source", "Неизвестно")
 
                 if source not in used:
-                 used.add(source)
-                 print(source)
+                   used.add(source)
+                   logger.info(source)
                  
             return response['answer']
         
@@ -348,8 +340,8 @@ async def main():
     logger.info("=" * 60)
     logger.info("Astro12AI")
     logger.info(f"ENV: {settings.ENV}")
-    logger.info(f"Documents: {len(split_docs)}")
-    logger.info(f"Chunks: {len(split_docs)}")
+    logger.info(f"Documents: {len(documents)}")
+    logger.info(f"Knowledge chunks: {len(documents)}")
     logger.info("=" * 60)
     try:
         await dp.start_polling(bot)
@@ -359,6 +351,3 @@ async def main():
     
 if __name__ == '__main__':
     asyncio.run(main())
-
-def is_development():
-    return ENV == "development"
