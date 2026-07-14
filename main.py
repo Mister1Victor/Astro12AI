@@ -19,7 +19,6 @@ from aiogram.enums import ChatAction
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import BotCommand, MenuButtonCommands
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from langchain_groq import ChatGroq
 from langchain_community.document_loaders import PyPDFLoader, Docx2txtLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.retrievers import BM25Retriever
@@ -32,54 +31,20 @@ logger = get_logger()
 
 print("=== ИНИЦИАЛИЗАЦИЯ ПРОДАКШН АСТРО-БОТА (ИНТЕРПРЕТАЦИЯ) ===")
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
 # Render автоматически прокидывает переменную RENDER_EXTERNAL_URL с публичным адресом
 # сервиса — на неё и будем "стучаться" сами, чтобы не давать Render усыплять сервис.
 SELF_URL = os.getenv("RENDER_EXTERNAL_URL", "https://astro-bot-b8m8.onrender.com")
 KEEP_ALIVE_INTERVAL = 3600  # 10 минут — с запасом до 15-минутного таймаута простоя Render
 APP_STARTED_AT = time.time()
 
-if not TELEGRAM_TOKEN or not GROQ_API_KEY:
-    print("❌ КРИТИЧЕСКАЯ ОШИБКА: Проверьте ключи TELEGRAM_TOKEN и GROQ_API_KEY на Render!")
-    exit(1)
-
 # 1. СТРИМИНГОВАЯ ЗАГРУЗКА И ОПТИМИЗАЦИЯ БАЗЫ ЗНАНИЙ
-FOLDER_PATH = "knowledge_base"
-split_docs = []
+from core.knowledge.loader import load_knowledge_base
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
+split_docs = load_knowledge_base()
 
-if os.path.exists(FOLDER_PATH):
-    files = os.listdir(FOLDER_PATH)
-    print(f"Папка найдена. Начинаю потоковую обработку файлов: {files}")
-    for file in files:
-        if file.startswith("~$") or file.startswith("."):
-            continue
-        file_path = os.path.join(FOLDER_PATH, file)
-        try:
-            if file.endswith('.pdf'):
-                loader = PyPDFLoader(file_path)
-                for page in loader.lazy_load():
-                    split_docs.extend(text_splitter.split_documents([page]))
-                print(f"✅ Файл PDF успешно обработан потоком: {file}")
-            elif file.endswith('.docx'):
-                loader = Docx2txtLoader(file_path)
-                for doc in loader.lazy_load():
-                    split_docs.extend(text_splitter.split_documents([doc]))
-                print(f"✅ Файл Word успешно обработан потоком: {file}")
-        except Exception as e:
-            print(f"⚠️ Ошибка при чтении файла {file}: {e}")
-else:
-    print(f"❌ КРИТИЧЕСКАЯ ОШИБКА: Папка '{FOLDER_PATH}' отсутствует!")
-    exit(1)
-
-if not split_docs:
-    print("❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось подготовить фрагменты текста!")
-    exit(1)
-
-print(f"🔥 Успешно создано фрагментов базы знаний: {len(split_docs)}. Инициализация BM25...")
+print(
+    f"🔥 Успешно создано фрагментов: {len(split_docs)}"
+)
 retriever = BM25Retriever.from_documents(split_docs)
 retriever.k = 4
 
@@ -102,7 +67,7 @@ prompt = ChatPromptTemplate.from_messages([("system", system_prompt), ("human", 
 question_answer_chain = create_stuff_documents_chain(llm, prompt)
 rag_chain = create_retrieval_chain(retriever, question_answer_chain)
 
-bot = Bot(token=TELEGRAM_TOKEN)
+bot = Bot(token=settings.TELEGRAM_TOKEN)
 dp = Dispatcher()
 
 user_context_store = {}
