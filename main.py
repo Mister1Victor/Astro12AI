@@ -3,6 +3,8 @@ import re
 import time
 import asyncio
 import aiohttp
+
+from core.llm.model import create_llm
 from backend.config import settings
 from dotenv import load_dotenv
 from backend.validators import validate_settings
@@ -81,12 +83,13 @@ print(f"🔥 Успешно создано фрагментов базы зна�
 retriever = BM25Retriever.from_documents(split_docs)
 retriever.k = 4
 
-llm = ChatGroq(temperature=0.2, groq_api_key=GROQ_API_KEY, model_name="llama-3.3-70b-versatile")
+#llm = ChatGroq(temperature=0.2, groq_api_key=GROQ_API_KEY, model_name="llama-3.3-70b-versatile")
+llm = create_llm()
 
 system_prompt = (
     "Ты — ведущий ИИ-астролог, эксперт Высшей Школы Астрологии 12 Планет.\n"
     "Твоя задача — давать точные интерпретации на основании ключевых слов из контекста базы данных школы. \n"
-    "СТРОГО на основе предоставленного авторского контекста методичек и книг школы.\n\n"
+    "СТРОГО на основе предоставленного авторского контекста документов и книг школы.\n\n"
     "ИНСТРУКЦИИ ДЛЯ СТРУКТУРИРОВАНИЯ ОТВЕТА:\n"
     "1. Давай кратко и точно по документации ответ.\n"
     "2. Оформляй ответ профессионально: используй абзацы, списки и выделяй ключевые астрологические маркеры жирным шрифтом.\n"
