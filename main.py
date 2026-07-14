@@ -4,6 +4,8 @@ import time
 import asyncio
 import aiohttp
 
+from core.rag.engine import AstroRetriever
+from core.rag.context import context_statistics
 from core.llm.model import create_llm
 from backend.config import settings
 from dotenv import load_dotenv
@@ -44,10 +46,9 @@ split_docs = load_knowledge_base()
 logger.info(
     f"🔥 Успешно создано фрагментов: {len(split_docs)}"
 )
-retriever = BM25Retriever.from_documents(split_docs)
-retriever.k = 4
 
-#llm = ChatGroq(temperature=0.2, groq_api_key=GROQ_API_KEY, model_name="llama-3.3-70b-versatile")
+astro_retriever = AstroRetriever(split_docs)
+
 llm = create_llm()
 
 system_prompt = (
@@ -64,7 +65,10 @@ system_prompt = (
 
 prompt = ChatPromptTemplate.from_messages([("system", system_prompt), ("human", "{input}")])
 question_answer_chain = create_stuff_documents_chain(llm, prompt)
-rag_chain = create_retrieval_chain(retriever, question_answer_chain)
+rag_chain = create_retrieval_chain(
+    astro_retriever.retriever,
+    question_answer_chain
+)
 
 bot = Bot(token=settings.TELEGRAM_TOKEN)
 dp = Dispatcher()
@@ -100,6 +104,12 @@ async def get_ai_interpretation(query: str) -> str:
         try:
             loop = asyncio.get_running_loop()
             response = await loop.run_in_executor(None, lambda: rag_chain.invoke({"input": query}))
+            if "context" in response:
+                stats = context_statistics(response["context"])
+                logger.info("=" * 60)
+                logger.info("КОНТЕКСТ RAG")
+                logger.info(stats)
+                logger.info("=" * 60)
             if "context" in response:
                 print("\n===== ИСПОЛЬЗОВАННЫЕ ДОКУМЕНТЫ =====")
 
