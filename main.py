@@ -66,7 +66,7 @@ system_prompt = (
 prompt = ChatPromptTemplate.from_messages([("system", system_prompt), ("human", "{input}")])
 question_answer_chain = create_stuff_documents_chain(llm, prompt)
 rag_chain = create_retrieval_chain(
-    astro_retriever.retriever,
+    astro_retriever.get_retriever(),
     question_answer_chain
 )
 
