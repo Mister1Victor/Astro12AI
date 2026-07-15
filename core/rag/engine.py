@@ -79,6 +79,19 @@ class AstroRetriever:
     def __init__(self, documents, k=8):
 
         self.documents = documents
+        self.semantic_index = {}
+
+        for doc in self.documents:
+
+            text = self.normalize_query(doc.page_content)
+
+            entities = self.extract_entities(text)
+
+            for entity in entities:
+
+                self.semantic_index.setdefault(entity, [])
+
+                self.semantic_index[entity].append(text)
 
         for doc in self.documents:
 
@@ -97,9 +110,10 @@ class AstroRetriever:
 
     def search(self, query):
 
-        query = self.normalize_query(query)
+        query = self.expand_query(query)
 
         docs = self.retriever.invoke(query)
+        docs = docs[:20]
 
         docs = self.remove_duplicates(docs)
 
@@ -188,6 +202,36 @@ class AstroRetriever:
                 entities.add(house)
 
         return entities
+
+    def expand_query(self, query: str):
+
+        query = self.normalize_query(query)
+
+        expanded = [query]
+
+        entities = self.extract_entities(query)
+
+        for entity in entities:
+
+            if entity not in self.semantic_index:
+                continue
+
+            words = Counter()
+
+        for text in self.semantic_index[entity]:
+
+            for word in self.tokenize(text):
+
+                if len(word) < 5:
+                    continue
+
+                words[word] += 1
+
+        for word, _ in words.most_common(20):
+
+            expanded.append(word)
+
+        return " ".join(expanded)
 
     def entity_score(
         self,
@@ -304,6 +348,19 @@ class AstroRetriever:
         document,
     ):
 
+        entity_score = self.entity_score(
+            query,
+            document,
+        )
+
+        keyword_score = 0
+
+        for word, count in query_words.items():
+
+            keyword_score += document_words[word] * count
+
+        weight = document.metadata.get("weight", 5)
+
         query_words = Counter(
             self.tokenize(query)
         )
@@ -332,11 +389,10 @@ class AstroRetriever:
             5,
         )
 
-        score = (
-            entity_score * 100
-            + keyword_score * 10
-            + weight
-        )
+        score = 0
+        score += entity_score * 100
+        score += keyword_score * 10
+        score += weight
 
         return score
 
