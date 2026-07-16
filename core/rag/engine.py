@@ -110,7 +110,6 @@ class AstroRetriever:
         docs = self.limit_same_source(docs)
         docs = self.sort_documents(query, docs)
         print("\nTOP DOCUMENTS")
-
         for i, doc in enumerate(docs[:5], 1):
 
             print(
@@ -119,6 +118,15 @@ class AstroRetriever:
                 f"weight={doc.metadata.get('weight')} | "
                 f"score={self.calculate_score(query, doc)}"
             )
+
+        print("\nCONTEXT\n")
+
+        for doc in docs[:3]:
+
+            print("=" * 80)
+            print(doc.metadata.get("source"))
+            print()
+            print(doc.page_content[:1000])
 
         return docs
 
