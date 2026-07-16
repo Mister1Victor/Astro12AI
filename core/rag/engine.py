@@ -79,50 +79,9 @@ class AstroRetriever:
         "12 дом",
     }
 
-    def build_dictionary(self):
-
-        for entity in ASTRO_TERMS:
-            ASTRO_TERMS[entity] = []
-
-        for doc in self.documents:
-
-            text = self.normalize_query(doc.page_content)
-
-            words = self.tokenize(text)
-
-            entities = self.extract_entities(text)
-
-            for entity in entities:
-
-                if entity not in ASTRO_TERMS:
-                    continue
-
-                storage = ASTRO_TERMS[entity]
-
-                for word in words:
-
-                    if len(word) < 5:
-                        continue
-
-                    if word == entity:
-                        continue
-
-                    storage.append(word)
-
-        for entity in ASTRO_TERMS:
-
-            freq = Counter(ASTRO_TERMS[entity])
-
-            ASTRO_TERMS[entity] = [
-                word
-                for word, _
-                in freq.most_common(40)
-            ]
-
     def __init__(self, documents, k=8):
 
         self.documents = documents
-        self.build_dictionary()
 
         for doc in self.documents:
 
@@ -244,12 +203,28 @@ class AstroRetriever:
 
         for entity in entities:
 
+            expanded.append(entity)
+            expanded.append(entity)
+        entities = self.extract_entities(query)
+
+        for entity in entities:
+
             if entity not in ASTRO_TERMS:
                 continue
 
-            expanded.extend(
-                ASTRO_TERMS[entity]
-            )
+            for keyword in ASTRO_TERMS[entity]:
+
+                expanded.append(keyword)
+
+                expanded.append(keyword)
+
+            print("=" * 80)
+            print("QUERY")
+            print(query)
+            print()
+            print("EXPANDED")
+            print(" ".join(expanded))
+            print("=" * 80)
 
         return " ".join(expanded)
 
