@@ -1,20 +1,21 @@
 import re
 
 from collections import Counter, OrderedDict
+
 from langchain_community.retrievers import BM25Retriever
 
 from core.knowledge.weights import (
-    get_document_weight,
     ASTRO_TERMS,
+    get_document_weight,
 )
 
 
 class AstroRetriever:
     """
-    Собственный поисковый движок Astro12AI.
+    Центральный поисковый движок Astro12AI.
 
-    Вся логика поиска постепенно переносится сюда.
-    main.py изменять не потребуется.
+    В дальнейшем весь интеллектуальный поиск будет
+    реализован именно здесь без изменения main.py.
     """
 
     REPLACE = {
@@ -65,19 +66,13 @@ class AstroRetriever:
     }
 
     HOUSES = {
-        "1 дом",
-        "2 дом",
-        "3 дом",
-        "4 дом",
-        "5 дом",
-        "6 дом",
-        "7 дом",
-        "8 дом",
-        "9 дом",
-        "10 дом",
-        "11 дом",
-        "12 дом",
+        f"{i} дом"
+        for i in range(1, 13)
     }
+
+    # ==========================================================
+    # INIT
+    # ==========================================================
 
     def __init__(self, documents, k=8):
 
@@ -94,80 +89,62 @@ class AstroRetriever:
         self.retriever = BM25Retriever.from_documents(self.documents)
         self.retriever.k = k
 
-    # =====================================================
+    # ==========================================================
     # PUBLIC
-    # =====================================================
+    # ==========================================================
 
     def search(self, query):
 
-        query = self.expand_query(query)
+        expanded_query = self.expand_query(query)
 
-        docs = self.retriever.invoke(query)
+        docs = self.retriever.invoke(expanded_query)
         docs = docs[:20]
 
         docs = self.remove_duplicates(docs)
-
         docs = self.filter_short_documents(docs)
-
-        docs = self.filter_by_entities(
-            query,
-            docs,
-        )
-
+        docs = self.filter_by_entities(query, docs)
         docs = self.limit_same_source(docs)
-
-        docs = self.sort_documents(
-            query,
-            docs,
-        )
+        docs = self.sort_documents(query, docs)
 
         return docs
 
     def get_retriever(self):
-        """
-        Пока оставляем совместимость
-        с create_retrieval_chain().
-        """
-
         return self.retriever
 
     def stats(self):
-
         return {
             "documents": len(self.documents),
             "k": self.retriever.k,
         }
 
-    # =====================================================
+    # ==========================================================
     # NORMALIZATION
-    # =====================================================
+    # ==========================================================
 
-    def normalize_query(self, query):
+    def normalize_query(self, text):
 
-        query = query.lower()
+        text = text.lower()
 
-        query = re.sub(r"[^\w\s]", " ", query)
+        text = re.sub(r"[^\w\s]", " ", text)
 
         for old, new in self.REPLACE.items():
-            query = query.replace(old, new)
+            text = text.replace(old, new)
 
-        query = re.sub(r"\s+", " ", query)
+        text = re.sub(r"\s+", " ", text)
 
-        return query.strip()
+        return text.strip()
 
     def tokenize(self, text):
 
-        text = self.normalize_query(text)
-
         return [
             word
-            for word in text.split()
+            for word in self.normalize_query(text).split()
             if len(word) > 2
         ]
 
-    # =====================================================
-    # ENTITIES
-    # =====================================================
+    # ==========================================================
+    # ENTITY EXTRACTION
+    # ==========================================================
 
     def extract_entities(self, text):
 
@@ -175,21 +152,15 @@ class AstroRetriever:
 
         entities = set()
 
-        for planet in self.PLANETS:
-            if planet in text:
-                entities.add(planet)
-
-        for sign in self.SIGNS:
-            if sign in text:
-                entities.add(sign)
-
-        for aspect in self.ASPECTS:
-            if aspect in text:
-                entities.add(aspect)
-
-        for house in self.HOUSES:
-            if house in text:
-                entities.add(house)
+        for collection in (
+            self.PLANETS,
+            self.SIGNS,
+            self.ASPECTS,
+            self.HOUSES,
+        ):
+            for value in collection:
+                if value in text:
+                    entities.add(value)
 
         return entities
 
@@ -199,52 +170,29 @@ class AstroRetriever:
 
         expanded = [query]
 
-        entities = self.extract_entities(query)
+        for entity in self.extract_entities(query):
 
-        for entity in entities:
+            expanded.extend([entity, entity])
 
-            expanded.append(entity)
-            expanded.append(entity)
-        entities = self.extract_entities(query)
+            if entity in ASTRO_TERMS:
 
-        for entity in entities:
+                for keyword in ASTRO_TERMS[entity]:
 
-            if entity not in ASTRO_TERMS:
-                continue
+                    expanded.extend([keyword, keyword])
 
-            for keyword in ASTRO_TERMS[entity]:
-
-                expanded.append(keyword)
-
-                expanded.append(keyword)
-
-            print("=" * 80)
-            print("QUERY")
-            print(query)
-            print()
-            print("EXPANDED")
-            print(" ".join(expanded))
-            print("=" * 80)
+        print("=" * 80)
+        print("QUERY")
+        print(query)
+        print()
+        print("EXPANDED")
+        print(" ".join(expanded))
+        print("=" * 80)
 
         return " ".join(expanded)
 
-    def entity_score(
-        self,
-        query,
-        document,
-    ):
-
-        q = self.extract_entities(query)
-
-        d = self.extract_entities(
-            document.page_content
-        )
-
-        return len(q & d)
-
-    # =====================================================
+    # ==========================================================
     # FILTERS
-    # =====================================================
+    # ==========================================================
 
     def remove_duplicates(self, docs):
 
@@ -252,10 +200,7 @@ class AstroRetriever:
 
         for doc in docs:
 
-            text = doc.page_content.strip()
-
-            if text not in unique:
-                unique[text] = doc
+            unique.setdefault(doc.page_content.strip(), doc)
 
         return list(unique.values())
 
@@ -284,20 +229,19 @@ class AstroRetriever:
 
         result = []
 
+        minimum = max(
+            1,
+            len(query_entities) // 2,
+        )
+
         for doc in docs:
 
-            doc_entities = self.extract_entities(
-                doc.page_content
-            )
-
             matches = len(
-                query_entities & doc_entities
+                query_entities &
+                self.extract_entities(doc.page_content)
             )
 
-            if matches >= max(
-                1,
-                len(query_entities) // 2,
-            ):
+            if matches >= minimum:
                 result.append(doc)
 
         return result
@@ -308,21 +252,14 @@ class AstroRetriever:
         max_per_source=2,
     ):
 
-        counter = {}
-
         result = []
+        counter = {}
 
         for doc in docs:
 
-            source = doc.metadata.get(
-                "source",
-                "",
-            )
+            source = doc.metadata.get("source", "")
 
-            counter[source] = counter.get(
-                source,
-                0,
-            )
+            counter[source] = counter.get(source, 0)
 
             if counter[source] >= max_per_source:
                 continue
@@ -333,9 +270,21 @@ class AstroRetriever:
 
         return result
 
-    # =====================================================
+    # ==========================================================
     # RANKING
-    # =====================================================
+    # ==========================================================
+
+    def entity_score(
+        self,
+        query,
+        document,
+    ):
+
+        return len(
+            self.extract_entities(query)
+            &
+            self.extract_entities(document.page_content)
+        )
 
     def calculate_score(
         self,
@@ -343,41 +292,23 @@ class AstroRetriever:
         document,
     ):
 
-        query_words = Counter(
-            self.tokenize(query)
+        query_words = Counter(self.tokenize(query))
+        document_words = Counter(self.tokenize(document.page_content))
+
+        keyword_score = sum(
+            document_words[word] * count
+            for word, count in query_words.items()
         )
 
-        document_words = Counter(
-            self.tokenize(
-                document.page_content
-            )
-        )
+        entity_score = self.entity_score(query, document)
 
-        keyword_score = 0
+        weight = document.metadata.get("weight", 5)
 
-        for word, count in query_words.items():
-
-            keyword_score += (
-                document_words[word] * count
-            )
-
-        entity_score = self.entity_score(
-            query,
-            document,
-        )
-
-        weight = document.metadata.get(
-            "weight",
-            5,
-        )
-
-        score = (
+        return (
             entity_score * 100
             + keyword_score * 10
             + weight
         )
-
-        return score
 
     def sort_documents(
         self,
@@ -386,10 +317,7 @@ class AstroRetriever:
     ):
 
         docs.sort(
-            key=lambda doc: self.calculate_score(
-                query,
-                doc,
-            ),
+            key=lambda doc: self.calculate_score(query, doc),
             reverse=True,
         )
 
