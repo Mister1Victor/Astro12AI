@@ -109,6 +109,15 @@ class AstroRetriever:
         docs = self.filter_by_entities(query, docs)
         docs = self.limit_same_source(docs)
         docs = self.sort_documents(query, docs)
+
+        authority = self.build_authority_context(query)
+        if authority:
+            docs[0].page_content = (
+                authority
+                + "\n\n"
+                + docs[0].page_content
+            )
+
         print("\nTOP DOCUMENTS")
         for i, doc in enumerate(docs[:5], 1):
 
@@ -290,6 +299,47 @@ class AstroRetriever:
             )
 
         return " ".join(expanded)
+
+    def build_authority_context(
+        self,
+        query,
+    ):
+        """
+        Собирает авторские определения
+        для найденных сущностей.
+
+        Этот текст будет помещаться
+        В НАЧАЛО контекста.
+        """
+
+        entities = self.extract_entities(query)
+
+        if not entities:
+            return ""
+
+        parts = [
+            "=== АВТОРСКИЕ ОПРЕДЕЛЕНИЯ ШКОЛЫ ===",
+            "",
+        ]
+
+        for entity in entities:
+
+            if entity not in ASTRO_TERMS:
+                continue
+
+            parts.append(entity.upper())
+
+            for term in ASTRO_TERMS[entity]:
+
+                parts.append(f"• {term}")
+
+            parts.append("")
+
+        parts.append(
+            "Использовать исключительно эти определения."
+        )
+
+        return "\n".join(parts)
 
     # ==========================================================
     # FILTERS
