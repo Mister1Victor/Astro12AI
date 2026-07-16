@@ -105,6 +105,16 @@ class AstroRetriever:
         docs = self.filter_by_entities(query, docs)
         docs = self.limit_same_source(docs)
         docs = self.sort_documents(query, docs)
+        print("\nTOP DOCUMENTS")
+
+        for i, doc in enumerate(docs[:5], 1):
+
+            print(
+                f"{i}. "
+                f"{doc.metadata.get('source')} | "
+                f"weight={doc.metadata.get('weight')} | "
+                f"score={self.calculate_score(query, doc)}"
+            )
 
         return docs
 
@@ -174,19 +184,28 @@ class AstroRetriever:
 
             expanded.extend([entity, entity])
 
-            if entity in ASTRO_TERMS:
+            if entity not in ASTRO_TERMS:
+                continue
 
-                for keyword in ASTRO_TERMS[entity]:
-
-                    expanded.extend([keyword, keyword])
+            for keyword in ASTRO_TERMS[entity][:8]:
+                expanded.append(keyword)
 
         print("=" * 80)
         print("QUERY")
         print(query)
         print()
         print("EXPANDED")
-        print(" ".join(expanded))
+        print("\nEXPANDED QUERY")
+        for word in expanded:
+            print("•", word)
         print("=" * 80)
+        for i, doc in enumerate(docs[:5], 1):
+            print(
+                f"{i}. "
+                f"{doc.metadata.get('source')} | "
+                f"entities={self.entity_score(query, doc)} | "
+                f"score={self.calculate_score(query, doc)}"
+            )
 
         return " ".join(expanded)
 
@@ -286,29 +305,93 @@ class AstroRetriever:
             self.extract_entities(document.page_content)
         )
 
+    def exact_entity_match(
+        self,
+        query,
+        document,
+    ):
+
+        q = self.extract_entities(query)
+        d = self.extract_entities(document.page_content)
+
+        if not q:
+            return 0
+
+        if q == d:
+            return 5
+
+        if q.issubset(d):
+            return 3
+
+        return 0
+
     def calculate_score(
         self,
         query,
         document,
     ):
 
-        query_words = Counter(self.tokenize(query))
-        document_words = Counter(self.tokenize(document.page_content))
+        query_words = Counter(
+            self.tokenize(query)
+        )
+
+        document_words = Counter(
+            self.tokenize(document.page_content)
+        )
 
         keyword_score = sum(
             document_words[word] * count
             for word, count in query_words.items()
         )
 
-        entity_score = self.entity_score(query, document)
+        entity_score = self.entity_score(
+            query,
+            document,
+        )
 
-        weight = document.metadata.get("weight", 5)
+        astro_score = self.astro_terms_score(
+            query,
+            document,
+        )
+
+        exact_score = self.exact_entity_match(
+            query,
+            document,
+        )
+
+        weight = document.metadata.get(
+            "weight",
+            5,
+        )
 
         return (
-            entity_score * 100
+            entity_score * 120
+            + exact_score * 80
+            + astro_score * 30
             + keyword_score * 10
             + weight
         )
+
+    def astro_terms_score(
+        self,
+        query,
+        document,
+    ):
+
+        score = 0
+
+        document_text = self.normalize_query(
+            document.page_content
+        )
+
+        for entity in self.extract_entities(query):
+
+            for word in ASTRO_TERMS.get(entity, []):
+
+                if word in document_text:
+                    score += 1
+
+        return score
 
     def sort_documents(
         self,

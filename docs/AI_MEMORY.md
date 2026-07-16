@@ -19,6 +19,92 @@ Astro12AI
 а максимально точная интерпретация
 авторской базы знаний.
 
+# Current Version
+
+v0.9.8
+
+---
+
+# Current Retrieval Pipeline
+
+normalize()
+
+↓
+
+extract entities
+
+↓
+
+expand query
+
+↓
+
+BM25
+
+↓
+
+remove duplicates
+
+↓
+
+remove short chunks
+
+↓
+
+entity filter
+
+↓
+
+source limiter
+
+↓
+
+weighted ranking
+
+↓
+
+LLM
+
+---
+
+# Главная цель проекта
+
+Полностью отказаться от классического BM25.
+
+Retrieval должен искать не слова.
+
+Retrieval должен искать авторские понятия Школы Астрологии "12 Планет".
+
+В дальнейшем вся логика поиска должна находиться исключительно в:
+
+core/rag/engine.py
+
+без изменения main.py.
+
+---
+
+# Следующий крупный этап
+
+Semantic School Retrieval
+
+Авторские определения
+
+↓
+
+Авторские сущности
+
+↓
+
+Авторские связи
+
+↓
+
+Поиск по смыслу
+
+↓
+
+Только потом LLM
+
 # КРИТИЧЕСКОЕ РЕШЕНИЕ
 
 Дата:
