@@ -94,29 +94,38 @@ class AstroRetriever:
     # ==========================================================
 
     def search(self, query):
-
         expanded_query = self.expand_query(query)
-        print()
-        print("PARSED CHART")
+        print("\nPARSED CHART")
         print(self.parse_chart(query))
         print()
 
-        docs = self.retriever.invoke(expanded_query)
-        docs = docs[:20]
-
+        docs = self.retriever.invoke(expanded_query)[:20]
         docs = self.remove_duplicates(docs)
         docs = self.filter_short_documents(docs)
         docs = self.filter_by_entities(query, docs)
         docs = self.limit_same_source(docs)
         docs = self.sort_documents(query, docs)
+        docs = self.force_school_definition(query, docs)
 
+        # Добавляем контекст авторитета
         authority = self.build_authority_context(query)
-        if authority:
-            docs[0].page_content = (
-                authority
-                + "\n\n"
-                + docs[0].page_content
-            )
+        if authority and docs:
+            docs[0].page_content = authority + "\n\n" + docs[0].page_content
+
+        # Фильтрация по запрещённым словам (если нужно)
+        FORBIDDEN = {
+            "плутон": [
+                "трансформация",
+                "перерождение",
+                "глубинные изменения",
+                "интенсивность",
+            ],
+        }
+        # Пример: удаляем документы, содержащие запрещённые слова для планеты Плутон
+        # (но сначала нужно определить, какая планета активна в запросе)
+
+        docs = [doc for doc in docs if not any(word in doc.page_content.lower()
+                                               for word in FORBIDDEN.get("плутон", []))]
 
         print("\nTOP DOCUMENTS")
         for i, doc in enumerate(docs[:5], 1):
@@ -138,6 +147,28 @@ class AstroRetriever:
             print(doc.page_content[:1000])
 
         return docs
+
+    def force_school_definition(self, query, docs):
+
+        entities = self.extract_entities(query)
+
+        if "плутон" not in entities:
+            return docs
+
+        result = []
+
+        for doc in docs:
+
+            text = self.normalize_query(doc.page_content)
+
+            if (
+                "взаимодейств" in text
+                or "партнер" in text
+                or "переговор" in text
+            ):
+                result.append(doc)
+
+        return result or docs
 
     def get_retriever(self):
         return self.retriever
