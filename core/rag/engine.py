@@ -3,7 +3,14 @@ import re
 from collections import Counter, OrderedDict
 from langchain_community.retrievers import BM25Retriever
 
-from core.knowledge.weights import get_document_weight
+from core.knowledge.weights import (
+    get_document_weight,
+    ASTRO_TERMS,
+)
+
+from pprint import pprint
+
+pprint(ASTRO_TERMS["марс"])
 
 
 class AstroRetriever:
@@ -76,22 +83,49 @@ class AstroRetriever:
         "12 дом",
     }
 
-    def __init__(self, documents, k=8):
-
-        self.documents = documents
-        self.semantic_index = {}
+    def build_dictionary(self):
 
         for doc in self.documents:
 
-            text = self.normalize_query(doc.page_content)
+            text = self.normalize_query(
+                doc.page_content
+            )
 
-            entities = self.extract_entities(text)
+        words = self.tokenize(text)
 
-            for entity in entities:
+        entities = self.extract_entities(text)
 
-                self.semantic_index.setdefault(entity, [])
+        for entity in entities:
 
-                self.semantic_index[entity].append(text)
+            if entity not in ASTRO_TERMS:
+                continue
+
+            storage = ASTRO_TERMS[entity]
+
+            for word in words:
+
+                if len(word) < 5:
+                    continue
+
+                if word == entity:
+                    continue
+
+                storage.append(word)
+
+    for entity in ASTRO_TERMS:
+
+        freq = Counter(ASTRO_TERMS[entity])
+
+        ASTRO_TERMS[entity] = [
+            word
+            for word, _
+            in freq.most_common(40)
+        ]
+
+    def __init__(self, documents, k=8):
+
+        self.documents = documents
+        self.build_dictionary()
 
         for doc in self.documents:
 
@@ -203,7 +237,7 @@ class AstroRetriever:
 
         return entities
 
-    def expand_query(self, query: str):
+    def expand_query(self, query):
 
         query = self.normalize_query(query)
 
@@ -213,23 +247,12 @@ class AstroRetriever:
 
         for entity in entities:
 
-            if entity not in self.semantic_index:
+            if entity not in ASTRO_TERMS:
                 continue
 
-            words = Counter()
-
-        for text in self.semantic_index[entity]:
-
-            for word in self.tokenize(text):
-
-                if len(word) < 5:
-                    continue
-
-                words[word] += 1
-
-        for word, _ in words.most_common(20):
-
-            expanded.append(word)
+            expanded.extend(
+                ASTRO_TERMS[entity]
+            )
 
         return " ".join(expanded)
 
