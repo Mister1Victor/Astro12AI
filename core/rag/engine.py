@@ -96,6 +96,10 @@ class AstroRetriever:
     def search(self, query):
 
         expanded_query = self.expand_query(query)
+        print()
+        print("PARSED CHART")
+        print(self.parse_chart(query))
+        print()
 
         docs = self.retriever.invoke(expanded_query)
         docs = docs[:20]
@@ -173,6 +177,76 @@ class AstroRetriever:
                     entities.add(value)
 
         return entities
+
+    def parse_chart(self, text):
+        """
+        Разбирает запрос на астрологические сущности.
+        """
+
+        text = self.normalize_query(text)
+
+        return {
+            "planets": [
+                p for p in self.PLANETS
+                if p in text
+            ],
+
+            "signs": [
+                s for s in self.SIGNS
+                if s in text
+            ],
+
+            "houses": [
+                h for h in self.HOUSES
+                if h in text
+            ],
+
+            "aspects": [
+                a for a in self.ASPECTS
+                if a in text
+            ],
+        }
+
+    def chart_score(
+        self,
+        query,
+        document,
+    ):
+        """
+        Совпадение полной астрологической конструкции.
+        """
+
+        q = self.parse_chart(query)
+
+        d = self.parse_chart(document.page_content)
+
+        score = 0
+
+        score += len(
+            set(q["planets"])
+            &
+            set(d["planets"])
+        ) * 5
+
+        score += len(
+            set(q["signs"])
+            &
+            set(d["signs"])
+        ) * 4
+
+        score += len(
+            set(q["houses"])
+            &
+            set(d["houses"])
+        ) * 4
+
+        score += len(
+            set(q["aspects"])
+            &
+            set(d["aspects"])
+        ) * 6
+
+        return score
 
     def expand_query(self, query):
 
@@ -354,6 +428,11 @@ class AstroRetriever:
             document,
         )
 
+        chart_score = self.chart_score(
+            query,
+            document,
+        )
+
         exact_score = self.exact_entity_match(
             query,
             document,
@@ -365,7 +444,8 @@ class AstroRetriever:
         )
 
         return (
-            entity_score * 120
+            chart_score * 200
+            + entity_score * 120
             + exact_score * 80
             + astro_score * 30
             + keyword_score * 10
