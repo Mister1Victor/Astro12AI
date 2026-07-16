@@ -94,6 +94,12 @@ class AstroRetriever:
     # ==========================================================
 
     def search(self, query):
+        if self.is_entity_query(query):
+            authority = self.build_authority_context(
+                query
+            )
+        else:
+            authority = ""
         expanded_query = self.expand_query(query)
         print("\nPARSED CHART")
         print(self.parse_chart(query))
@@ -105,12 +111,28 @@ class AstroRetriever:
         docs = self.filter_by_entities(query, docs)
         docs = self.limit_same_source(docs)
         docs = self.sort_documents(query, docs)
+        docs = self.force_school_definition(
+            query,
+            docs,
+        )
+
+        if authority and docs:
+
+            docs[0].metadata[
+                "authority_context"
+            ] = authority
         docs = self.force_school_definition(query, docs)
 
         # Добавляем контекст авторитета
-        authority = self.build_authority_context(query)
-        if authority and docs:
-            docs[0].page_content = authority + "\n\n" + docs[0].page_content
+        authority = self.build_authority_context(
+            query,
+        )
+
+        if authority:
+
+            docs[0].metadata[
+                "authority_context"
+            ] = authority
 
         # Фильтрация по запрещённым словам (если нужно)
         FORBIDDEN = {
@@ -148,24 +170,43 @@ class AstroRetriever:
 
         return docs
 
-    def force_school_definition(self, query, docs):
+    def force_school_definition(
+        self,
+        query,
+        docs,
+    ):
+        """
+        Если пользователь спрашивает одну сущность,
+        оставляем только документы,
+        содержащие авторское описание Школы.
+        """
 
         entities = self.extract_entities(query)
 
-        if "плутон" not in entities:
+        if len(entities) != 1:
+            return docs
+
+        entity = next(iter(entities))
+
+        school_terms = ASTRO_TERMS.get(entity)
+
+        if not school_terms:
             return docs
 
         result = []
 
         for doc in docs:
 
-            text = self.normalize_query(doc.page_content)
+            text = self.normalize_query(
+                doc.page_content
+            )
 
-            if (
-                "взаимодейств" in text
-                or "партнер" in text
-                or "переговор" in text
-            ):
+            matches = sum(
+                word.lower() in text
+                for word in school_terms
+            )
+
+            if matches >= 3:
                 result.append(doc)
 
         return result or docs
@@ -321,13 +362,6 @@ class AstroRetriever:
         for word in expanded:
             print("•", word)
         print("=" * 80)
-        for i, doc in enumerate(docs[:5], 1):
-            print(
-                f"{i}. "
-                f"{doc.metadata.get('source')} | "
-                f"entities={self.entity_score(query, doc)} | "
-                f"score={self.calculate_score(query, doc)}"
-            )
 
         return " ".join(expanded)
 
@@ -366,11 +400,30 @@ class AstroRetriever:
 
             parts.append("")
 
+        parts.append("")
+
         parts.append(
-            "Использовать исключительно эти определения."
+            "Используй только определения Школы."
+        )
+
+        parts.append(
+            "Игнорируй любые общеастрологические трактовки."
+        )
+
+        parts.append(
+            "Если информация отсутствует — не придумывай её."
         )
 
         return "\n".join(parts)
+
+    def is_entity_query(
+        self,
+        query,
+    ):
+
+        return len(
+            self.extract_entities(query)
+        ) == 1
 
     # ==========================================================
     # FILTERS
