@@ -8,10 +8,6 @@ from core.knowledge.weights import (
     ASTRO_TERMS,
 )
 
-from pprint import pprint
-
-pprint(ASTRO_TERMS["марс"])
-
 
 class AstroRetriever:
     """
@@ -85,42 +81,43 @@ class AstroRetriever:
 
     def build_dictionary(self):
 
+        for entity in ASTRO_TERMS:
+            ASTRO_TERMS[entity] = []
+
         for doc in self.documents:
 
-            text = self.normalize_query(
-                doc.page_content
-            )
+            text = self.normalize_query(doc.page_content)
 
-        words = self.tokenize(text)
+            words = self.tokenize(text)
 
-        entities = self.extract_entities(text)
+            entities = self.extract_entities(text)
 
-        for entity in entities:
+            for entity in entities:
 
-            if entity not in ASTRO_TERMS:
-                continue
-
-            storage = ASTRO_TERMS[entity]
-
-            for word in words:
-
-                if len(word) < 5:
+                if entity not in ASTRO_TERMS:
                     continue
 
-                if word == entity:
-                    continue
+                storage = ASTRO_TERMS[entity]
 
-                storage.append(word)
+                for word in words:
 
-    for entity in ASTRO_TERMS:
+                    if len(word) < 5:
+                        continue
 
-        freq = Counter(ASTRO_TERMS[entity])
+                    if word == entity:
+                        continue
 
-        ASTRO_TERMS[entity] = [
-            word
-            for word, _
-            in freq.most_common(40)
-        ]
+                    storage.append(word)
+
+        for entity in ASTRO_TERMS:
+
+            freq = Counter(ASTRO_TERMS[entity])
+
+            ASTRO_TERMS[entity] = [
+                word
+                for word, _
+                in freq.most_common(40)
+            ]
 
     def __init__(self, documents, k=8):
 
@@ -371,19 +368,6 @@ class AstroRetriever:
         document,
     ):
 
-        entity_score = self.entity_score(
-            query,
-            document,
-        )
-
-        keyword_score = 0
-
-        for word, count in query_words.items():
-
-            keyword_score += document_words[word] * count
-
-        weight = document.metadata.get("weight", 5)
-
         query_words = Counter(
             self.tokenize(query)
         )
@@ -412,10 +396,11 @@ class AstroRetriever:
             5,
         )
 
-        score = 0
-        score += entity_score * 100
-        score += keyword_score * 10
-        score += weight
+        score = (
+            entity_score * 100
+            + keyword_score * 10
+            + weight
+        )
 
         return score
 
