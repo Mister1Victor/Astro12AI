@@ -1,3 +1,15 @@
+from backend.logger import get_logger
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_classic.chains.combine_documents import create_stuff_documents_chain
+from langchain_classic.chains import create_retrieval_chain
+from core.knowledge.loader import load_knowledge_base
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import BotCommand, MenuButtonCommands
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.enums import ChatAction
+from aiogram.filters import Command
+from aiogram import Bot, Dispatcher, types, F
+from aiohttp import web
 import os
 import re
 import time
@@ -15,18 +27,6 @@ from backend.validators import validate_settings
 load_dotenv()
 ENV = os.getenv("ENV", "production").lower()
 
-from aiohttp import web
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import Command
-from aiogram.enums import ChatAction
-from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import BotCommand, MenuButtonCommands
-from aiogram.utils.keyboard import InlineKeyboardBuilder
-from core.knowledge.loader import load_knowledge_base
-from langchain_classic.chains import create_retrieval_chain
-from langchain_classic.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
-from backend.logger import get_logger
 
 logger = get_logger()
 
@@ -34,8 +34,10 @@ logger.info("=== ИНИЦИАЛИЗАЦИЯ ПРОДАКШН АСТРО-БОТА
 
 # Render автоматически прокидывает переменную RENDER_EXTERNAL_URL с публичным адресом
 # сервиса — на неё и будем "стучаться" сами, чтобы не давать Render усыплять сервис.
-SELF_URL = os.getenv("RENDER_EXTERNAL_URL", "https://astro-bot-b8m8.onrender.com")
-KEEP_ALIVE_INTERVAL = 3600  # 10 минут — с запасом до 15-минутного таймаута простоя Render
+SELF_URL = os.getenv("RENDER_EXTERNAL_URL",
+                     "https://astro-bot-b8m8.onrender.com")
+# 10 минут — с запасом до 15-минутного таймаута простоя Render
+KEEP_ALIVE_INTERVAL = 3600
 APP_STARTED_AT = time.time()
 
 # 1. СТРИМИНГОВАЯ ЗАГРУЗКА И ОПТИМИЗАЦИЯ БАЗЫ ЗНАНИЙ
@@ -111,15 +113,15 @@ async def get_ai_interpretation(query: str) -> str:
                 source = doc.metadata.get("source", "Неизвестно")
 
                 if source not in used:
-                   used.add(source)
-                   logger.info(source)
-                 
+                    used.add(source)
+                    logger.info(source)
+
             return response['answer']
-        
+
         except Exception as e:
             logger.info(f"⚠️ Ошибка вызова Groq (Попытка {attempt+1}): {e}")
             await asyncio.sleep(3)
-    return "❌ Извините, шлюз ИИ-интерпретации сейчас перегружен. Повторите отправку выбранной сферы через 5-10 секунд."
+    return "❌ Извините, шлюз ИИ-интерпретации сейчас перегружен. Повторите отправку выбранной сферы через 5-10 минут."
 
 
 def split_text_for_telegram(text: str, limit: int = 4000) -> list[str]:
@@ -171,11 +173,16 @@ async def safe_answer(message: types.Message, text: str, **kwargs):
 
 def get_spheres_keyboard():
     builder = InlineKeyboardBuilder()
-    builder.button(text="💼 Работа, Карьера и Деньги", callback_data="sphere_money")
-    builder.button(text="❤️ Любовь, Секс и Отношения", callback_data="sphere_love")
-    builder.button(text="🏡 Семья, Дети и Родственники", callback_data="sphere_family")
-    builder.button(text="🧘 Духовное развитие и Вера", callback_data="sphere_spirit")
-    builder.button(text="🍏 Здоровье и Энергетика", callback_data="sphere_health")
+    builder.button(text="💼 Работа, Карьера и Деньги",
+                   callback_data="sphere_money")
+    builder.button(text="❤️ Любовь, Секс и Отношения",
+                   callback_data="sphere_love")
+    builder.button(text="🏡 Семья, Дети и Родственники",
+                   callback_data="sphere_family")
+    builder.button(text="🧘 Духовное развитие и Вера",
+                   callback_data="sphere_spirit")
+    builder.button(text="🍏 Здоровье и Энергетика",
+                   callback_data="sphere_health")
     builder.button(text="🌌 Комплексный анализ", callback_data="sphere_general")
     builder.adjust(1)
     return builder.as_markup()
@@ -197,7 +204,7 @@ async def cmd_start(message: types.Message):
         "`Квадрат Сатурн-Нептун  > 91°19'<  20Vir16 - 21Sgr36`\n\n"
         "👉 Введите ваш вопрос или скопируйте строку аспектов из ZET ниже:\n\n"
         "ℹ️ Бот работает на бесплатном сервере: если он не отвечает больше минуты — вероятно, "
-        "сервер «уснул» после простоя. Нажмите кнопку ниже, подождите ~30–60 секунд, пока откроется "
+        "сервер «уснул» после простоя. Нажмите кнопку ниже, подождите ~40–60 секунд, пока откроется "
         "страница, и повторите команду /start."
     )
     wake_kb = InlineKeyboardBuilder()
@@ -263,7 +270,8 @@ async def handle_sphere_selection(callback: types.CallbackQuery):
     for chunk in split_text_for_telegram(interpretation):
         await safe_answer(callback.message, chunk)
 
-    user_context_store.pop(user_id, None)  # показатель уже проинтерпретирован — не даём переиспользовать его повторным нажатием на старую кнопку
+    # показатель уже проинтерпретирован — не даём переиспользовать его повторным нажатием на старую кнопку
+    user_context_store.pop(user_id, None)
     await callback.answer()
 
 
@@ -284,9 +292,9 @@ async def handle_health_check(request):
       <head><meta charset="utf-8"><title>12 Планет — Астро-бот</title></head>
       <body style="font-family: sans-serif; text-align:center; padding-top: 60px;">
         <h2>✅ Сервис проснулся и работает</h2>
-        <p>Высшая Школа Астрологии «12 Планет» — ИИ-интерпретатор</p>
+        <h3>Высшая Школа Астрологии «12 Планет» — ИИ-интерпретатор</h3>
         <p>Аптайм текущего инстанса: {uptime_min} мин.</p>
-        <p>Можете вернуться в Telegram и отправить /start ещё раз.</p>
+        <h3>Можете вернуться в Telegram и отправить /start ещё раз.</h3>
       </body>
     </html>
     """
@@ -325,9 +333,11 @@ async def start_web_server():
 async def setup_bot_ui():
     """Кнопка меню (иконка ☰ слева от поля ввода) со списком команд — /start всегда под рукой."""
     await bot.set_my_commands([
-        BotCommand(command="start", description="🔄 Перезапустить бота / главное меню"),
+        BotCommand(command="start",
+                   description="🔄 Перезапустить бота / главное меню"),
     ])
     await bot.set_chat_menu_button(menu_button=MenuButtonCommands())
+
 
 async def main():
     validate_settings()
@@ -348,6 +358,6 @@ async def main():
 
     finally:
         await bot.session.close()
-    
+
 if __name__ == '__main__':
     asyncio.run(main())

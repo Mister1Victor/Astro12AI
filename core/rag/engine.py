@@ -1,13 +1,13 @@
 import re
 
 from collections import Counter, OrderedDict
-
 from langchain_community.retrievers import BM25Retriever
-
 from core.knowledge.weights import (
     ASTRO_TERMS,
     get_document_weight,
 )
+
+from core.knowledge.weights import AUTHOR_DEFINITIONS
 
 
 class AstroRetriever:
@@ -143,10 +143,10 @@ class AstroRetriever:
         docs = self.filter_by_entities(query, docs)
         docs = self.limit_same_source(docs)
         docs = self.sort_documents(query, docs)
-        docs = self.force_school_definition(
-            query,
-            docs,
-        )
+        docs = self.force_school_definition(query, docs)
+        docs = self.inject_author_definition(query, docs)
+
+        docs = self.remove_forbidden_terms(query, docs)
 
         if authority and docs:
 
@@ -201,6 +201,41 @@ class AstroRetriever:
             print(doc.metadata.get("source"))
             print()
             print(doc.page_content[:1000])
+
+        return docs
+
+    def remove_forbidden_terms(
+        self,
+        query,
+        docs,
+    ):
+
+        entities = self.extract_entities(query)
+
+        if not entities:
+            return docs
+
+        for entity in entities:
+
+            forbidden = FORBIDDEN.get(entity)
+
+            if not forbidden:
+                continue
+
+            for doc in docs:
+
+                text = doc.page_content
+
+                for word in forbidden:
+
+                    text = re.sub(
+                        word,
+                        "",
+                        text,
+                        flags=re.IGNORECASE,
+                    )
+
+                doc.page_content = text
 
         return docs
 
@@ -450,6 +485,41 @@ class AstroRetriever:
 
         return "\n".join(parts)
 
+    def inject_author_definition(
+        self,
+        query,
+        docs,
+    ):
+
+        entities = self.extract_entities(query)
+
+        if not docs:
+            return docs
+
+        definitions = []
+
+        for entity in entities:
+
+            if entity in AUTHOR_DEFINITIONS:
+
+                definitions.append(
+                    AUTHOR_DEFINITIONS[entity]
+                )
+
+        if definitions:
+
+            docs[0].page_content = (
+
+                "\n\n".join(definitions)
+
+                + "\n\n"
+
+                + docs[0].page_content
+
+            )
+
+        return docs
+
     def is_entity_query(
         self,
         query,
@@ -575,11 +645,7 @@ class AstroRetriever:
 
         return 0
 
-    def calculate_score(
-        self,
-        query,
-        document,
-    ):
+    def calculate_score(self, query, document):
 
         query_words = Counter(
             self.tokenize(query)
@@ -619,14 +685,44 @@ class AstroRetriever:
             5,
         )
 
+        authority_score = self.authority_score(
+            query,
+            document,
+        )
+
+        weight = document.metadata.get(
+            "weight",
+            5,
+        )
+
         return (
-            chart_score * 200
+            authority_score * 500
+            + chart_score * 200
             + entity_score * 120
             + exact_score * 80
             + astro_score * 30
             + keyword_score * 10
             + weight
         )
+
+    def authority_score(
+        self,
+        query,
+        document,
+    ):
+
+        entities = self.extract_entities(query)
+        score = 0
+        text = self.normalize_query(
+            document.page_content
+        )
+
+        for entity in entities:
+            for word in ASTRO_TERMS.get(entity, []):
+                if word in text:
+                    score += 1
+
+        return score
 
     def astro_terms_score(
         self,
