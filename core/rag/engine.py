@@ -96,6 +96,17 @@ class AstroRetriever:
             "мечты",
             "сострадание",
         ],
+        "уран": [
+            "революция",
+            "революции",
+            "переворот",
+            "перевороты",
+            "коллективы",
+            "единомышленники",
+            "друзья",
+            "группы людей",
+            "люди",
+        ],
         # Пример: удаляем документы, содержащие запрещённые слова для планеты Плутон
         # (но сначала нужно определить, какая планета активна в запросе)
         # В будущем легко добавить другие планеты:
@@ -107,17 +118,11 @@ class AstroRetriever:
     # ==========================================================
 
     def __init__(self, documents, k=8):
-
         self.documents = documents
-
         for doc in self.documents:
-
             source = doc.metadata.get("source", "")
-
             filename = source.split("/")[-1].split("\\")[-1]
-
             doc.metadata["weight"] = get_document_weight(filename)
-
         self.retriever = BM25Retriever.from_documents(self.documents)
         self.retriever.k = k
 
@@ -216,27 +221,19 @@ class AstroRetriever:
             return docs
 
         for entity in entities:
-
             forbidden = FORBIDDEN.get(entity)
-
             if not forbidden:
                 continue
-
             for doc in docs:
-
                 text = doc.page_content
-
                 for word in forbidden:
-
                     text = re.sub(
                         word,
                         "",
                         text,
                         flags=re.IGNORECASE,
                     )
-
                 doc.page_content = text
-
         return docs
 
     def force_school_definition(
