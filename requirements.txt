@@ -33,6 +33,8 @@ langchain-core==1.4.9
 langchain-groq==1.1.3
 langchain-protocol==0.0.18
 langchain-text-splitters==1.1.2
+langchain-openai 
+langchain-google-genai
 langgraph==1.2.9
 langgraph-checkpoint==4.1.1
 langgraph-prebuilt==1.1.0

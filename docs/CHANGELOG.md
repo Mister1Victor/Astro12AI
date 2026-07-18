@@ -1,5 +1,39 @@
 # CHANGELOG
 
+# v1.0.0 — School Knowledge Layer
+
+Дата: 2026-07-18
+
+### Добавлено
+
+- собственный AstroRetriever
+- расширение запросов авторскими ключевыми словами
+- Chart Parser
+- Entity Parser
+- Entity Ranking
+- Authoritative Context Injection
+- запрет интернетовских определений
+- FORBIDDEN словарь
+- фильтрация документов по авторским определениям
+- логирование поиска
+- авторский словарь ASTRO_TERMS
+- улучшенный ranking документов
+- поддержка авторских определений (AUTHOR_DEFINITIONS)
+
+### Изменено
+
+BM25 переведен в роль первичного кандидата документов.
+
+Смысловой поиск полностью перенесен в AstroRetriever.
+
+### Следующая версия
+
+v1.1
+
+Authoritative Knowledge Index
+
+Retriever будет искать сначала по знаниям Школы, затем по документам.
+
 # v0.9.8
 
 ## Retrieval
