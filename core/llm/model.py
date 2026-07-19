@@ -18,8 +18,9 @@ def create_llm():
     # Получаем настройки с дефолтными значениями, чтобы код не падал,
     # если какая-то переменная еще не добавлена в .env
     provider = getattr(settings, "LLM_PROVIDER", "groq").lower().strip()
-    model_name = getattr(settings, "MODEL_NAME", "llama-3.3-70b-versatile")
-    temperature = getattr(settings, "TEMPERATURE", 0.1)
+    # llama-3.3-70b-versatile openai/gpt-oss-120b
+    model_name = getattr(settings, "MODEL_NAME", "openai/gpt-oss-120b")
+    temperature = getattr(settings, "с", 0.1)
 
     if provider == "openrouter":
         # OpenRouter использует API, полностью совместимый с OpenAI
