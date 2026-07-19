@@ -67,6 +67,7 @@ rag_chain = create_retrieval_chain(
 bot = Bot(token=settings.TELEGRAM_TOKEN)
 dp = Dispatcher()
 
+user_context_store = {}
 ZODIAC_MAP = {
     "Ari": "Овен", "Tau": "Телец", "Gem": "Близнецы", "Can": "Рак",
     "Leo": "Лев", "Vir": "Дева", "Lib": "Весы", "Sco": "Скорпион",
@@ -120,7 +121,7 @@ async def get_ai_interpretation(query: str) -> str:
         except Exception as e:
             logger.info(f"⚠️ Ошибка вызова Groq (Попытка {attempt+1}): {e}")
             await asyncio.sleep(3)
-    return "❌ Извините, шлюз ИИ-интерпретации сейчас перегружен. Повторите отправку запроса через 5-10 минут."
+    return "❌ Извините, шлюз ИИ-интерпретации сейчас перегружен. Повторите отправку выбранной сферы через 5-10 минут."
 
 
 def split_text_for_telegram(text: str, limit: int = 4000) -> list[str]:
@@ -170,6 +171,23 @@ async def safe_answer(message: types.Message, text: str, **kwargs):
         await message.answer(text, **kwargs)
 
 
+def get_spheres_keyboard():
+    builder = InlineKeyboardBuilder()
+    builder.button(text="💼 Работа, Карьера и Деньги",
+                   callback_data="sphere_money")
+    builder.button(text="❤️ Любовь, Секс и Отношения",
+                   callback_data="sphere_love")
+    builder.button(text="🏡 Семья, Дети и Родственники",
+                   callback_data="sphere_family")
+    builder.button(text="🧘 Духовное развитие и Вера",
+                   callback_data="sphere_spirit")
+    builder.button(text="🍏 Здоровье и Энергетика",
+                   callback_data="sphere_health")
+    builder.button(text="🌌 Комплексный анализ", callback_data="sphere_general")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
 @dp.message(Command("start", "help"))
 async def cmd_start(message: types.Message):
     welcome_text = (
@@ -210,20 +228,51 @@ async def handle_user_input(message: types.Message):
         return
 
     processed_query = parse_astrological_input(raw_text)
+    user_context_store[message.from_user.id] = processed_query
 
-    # Сразу формируем запрос на комплексный анализ без выбора сфер
-    final_task = f"Показатель: {processed_query}\nФокус анализа: Проанализируй данный показатель на основании ключевых слов комплексно по всем фундаментальным сферам жизни."
+    selection_text = (
+        "📊 **Астрологические показатели успешно приняты и структурированы.**\n\n"
+        "В контексте какой **сферы жизни** вы хотите получить разбор данного положения/аспекта по методике нашей Школы?"
+    )
+    await message.answer(selection_text, parse_mode="Markdown", reply_markup=get_spheres_keyboard())
 
-    await message.answer(
-        "🔮 Школа Астрологии 12 Планет анализирует фрагменты текстов... Формирую ответ...",
+
+@dp.callback_query(F.data.startswith("sphere_"))
+async def handle_sphere_selection(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    if user_id not in user_context_store:
+        await callback.message.answer("⚠️ Данные устарели. Пожалуйста, введите ваш астрологический вопрос заново.")
+        await callback.answer()
+        return
+
+    sphere_code = callback.data.split("_", 1)[1]
+    base_query = user_context_store[user_id]
+
+    spheres_prompts = {
+        "money": "Проанализируй данный показатель в сфере: Работа, Карьера, Бизнес, Источники дохода и Деньги.",
+        "love": "Проанализируй данный показатель в сфере: Любовь, Сексуальная совместимость, Брачные и партнерские отношения.",
+        "family": "Проанализируй данный показатель в сфере: Семья, Род, карма предков, дети и взаимоотношения с родственниками.",
+        "spirit": "Проанализируй данный показатель в сфере: Духовное развитие, эволюция души, вопросы веры, верований и предназначения.",
+        "health": "Проанализируй данный показатель в сфере: Физическое здоровье, уязвимые органы, энергетика и методы компенсации (допинги).",
+        "general": "Проанализируй данный показатель комплексно по всем фундаментальным сферам жизни."
+    }
+
+    final_task = f"Показатель: {base_query}\nФокус анализа: {spheres_prompts.get(sphere_code, '')}"
+
+    await callback.message.edit_text(
+        "🔮 Высшая Школа Астрологии 12 Планет анализирует фрагменты текстов... Формирую ответ...",
         parse_mode="Markdown"
     )
-    await bot.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
+    await bot.send_chat_action(chat_id=callback.message.chat.id, action=ChatAction.TYPING)
 
     interpretation = await get_ai_interpretation(final_task)
 
     for chunk in split_text_for_telegram(interpretation):
-        await safe_answer(message, chunk)
+        await safe_answer(callback.message, chunk)
+
+    # показатель уже проинтерпретирован — не даём переиспользовать его повторным нажатием на старую кнопку
+    user_context_store.pop(user_id, None)
+    await callback.answer()
 
 
 @dp.message()
