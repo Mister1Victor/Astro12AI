@@ -17,8 +17,8 @@ def create_llm():
     - "gemini": Огромные бесплатные лимиты и контекст (Gemini 1.5 Flash).
     """
 
-    # Получаем настройки с дефолтными значениями
-    provider = getattr(settings, "LLM_PROVIDER", "groq").lower().strip()
+    # Получаем настройки с дефолтными значениями groq
+    provider = getattr(settings, "LLM_PROVIDER", "openrouter").lower().strip()
 
     # Примеры корректных имен моделей:
     # Groq: "llama-3.3-70b-versatile", "qwen/qwen3.6-27b"
