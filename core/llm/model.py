@@ -38,7 +38,8 @@ def create_llm():
             openai_api_key=getattr(settings, "OPENROUTER_API_KEY", ""),
             # base_url - более современный параметр в langchain_openai
             base_url="https://openrouter.ai/api/v1",
-            model=model_name,
+            # model=model_name,
+            model=cohere/north-mini-code: free,
             temperature=temperature,
         )
 
