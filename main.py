@@ -40,7 +40,7 @@ SELF_URL = os.getenv("RENDER_EXTERNAL_URL",
 KEEP_ALIVE_INTERVAL = 3600
 APP_STARTED_AT = time.time()
 
-# 1. СТРИМИНГОВАЯ ЗАГРУЗКА И ОПТИМИЗАЦИЯ БАЗЫ ЗНАНИЙ
+# 1. СТРИМИНГОВАЯ ЗАГЛУЗКА И ОПТИМИЗАЦИЯ БАЗЫ ЗНАНИЙ
 
 documents = load_knowledge_base()
 
@@ -51,6 +51,11 @@ logger.info(
 astro_retriever = AstroRetriever(documents)
 
 llm = create_llm()
+
+# 🆕 Извлекаем название модели для логирования (поддержка model_name или model)
+model_name = getattr(llm, "model_name", getattr(
+    llm, "model", "Неизвестная модель"))
+logger.info(f"🤖 Используемая ИИ-модель: {model_name}")
 
 prompt = ChatPromptTemplate.from_messages(
     [
@@ -118,7 +123,7 @@ async def get_ai_interpretation(query: str) -> str:
             return response['answer']
 
         except Exception as e:
-            logger.info(f"⚠️ Ошибка вызова Groq (Попытка {attempt+1}): {e}")
+            logger.info(f"⚠️ Ошибка вызова ИИ (Попытка {attempt+1}): {e}")
             await asyncio.sleep(3)
     return "❌ Извините, шлюз ИИ-интерпретации сейчас перегружен. Повторите отправку запроса через 5-10 минут."
 
@@ -212,10 +217,10 @@ async def handle_user_input(message: types.Message):
     processed_query = parse_astrological_input(raw_text)
 
     # Сразу формируем запрос на комплексный анализ без выбора сфер
-    final_task = f"Показатель: {processed_query}\nФокус анализа: Проанализируй данный показатель на основании ключевых слов Школы комплексно по всем фундаментальным сферам жизни."
+    final_task = f"Показатель: {processed_query}\nФокус анализа: Проанализируй данный показатель комплексно по всем фундаментальным сферам жизни."
 
     await message.answer(
-        "🔮 Школа Астрологии 12 Планет анализирует фрагменты текстов... Формирую ответ...",
+        "🔮 Высшая Школа Астрологии 12 Планет анализирует фрагменты текстов... Формирую ответ...",
         parse_mode="Markdown"
     )
     await bot.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
@@ -301,6 +306,7 @@ async def main():
     logger.info("=" * 60)
     logger.info("Astro12AI")
     logger.info(f"ENV: {settings.ENV}")
+    logger.info(f"ИИ-модель: {model_name}")  # 🆕 Добавлено в итоговый лог
     logger.info(f"Documents: {len(documents)}")
     logger.info(f"Knowledge chunks: {len(documents)}")
     logger.info("=" * 60)
