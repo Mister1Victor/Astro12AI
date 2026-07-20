@@ -39,7 +39,7 @@ def create_llm():
             # base_url - более современный параметр в langchain_openai
             # base_url="https://openrouter.ai/api/v1",
             # model=model_name,
-            model=cohere/north-mini-code: free,
+            model="cohere/north-mini-code:free",
             temperature=temperature,
         )
 
