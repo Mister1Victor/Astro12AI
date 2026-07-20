@@ -1,8 +1,10 @@
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
-
 from backend.config import settings
+from backend.logger import get_logger  # Добавлено для логирования
+
+logger = get_logger()
 
 
 def create_llm():
@@ -15,18 +17,27 @@ def create_llm():
     - "gemini": Огромные бесплатные лимиты и контекст (Gemini 1.5 Flash).
     """
 
-    # Получаем настройки с дефолтными значениями, чтобы код не падал,
-    # если какая-то переменная еще не добавлена в .env
+    # Получаем настройки с дефолтными значениями
     provider = getattr(settings, "LLM_PROVIDER", "groq").lower().strip()
-    # llama-3.3-70b-versatile openai/gpt-oss-120b qwen/qwen3.6-27b
-    model_name = getattr(settings, "MODEL_NAME", "qwen/qwen3.6-27b")
-    temperature = getattr(settings, "с", 0.1)
+
+    # Примеры корректных имен моделей:
+    # Groq: "llama-3.3-70b-versatile", "qwen/qwen3.6-27b"
+    # OpenRouter: "openai/gpt-4o", "qwen/qwen-2.5-72b-instruct:free"
+    # Gemini: "gemini-1.5-flash", "gemini-1.5-pro"
+    model_name = getattr(settings, "MODEL_NAME", "llama-3.3-70b-versatile")
+
+    # ИСПРАВЛЕНО: было "с" (кириллица), стало "TEMPERATURE"
+    temperature = float(getattr(settings, "TEMPERATURE", 0.1))
+
+    logger.info(
+        f"🤖 Инициализация LLM: Провайдер={provider}, Модель={model_name}, Температура={temperature}")
 
     if provider == "openrouter":
         # OpenRouter использует API, полностью совместимый с OpenAI
         return ChatOpenAI(
             openai_api_key=getattr(settings, "OPENROUTER_API_KEY", ""),
-            openai_api_base="https://openrouter.ai/api/v1",
+            # base_url - более современный параметр в langchain_openai
+            base_url="https://openrouter.ai/api/v1",
             model=model_name,
             temperature=temperature,
         )
