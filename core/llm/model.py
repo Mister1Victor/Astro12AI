@@ -18,7 +18,7 @@ def create_llm():
     """
 
     # Получаем настройки с дефолтными значениями groq
-    provider = getattr(settings, "LLM_PROVIDER", "openrouter").lower().strip()
+    provider = getattr(settings, "LLM_PROVIDER", "qroq").lower().strip()
 
     # Примеры корректных имен моделей:
     # Groq: "llama-3.3-70b-versatile", "qwen/qwen3.6-27b"
@@ -37,9 +37,8 @@ def create_llm():
         return ChatOpenAI(
             openai_api_key=getattr(settings, "OPENROUTER_API_KEY", ""),
             # base_url - более современный параметр в langchain_openai
-            # base_url="https://openrouter.ai/api/v1",
-            # model=model_name,
-            model="cohere/north-mini-code:free",
+            base_url="https://openrouter.ai/api/v1",
+            model=model_name,
             temperature=temperature,
         )
 
@@ -54,6 +53,7 @@ def create_llm():
         # По умолчанию используем Groq (для обратной совместимости)
         return ChatGroq(
             api_key=getattr(settings, "GROQ_API_KEY", ""),
-            model=model_name,
+            # model=model_name,
+            model="qwen3.6-27b",
             temperature=temperature,
         )
