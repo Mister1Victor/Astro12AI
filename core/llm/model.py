@@ -54,6 +54,6 @@ def create_llm():
         return ChatGroq(
             api_key=getattr(settings, "GROQ_API_KEY", ""),
             # model=model_name,
-            model="qwen3.6-27b",
+            model="qwen/qwen3.6-27b",
             temperature=temperature,
         )
