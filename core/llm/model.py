@@ -27,7 +27,7 @@ def create_llm():
     model_name = getattr(settings, "MODEL_NAME", "qwen/qwen3.6-27b")
 
     # ИСПРАВЛЕНО: было "с" (кириллица), стало "TEMPERATURE"
-    temperature = float(getattr(settings, "TEMPERATURE", 0.1))
+    temperature = float(getattr(settings, "TEMPERATURE", 0.2))
 
     logger.info(
         f"🤖 Инициализация LLM: Провайдер={provider}, Модель={model_name}, Температура={temperature}")
@@ -62,5 +62,5 @@ def create_llm():
             reasoning_effort="none",
             top_p=0.80,                    # Ограничивает выборку лучшими 80% токенов
             presence_penalty=1.5,          # Заставляет модель использовать синонимы
-            max_completion_tokens=1024,    # Оптимальный лимит для прямого ответа
+            max_completion_tokens=4096,    # 1024 Оптимальный лимит для прямого ответа
         )

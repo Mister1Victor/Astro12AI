@@ -131,6 +131,14 @@ async def get_ai_interpretation(query: str) -> str:
                     logger.info(
                         f"📊 Сырые метаданные ответа: {getattr(answer_msg, 'response_metadata', 'Нет данных')}")
 
+                    # 🆕 Проверяем, почему модель остановилась
+                    answer_msg = response.get("answer")
+                    if answer_msg and hasattr(answer_msg, "response_metadata"):
+                        finish = answer_msg.response_metadata.get(
+                            "finish_reason", "unknown")
+                        logger.info(f"🏁 Причина завершения: {finish}")
+                        # "stop" = модель закончила сама (ОК)
+                        # "length" = ОБРЕЗАНО по лимиту токенов (ПРОБЛЕМА!)
             return response['answer']
 
         except Exception as e:
