@@ -16,6 +16,8 @@ import time
 import asyncio
 import aiohttp
 
+from typing import Dict
+
 from core.prompts.system_prompt import SYSTEM_PROMPT
 from core.rag.engine import AstroRetriever
 from core.rag.context import context_statistics
@@ -62,6 +64,8 @@ rag_chain = create_retrieval_chain(
 
 bot = Bot(token=settings.TELEGRAM_TOKEN)
 dp = Dispatcher()
+# 🆕 Хранилище последнего запроса для каждого пользователя (для кнопки перефразирования)
+user_last_queries: Dict[int, str] = {}
 
 ZODIAC_MAP = {
     "Ari": "Овен", "Tau": "Телец", "Gem": "Близнецы", "Can": "Рак",
@@ -166,6 +170,14 @@ def split_text_for_telegram(text: str, limit: int = 4000) -> list[str]:
     return parts
 
 
+def get_rephrase_keyboard():
+    """Создает inline-клавиатуру с кнопкой перефразирования"""
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🔄 Перефразировать ответ", callback_data="rephrase")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
 async def safe_answer(message: types.Message, text: str, **kwargs):
     try:
         await message.answer(text, parse_mode="Markdown", **kwargs)
@@ -222,6 +234,9 @@ async def handle_user_input(message: types.Message):
     processed_query = parse_astrological_input(raw_text)
     final_task = f"Показатель: {processed_query}\nЗадача: Комплексный анализ по всем фундаментальным сферам."
 
+    # 🆕 Сохраняем запрос пользователя для возможности перефразирования
+    user_last_queries[message.from_user.id] = final_task
+
     await message.answer(
         "🔮 Высшая Школа Астрологии 12 Планет анализирует фрагменты текстов... Формирую ответ...",
         parse_mode="Markdown"
@@ -230,8 +245,36 @@ async def handle_user_input(message: types.Message):
 
     interpretation = await get_ai_interpretation(final_task)
 
+    # 🆕 Добавляем reply_markup=get_rephrase_keyboard() к каждому фрагменту (или к последнему)
     for chunk in split_text_for_telegram(interpretation):
-        await safe_answer(message, chunk)
+        await safe_answer(message, chunk, reply_markup=get_rephrase_keyboard())
+
+
+@dp.callback_query(F.data == "rephrase")
+async def handle_rephrase(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+
+    # Проверяем, есть ли сохраненный запрос
+    if user_id not in user_last_queries:
+        await callback.answer("⚠️ История запроса устарела. Пожалуйста, задайте новый вопрос.", show_alert=True)
+        return
+
+    # Убираем спиннер загрузки на кнопке
+    await callback.answer("🔄 Генерирую новый вариант...")
+
+    # Показываем действие "печатает"
+    await bot.send_chat_action(chat_id=callback.message.chat.id, action=ChatAction.TYPING)
+
+    # Берем сохраненный запрос и добавляем инструкцию для LLM перефразировать ответ
+    saved_task = user_last_queries[user_id]
+    rephrase_prompt = f"{saved_task}\n\n[ИНСТРУКЦИЯ: Перефразируй предыдущий ответ. Сохрани все астрологические смыслы, факты и выводы из контекста, но используй другие формулировки, структуру предложений и абзацев, чтобы текст воспринимался свежо.]"
+
+    # Вызываем ИИ с модифицированным промптом
+    new_interpretation = await get_ai_interpretation(rephrase_prompt)
+
+    # Отправляем новый ответ с той же кнопкой (чтобы можно было перефразировать еще раз)
+    for chunk in split_text_for_telegram(new_interpretation):
+        await safe_answer(callback.message, chunk, reply_markup=get_rephrase_keyboard())
 
 
 @dp.message()
