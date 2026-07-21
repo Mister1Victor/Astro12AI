@@ -21,7 +21,7 @@ def load_knowledge_base(folder_path="knowledge_base"):
 
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,         # ← не больше 1000 для астрологии
-        chunk_overlap=100       # ← перекрытие 10-15%
+        chunk_overlap=100,       # ← перекрытие 10-15%
         separators=["\n\n", "\n", ". ", " "]
     )
 
