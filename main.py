@@ -63,6 +63,11 @@ prompt = ChatPromptTemplate.from_messages(
         ("human", "{input}")
     ]
 )
+# После создания prompt
+messages = prompt.format_messages(input="Тестовый запрос")
+for i, msg in enumerate(messages):
+    logger.info(f"Сообщение #{i}: тип={msg.type}, длина={len(msg.content)}")
+
 question_answer_chain = create_stuff_documents_chain(llm, prompt)
 rag_chain = create_retrieval_chain(
     astro_retriever.get_retriever(),
@@ -108,10 +113,17 @@ async def get_ai_interpretation(query: str) -> str:
                 logger.info("КОНТЕКСТ RAG")
                 logger.info(stats)
                 logger.info("=" * 60)
+
             if "context" in response:
                 logger.info("===== ИСПОЛЬЗОВАННЫЕ ДОКУМЕНТЫ =====")
-
                 used = set()
+
+            # 🆕 Логируем использование токенов (если доступно)
+            if hasattr(response, 'response_metadata'):
+                usage = response['response_metadata'].get('token_usage', {})
+                logger.info(f"📊 Токены: prompt={usage.get('prompt_tokens', 'N/A')}, "
+                            f"completion={usage.get('completion_tokens', 'N/A')}, "
+                            f"total={usage.get('total_tokens', 'N/A')}")
 
             for doc in response["context"]:
                 source = doc.metadata.get("source", "Неизвестно")
