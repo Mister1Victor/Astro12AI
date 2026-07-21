@@ -18,7 +18,7 @@ def create_llm():
     """
 
     # Получаем настройки с дефолтными значениями groq
-    provider = getattr(settings, "LLM_PROVIDER", "qroq").lower().strip()
+    provider = getattr(settings, "LLM_PROVIDER", "groq").lower().strip()
 
     # Примеры корректных имен моделей:
     # Groq: "llama-3.3-70b-versatile", "qwen/qwen3.6-27b"

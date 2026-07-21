@@ -53,8 +53,7 @@ astro_retriever = AstroRetriever(documents)
 llm = create_llm()
 
 # 🆕 Извлекаем название модели для логирования (поддержка model_name или model)
-model_name = getattr(llm, "model_name", getattr(
-    llm, "model", "Неизвестная модель"))
+model_name = getattr(settings, "MODEL_NAME", "Неизвестная модель")
 logger.info(f"🤖 Используемая ИИ-модель: {model_name}")
 
 prompt = ChatPromptTemplate.from_messages(
@@ -63,8 +62,9 @@ prompt = ChatPromptTemplate.from_messages(
         ("human", "{input}")
     ]
 )
-# После создания prompt
-messages = prompt.format_messages(input="Тестовый запрос")
+
+# ✅ ПРАВИЛЬНЫЙ вариант (если хотите оставить проверку)
+messages = prompt.format_messages(input="Тестовый запрос", context=[])
 for i, msg in enumerate(messages):
     logger.info(f"Сообщение #{i}: тип={msg.type}, длина={len(msg.content)}")
 
