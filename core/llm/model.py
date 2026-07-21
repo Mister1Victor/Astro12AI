@@ -50,11 +50,17 @@ def create_llm():
         )
 
     else:
-        # По умолчанию используем Groq (для обратной совместимости) для model="qwen/qwen3.6-27b" reasoning_effort="none"
+        # По умолчанию используем Groq (для обратной совместимости)
+        # для model="qwen/qwen3.6-27b", если нужен стандартного быстрого ответа (Non-thinking), то -->
+        # reasoning_effort="none"
+        # THINKING MODE (Для сложных логических задач, математики и кодинга)
         return ChatGroq(
             api_key=getattr(settings, "GROQ_API_KEY", ""),
             # model=model_name,
             model="qwen/qwen3.6-27b",
             temperature=temperature,
             reasoning_effort="none",
+            top_p=0.80,                    # Ограничивает выборку лучшими 80% токенов
+            presence_penalty=1.5,          # Заставляет модель использовать синонимы
+            max_completion_tokens=1024,    # Оптимальный лимит для прямого ответа
         )
