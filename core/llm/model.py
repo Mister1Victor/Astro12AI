@@ -24,7 +24,7 @@ def create_llm():
     # Groq: "llama-3.3-70b-versatile", "qwen/qwen3.6-27b"
     # OpenRouter: "openai/gpt-4o", "qwen/qwen-2.5-72b-instruct:free"
     # Gemini: "gemini-1.5-flash", "gemini-1.5-pro"
-    model_name = getattr(settings, "MODEL_NAME", "qwen3.6-27b")
+    model_name = getattr(settings, "MODEL_NAME", "llama-3.3-70b-versatile")
 
     # ИСПРАВЛЕНО: было "с" (кириллица), стало "TEMPERATURE"
     temperature = float(getattr(settings, "TEMPERATURE", 0.1))
@@ -50,10 +50,11 @@ def create_llm():
         )
 
     else:
-        # По умолчанию используем Groq (для обратной совместимости)
+        # По умолчанию используем Groq (для обратной совместимости) для model="qwen/qwen3.6-27b" reasoning_effort="none"
         return ChatGroq(
             api_key=getattr(settings, "GROQ_API_KEY", ""),
             # model=model_name,
             model="qwen/qwen3.6-27b",
             temperature=temperature,
+            reasoning_effort="none",
         )
