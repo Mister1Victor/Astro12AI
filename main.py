@@ -257,6 +257,20 @@ async def handle_user_input(message: types.Message):
     for chunk in split_text_for_telegram(interpretation):
         await safe_answer(message, chunk, reply_markup=get_rephrase_keyboard())
 
+    # 🆕 Лог для проверки: если текст короткий, значит обрезала модель. Если длинный - модель в порядке.
+    logger.info(
+        f"📝 Длина сгенерированного ответа: {len(interpretation)} символов")
+
+    if not interpretation or len(interpretation.strip()) < 20:
+        await message.answer("⚠️ Модель вернула пустой или слишком короткий ответ. Попробуйте перефразировать запрос.")
+        return
+
+    chunks = split_text_for_telegram(interpretation)
+    logger.info(f"📨 Ответ разбит на {len(chunks)} фрагмент(ов) для Telegram")
+
+    for chunk in chunks:
+        await safe_answer(message, chunk, reply_markup=get_rephrase_keyboard())
+
 
 @dp.callback_query(F.data == "rephrase")
 async def handle_rephrase(callback: types.CallbackQuery):

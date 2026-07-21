@@ -219,6 +219,10 @@ class AstroRetriever:
     def is_entity_query(self, query):
         return len(self.extract_entities(query)) == 1
 
+    def _get_relevant_documents(self, query: str, *, run_manager=None) -> list:
+        """Этот метод автоматически вызывается LangChain при создании rag_chain"""
+        return self.search(query)
+
     # ==========================================================
     # FILTERS
     # ==========================================================
