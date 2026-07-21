@@ -27,32 +27,23 @@ from backend.validators import validate_settings
 load_dotenv()
 ENV = os.getenv("ENV", "production").lower()
 
-
 logger = get_logger()
-
 logger.info("=== ИНИЦИАЛИЗАЦИЯ ПРОДАКШН АСТРО-БОТА ===")
 
 # Render автоматически прокидывает переменную RENDER_EXTERNAL_URL с публичным адресом
-# сервиса — на неё и будем "стучаться" сами, чтобы не давать Render усыплять сервис.
 SELF_URL = os.getenv("RENDER_EXTERNAL_URL",
                      "https://astro-bot-b8m8.onrender.com")
-# 10 минут — с запасом до 15-минутного таймаута простоя Render
 KEEP_ALIVE_INTERVAL = 3600
 APP_STARTED_AT = time.time()
 
-# 1. СТРИМИНГОВАЯ ЗАГЛУЗКА И ОПТИМИЗАЦИЯ БАЗЫ ЗНАНИЙ
-
+# 1. ЗАГРУЗКА И ОПТИМИЗАЦИЯ БАЗЫ ЗНАНИЙ
 documents = load_knowledge_base()
-
-logger.info(
-    f"🔥 Успешно создано фрагментов: {len(documents)}"
-)
+logger.info(f"🔥 Успешно создано фрагментов: {len(documents)}")
 
 astro_retriever = AstroRetriever(documents)
-
 llm = create_llm()
 
-# 🆕 Извлекаем название модели для логирования (поддержка model_name или model)
+# Извлекаем название модели для логирования из настроек
 model_name = getattr(settings, "MODEL_NAME", "Неизвестная модель")
 logger.info(f"🤖 Используемая ИИ-модель: {model_name}")
 
@@ -62,11 +53,6 @@ prompt = ChatPromptTemplate.from_messages(
         ("human", "{input}")
     ]
 )
-
-# ✅ ПРАВИЛЬНЫЙ вариант (если хотите оставить проверку)
-messages = prompt.format_messages(input="Тестовый запрос", context=[])
-for i, msg in enumerate(messages):
-    logger.info(f"Сообщение #{i}: тип={msg.type}, длина={len(msg.content)}")
 
 question_answer_chain = create_stuff_documents_chain(llm, prompt)
 rag_chain = create_retrieval_chain(
@@ -107,6 +93,8 @@ async def get_ai_interpretation(query: str) -> str:
         try:
             loop = asyncio.get_running_loop()
             response = await loop.run_in_executor(None, lambda: rag_chain.invoke({"input": query}))
+
+            # Логирование контекста RAG
             if "context" in response:
                 stats = context_statistics(response["context"])
                 logger.info("=" * 60)
@@ -114,38 +102,41 @@ async def get_ai_interpretation(query: str) -> str:
                 logger.info(stats)
                 logger.info("=" * 60)
 
-            if "context" in response:
                 logger.info("===== ИСПОЛЬЗОВАННЫЕ ДОКУМЕНТЫ =====")
                 used = set()
+                for doc in response["context"]:
+                    source = doc.metadata.get("source", "Неизвестно")
+                    if source not in used:
+                        used.add(source)
+                        logger.info(source)
 
-            # 🆕 Логируем использование токенов (если доступно)
-            if hasattr(response, 'response_metadata'):
-                usage = response['response_metadata'].get('token_usage', {})
-                logger.info(f"📊 Токены: prompt={usage.get('prompt_tokens', 'N/A')}, "
-                            f"completion={usage.get('completion_tokens', 'N/A')}, "
-                            f"total={usage.get('total_tokens', 'N/A')}")
-
-            for doc in response["context"]:
-                source = doc.metadata.get("source", "Неизвестно")
-
-                if source not in used:
-                    used.add(source)
-                    logger.info(source)
+            # 🆕 Исправленное логирование токенов (извлекаем из AIMessage)
+            answer_msg = response.get("answer")
+            if answer_msg:
+                # Вариант 1: через response_metadata (старые версии LangChain / некоторые провайдеры)
+                if hasattr(answer_msg, "response_metadata"):
+                    usage = answer_msg.response_metadata.get("token_usage", {})
+                    if usage:
+                        logger.info(f"📊 Токены: prompt={usage.get('prompt_tokens', 'N/A')}, "
+                                    f"completion={usage.get('completion_tokens', 'N/A')}, "
+                                    f"total={usage.get('total_tokens', 'N/A')}")
+                # Вариант 2: через usage_metadata (современный стандарт LangChain)
+                elif hasattr(answer_msg, "usage_metadata"):
+                    usage = answer_msg.usage_metadata
+                    logger.info(f"📊 Токены: input={usage.get('input_tokens', 'N/A')}, "
+                                f"output={usage.get('output_tokens', 'N/A')}, "
+                                f"total={usage.get('total_tokens', 'N/A')}")
 
             return response['answer']
 
         except Exception as e:
-            logger.info(f"⚠️ Ошибка вызова ИИ (Попытка {attempt+1}): {e}")
+            logger.warning(f"⚠️ Ошибка вызова ИИ (Попытка {attempt+1}): {e}")
             await asyncio.sleep(3)
+
     return "❌ Извините, шлюз ИИ-интерпретации сейчас перегружен. Повторите отправку запроса через 5-10 минут."
 
 
 def split_text_for_telegram(text: str, limit: int = 4000) -> list[str]:
-    """
-    Делит длинный ответ ИИ на части, укладывающиеся в лимит Telegram (4096 симв.),
-    режет по границам абзацев/предложений, а не посимвольно — иначе можно разорвать
-    Markdown-разметку (**жирный текст**) ровно на стыке двух сообщений и получить ошибку парсинга.
-    """
     if len(text) <= limit:
         return [text]
 
@@ -161,7 +152,7 @@ def split_text_for_telegram(text: str, limit: int = 4000) -> list[str]:
         if len(paragraph) <= limit:
             current = paragraph
             continue
-        # Абзац сам длиннее лимита — режем по предложениям
+
         for sentence in re.split(r"(?<=[.!?]) ", paragraph):
             candidate = f"{current} {sentence}" if current else sentence
             if len(candidate) <= limit:
@@ -176,11 +167,6 @@ def split_text_for_telegram(text: str, limit: int = 4000) -> list[str]:
 
 
 async def safe_answer(message: types.Message, text: str, **kwargs):
-    """
-    Отправляет сообщение с Markdown-разметкой. Ответы модели иногда содержат символы
-    (одиночные *, _, [ ] и т.п.), которые ломают Telegram-парсер Markdown — в этом случае
-    бот не должен падать или молчать, а обязан отправить тот же текст без разметки.
-    """
     try:
         await message.answer(text, parse_mode="Markdown", **kwargs)
     except TelegramBadRequest:
@@ -214,6 +200,8 @@ async def cmd_start(message: types.Message):
 @dp.message(F.text)
 async def handle_user_input(message: types.Message):
     raw_text = message.text
+
+    # Фильтр сырых данных рождения
     if re.search(r"\d{2}\.\d{2}\.\d{4}", raw_text) or any(word in raw_text.lower() for word in ["родился", "родилась", "город", "время"]):
         redirect_text = (
             "⚠️ **Уведомление Школы Астрологии «12 Планет»**\n\n"
@@ -225,14 +213,13 @@ async def handle_user_input(message: types.Message):
         )
         await message.answer(redirect_text, parse_mode="Markdown")
         return
-    # Перед вызовом LLM
-    if len(raw_text.strip()) < 5:
-        await message.answer("🔮 Пожалуйста, опишите астрологический показатель подробнее.")
+
+    # 🆕 Фильтр слишком коротких запросов (экономия токенов)
+    if len(raw_text.strip()) < 10:
+        await message.answer("🔮 Пожалуйста, опишите астрологический показатель подробнее (например, скопируйте аспект из ZET или задайте конкретный вопрос).")
         return
 
     processed_query = parse_astrological_input(raw_text)
-
-    # Сразу формируем запрос на комплексный анализ без выбора сфер
     final_task = f"Показатель: {processed_query}\nЗадача: Комплексный анализ по всем фундаментальным сферам."
 
     await message.answer(
@@ -274,14 +261,7 @@ async def handle_health_check(request):
 
 
 async def keep_alive_pinger():
-    """
-    Пока процесс жив, каждые KEEP_ALIVE_INTERVAL секунд сам обращается к своему
-    публичному URL. Render усыпляет бесплатный Web Service после ~15 минут без
-    входящего HTTP-трафика — регулярный самопинг не даёт этому таймауту накопиться,
-    пока сервис уже поднят. Это НЕ спасает от пробуждения "с нуля" (см. пояснение
-    в чате), а лишь удерживает уже запущенный сервис активным.
-    """
-    await asyncio.sleep(30)  # даём приложению полностью подняться перед первым пингом
+    await asyncio.sleep(30)
     async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20)) as session:
         while True:
             try:
@@ -303,7 +283,6 @@ async def start_web_server():
 
 
 async def setup_bot_ui():
-    """Кнопка меню (иконка ☰ слева от поля ввода) со списком команд — /start всегда под рукой."""
     await bot.set_my_commands([
         BotCommand(command="start",
                    description="🔄 Перезапустить бота / главное меню"),
@@ -316,19 +295,21 @@ async def main():
     if not settings.IS_DEVELOPMENT:
         await start_web_server()
         asyncio.create_task(keep_alive_pinger())
+
     await bot.delete_webhook(drop_pending_updates=True)
     await setup_bot_ui()
+
     logger.info(f"🚀 Бот запущен в режиме: {settings.ENV}")
     logger.info("=" * 60)
     logger.info("Astro12AI")
     logger.info(f"ENV: {settings.ENV}")
-    logger.info(f"ИИ-модель: {model_name}")  # 🆕 Добавлено в итоговый лог
+    logger.info(f"ИИ-модель: {model_name}")
     logger.info(f"Documents: {len(documents)}")
     logger.info(f"Knowledge chunks: {len(documents)}")
     logger.info("=" * 60)
+
     try:
         await dp.start_polling(bot)
-
     finally:
         await bot.session.close()
 
