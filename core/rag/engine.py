@@ -38,7 +38,7 @@ class AstroRetriever:
         "эрида": ["конфликты", "протесты", "революции", "революционные идеи", "перевороты", "бунты"],
     }
 
-    def __init__(self, documents, k=5):  # 4 или 5
+    def __init__(self, documents, k=4):  # 4 или 5
         self.documents = documents
         for doc in self.documents:
             source = doc.metadata.get("source", "")
