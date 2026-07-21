@@ -20,8 +20,9 @@ def load_knowledge_base(folder_path="knowledge_base"):
     split_docs = []
 
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=150
+        chunk_size=1000,         # ← не больше 1000 для астрологии
+        chunk_overlap=100       # ← перекрытие 10-15%
+        separators=["\n\n", "\n", ". ", " "]
     )
 
     if not os.path.exists(folder_path):
@@ -77,5 +78,5 @@ def load_knowledge_base(folder_path="knowledge_base"):
             "База знаний пустая."
         )
     save_cache(split_docs)
-    
+
     return split_docs
