@@ -98,7 +98,7 @@ async def get_ai_interpretation(query: str) -> str:
             loop = asyncio.get_running_loop()
             response = await loop.run_in_executor(None, lambda: rag_chain.invoke({"input": query}))
 
-            # Логирование контекста RAG
+            # 1. Логирование контекста RAG
             if "context" in response:
                 stats = context_statistics(response["context"])
                 logger.info("=" * 60)
@@ -114,22 +114,22 @@ async def get_ai_interpretation(query: str) -> str:
                         used.add(source)
                         logger.info(source)
 
-            # 🆕 Исправленное логирование токенов (извлекаем из AIMessage)
+            # 2. 🆕 ГАРАНТИРОВАННОЕ извлечение токенов
             answer_msg = response.get("answer")
             if answer_msg:
-                # Вариант 1: через response_metadata (старые версии LangChain / некоторые провайдеры)
-                if hasattr(answer_msg, "response_metadata"):
-                    usage = answer_msg.response_metadata.get("token_usage", {})
-                    if usage:
-                        logger.info(f"📊 Токены: prompt={usage.get('prompt_tokens', 'N/A')}, "
-                                    f"completion={usage.get('completion_tokens', 'N/A')}, "
-                                    f"total={usage.get('total_tokens', 'N/A')}")
-                # Вариант 2: через usage_metadata (современный стандарт LangChain)
-                elif hasattr(answer_msg, "usage_metadata"):
-                    usage = answer_msg.usage_metadata
-                    logger.info(f"📊 Токены: input={usage.get('input_tokens', 'N/A')}, "
-                                f"output={usage.get('output_tokens', 'N/A')}, "
-                                f"total={usage.get('total_tokens', 'N/A')}")
+                if hasattr(answer_msg, "usage_metadata") and answer_msg.usage_metadata:
+                    u = answer_msg.usage_metadata
+                    logger.info(
+                        f"📊 ТОКЕНЫ: вход={u.get('input_tokens')}, выход={u.get('output_tokens')}, всего={u.get('total_tokens')}")
+                elif hasattr(answer_msg, "response_metadata"):
+                    u = answer_msg.response_metadata.get(
+                        "token_usage", {}) or answer_msg.response_metadata.get("usage", {})
+                    if u:
+                        logger.info(
+                            f"📊 ТОКЕНЫ: вход={u.get('prompt_tokens') or u.get('input_tokens')}, выход={u.get('completion_tokens') or u.get('output_tokens')}, всего={u.get('total_tokens')}")
+                else:
+                    logger.info(
+                        f"📊 Сырые метаданные ответа: {getattr(answer_msg, 'response_metadata', 'Нет данных')}")
 
             return response['answer']
 
