@@ -75,20 +75,40 @@ ZODIAC_MAP = {
 
 
 def parse_astrological_input(text: str) -> str:
-    pattern = r"([а-яА-Я\w\s\-]+)\s+([а-яА-Я\w\-]+)\s*>\s*(\d+°\d+\'?)\s*<\s*(\d+)([a-zA-Z]{3})(\d+)\s*-\s*(\d+)([a-zA-Z]{3})(\d+)"
+    # 🆕 Обновленное регулярное выражение, которое захватывает направление скобок
+    # Группы: 1=аспект, 2=планеты, 3=скобка1, 4=градус, 5=скобка2, 6=град1, 7=знак1, 8=мин1, 9=град2, 10=знак2, 11=мин2
+    pattern = r"([а-яА-Я\w\s\-]+)\s+([а-яА-Я\w\-]+)\s*([><])\s*(\d+°\d+\'?)\s*([><])\s*(\d+)([a-zA-Z]{3})(\d+)\s*-\s*(\d+)([a-zA-Z]{3})(\d+)"
+
     match = re.search(pattern, text)
     if match:
         aspect_type = match.group(1).strip()
         planets = match.group(2).strip()
-        exact_angle = match.group(3)
-        p1_deg = match.group(4)
-        p1_sign = ZODIAC_MAP.get(match.group(5), match.group(5))
-        p2_deg = match.group(7)
-        p2_sign = ZODIAC_MAP.get(match.group(8), match.group(8))
+        bracket1 = match.group(3)
+        exact_angle = match.group(4)
+        bracket2 = match.group(5)
+
+        p1_deg = match.group(6)
+        p1_sign = ZODIAC_MAP.get(match.group(7), match.group(7))
+
+        p2_deg = match.group(9)
+        p2_sign = ZODIAC_MAP.get(match.group(10), match.group(10))
+
+        # 🆕 Логика определения сходящегося/расходящегося аспекта по скобкам ZET
+        if bracket1 == ">" and bracket2 == "<":
+            direction = "СХОДЯЩИЙСЯ (орбис уменьшается, аспект еще не стал точным, событие грядет и набирает силу)"
+        elif bracket1 == "<" and bracket2 == ">":
+            direction = "РАСХОДЯЩИЙСЯ (орбис увеличивается, аспект уже прошел точность, событие уже произошло или его пик позади)"
+        else:
+            direction = "ТОЧНЫЙ (аспект в точном значении)"
+
         return (
-            f"Сходящийся напряженный аспект {aspect_type} между {planets} (точное расстояние {exact_angle}). "
+            f"Аспект: {aspect_type} между {planets}. "
+            f"Точное расстояние: {exact_angle}. "
+            f"Характер аспекта: {direction}. "
             f"Первая планета находится в {p1_deg} градусах знака {p1_sign}, вторая планета — в {p2_deg} градусах знака {p2_sign}."
         )
+
+    # Если регулярное выражение не сработало, возвращаем исходный текст
     return text
 
 
