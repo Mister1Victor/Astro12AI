@@ -90,23 +90,18 @@ class AstroRetriever(BaseRetriever):
     def search(self, query):
         expanded_query = self.expand_query(query)
 
-        print("\nPARSED CHART")
-        print(self.parse_chart(query))
-        print()
-
         # 1. Базовый поиск и первичная фильтрация
         docs = self._retriever.invoke(expanded_query)[:10]
         docs = self.remove_duplicates(docs)
         docs = self.filter_short_documents(docs)
         docs = self.filter_by_entities(query, docs)
         docs = self.limit_same_source(docs)
-        docs = self._retriever.invoke(expanded_query)[:10]  # 🆕 _retriever
 
-        # 2. Специфичные фильтрации и обогащение
+        # 2. Специфичные фильтрации
         docs = self.force_school_definition(query, docs)
-        docs = self.inject_context_blocks(query, docs)
 
-        # 3. Фильтрация по запрещённым словам (удаляем документ целиком, а не портим текст)
+        # 🆕 3. ФИЛЬТРАЦИЯ ПО ЗАПРЕЩЕННЫМ СЛОВАМ (ДОЛЖНА БЫТЬ ДО ИНЖЕКЦИИ!)
+        # Иначе фильтр удалит документ, увидев запрещенные слова в нашем же списке "ЗАПРЕЩЕНО"
         parsed = self.parse_chart(query)
         active_forbidden_words = set()
         for planet in parsed["planets"]:
@@ -119,23 +114,14 @@ class AstroRetriever(BaseRetriever):
                 if not any(word in doc.page_content.lower() for word in active_forbidden_words)
             ]
 
-        # 4. Добавление контекста авторитета (безопасно, только если документы остались)
-        if self.is_entity_query(query) and docs:
-            authority = self.build_authority_context(query)
-            if authority:
-                docs[0].metadata["authority_context"] = authority
+        # 🆕 4. ИНЖЕКЦИЯ АВТОРСКИХ ОПРЕДЕЛЕНИЙ (теперь в чистые, отфильтрованные документы)
+        docs = self.inject_context_blocks(query, docs)
 
-        # 5. Логирование результатов
-        print("\nTOP DOCUMENTS")
+        # 5. Логирование результатов (для отладки)
+        logger.info("\nTOP DOCUMENTS ПОСЛЕ ВСЕХ ФИЛЬТРОВ:")
         for i, doc in enumerate(docs[:5], 1):
-            print(f"{i}. {doc.metadata.get('source')} | weight={doc.metadata.get('weight')} | score={self.calculate_score(query, doc)}")
-
-        print("\nCONTEXT\n")
-        for doc in docs[:3]:
-            print("=" * 80)
-            print(doc.metadata.get("source"))
-            print()
-            print(doc.page_content[:1000])
+            logger.info(
+                f"{i}. {doc.metadata.get('source')} | weight={doc.metadata.get('weight')} | size={len(doc.page_content)}")
 
         return docs
 
