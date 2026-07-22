@@ -4,6 +4,7 @@ from typing import List, Any, ClassVar  # 🆕 Добавлен ClassVar
 from langchain_core.retrievers import BaseRetriever
 from langchain_core.documents import Document
 from langchain_community.retrievers import BM25Retriever
+from pydantic import PrivateAttr  # 🆕 Добавлен импорт PrivateAttr
 
 from core.knowledge.weights import (
     ASTRO_TERMS,
@@ -19,6 +20,9 @@ class AstroRetriever(BaseRetriever):
     """
     Центральный поисковый движок Astro12AI.
     """
+# 🆕 Приватные атрибуты Pydantic (не проверяются как поля модели)
+    _documents: List[Document] = PrivateAttr()
+    _retriever: Any = PrivateAttr()
 
     # 🆕 Все константы класса теперь имеют аннотацию ClassVar[тип]
     REPLACE: ClassVar[dict] = {
@@ -62,22 +66,23 @@ class AstroRetriever(BaseRetriever):
         "эрида": ["конфликты", "протесты", "революции", "революционные идеи", "перевороты", "бунты"],
     }
 
-    def __init__(self, documents, k=4):
-        self.documents = documents
-        for doc in self.documents:
+    def __init__(self, documents: List[Document], k: int = 4, **kwargs):
+        super().__init__(**kwargs)  # 🆕 Обязательно вызываем init базового класса!
+
+        self._documents = documents  # 🆕 Используем _documents вместо documents
+        for doc in self._documents:
             source = doc.metadata.get("source", "")
             filename = source.split("/")[-1].split("\\")[-1]
             doc.metadata["weight"] = get_document_weight(filename)
 
-        self.bm25_retriever = BM25Retriever.from_documents(self.documents)
-        self.bm25_retriever.k = k
+        self._retriever = BM25Retriever.from_documents(
+            self._documents)  # 🆕 Используем _retriever
+        self._retriever.k = k
 
-    # 🆕 ЭТОТ МЕТОД ЗАСТАВЛЯЕТ LANGCHAIN ИСПОЛЬЗОВАТЬ ВАШ КАСТОМНЫЙ ПОИСК
+    # Этот метод заставляет LangChain использовать ваш кастомный поиск
     def _get_relevant_documents(self, query: str, *, run_manager: Any = None) -> List[Document]:
-        """Этот метод автоматически вызывается LangChain при запросе к ретриверу"""
         return self.search(query)
 
-    # ... ДАЛЕЕ ИДУТ ВСЕ ВАШИ СУЩЕСТВУЮЩИЕ МЕТОДЫ (search, inject_context_blocks и т.д.) БЕЗ ИЗМЕНЕНИЙ ...
     # ==========================================================
     # PUBLIC
     # ==========================================================
@@ -90,11 +95,12 @@ class AstroRetriever(BaseRetriever):
         print()
 
         # 1. Базовый поиск и первичная фильтрация
-        docs = self.retriever.invoke(expanded_query)[:10]
+        docs = self._retriever.invoke(expanded_query)[:10]
         docs = self.remove_duplicates(docs)
         docs = self.filter_short_documents(docs)
         docs = self.filter_by_entities(query, docs)
         docs = self.limit_same_source(docs)
+        docs = self._retriever.invoke(expanded_query)[:10]  # 🆕 _retriever
 
         # 2. Специфичные фильтрации и обогащение
         docs = self.force_school_definition(query, docs)
@@ -154,10 +160,11 @@ class AstroRetriever(BaseRetriever):
         return result or docs
 
     def get_retriever(self):
-        return self.retriever
+        return self._retriever  # 🆕 _retriever
 
     def stats(self):
-        return {"documents": len(self.documents), "k": self.retriever.k}
+        # 🆕 _documents и _retriever
+        return {"documents": len(self._documents), "k": self._retriever.k}
 
     # ==========================================================
     # NORMALIZATION & EXTRACTION
