@@ -1,11 +1,13 @@
-import re
-from collections import Counter
-from langchain_community.retrievers import BM25Retriever
 from core.knowledge.weights import (
     ASTRO_TERMS,
     get_document_weight,
     AUTHOR_DEFINITIONS,
 )
+from langchain_community.retrievers import BM25Retriever
+from collections import Counter
+import re
+from backend.logger import get_logger
+logger = get_logger()
 
 
 class AstroRetriever:
@@ -38,8 +40,13 @@ class AstroRetriever:
         # Добавляем словесные варианты для надежности
         "первый лунный день", "второй лунный день", "третий лунный день", "четвертый лунный день",
         "пятый лунный день", "шестой лунный день", "седьмой лунный день", "восьмой лунный день",
-        "девятый лунный день", "десятый лунный день"
-        # (можно добавить до 30, но пользователи чаще пишут цифрами)
+        "девятый лунный день", "десятый лунный день", "одиннадцатый лунный день", "двенадцатый лунный день",
+        "тринадцатый лунный день", "четырнадцатый лунный день", "пятнадцатый лунный день",
+        "шестнадцатый лунный день", "семнадцатый лунный день", "восемнадцатый лунный день",
+        "девятнадцатый лунный день", "двадцатый лунный день", "двадцать первый лунный день",
+        "двадцать второй лунный день", "двадцать третий лунный день", "двадцать четвертый лунный день",
+        "двадцать пятый лунный день", "двадцать шестой лунный день", "двадцать седьмой лунный день",
+        "двадцать восьмой лунный день", "двадцать девятый лунный день", "тридцатый лунный день"
     }
 
     FORBIDDEN = {
@@ -225,13 +232,15 @@ class AstroRetriever:
 
     def inject_context_blocks(self, query, docs):
         """
-        Универсальный метод: инжектирует в первый документ:
+        Универсальный метод: инжектирует в контекст:
         1. Авторские определения планет (из AUTHOR_DEFINITIONS)
         2. Ключевые слова знаков и домов (из ASTRO_TERMS)
-        Только для сущностей, упомянутых в запросе.
+
+        КРИТИЧЕСКИ ВАЖНО: Если docs пустой (BM25 ничего не нашёл),
+        создаём fallback-документ с авторскими определениями,
+        чтобы модель ВСЕГДА получала базу для ответа.
         """
-        if not docs:
-            return docs
+        from langchain_core.documents import Document
 
         entities = self.extract_entities(query)
         blocks = []
@@ -243,18 +252,37 @@ class AstroRetriever:
 
         # 2. Инжекция ключевых слов знаков и домов
         for entity in entities:
-            # Пропускаем планеты — они уже в AUTHOR_DEFINITIONS
             if entity in self.PLANETS:
-                continue
+                continue  # планеты уже в AUTHOR_DEFINITIONS
             if entity in ASTRO_TERMS and ASTRO_TERMS[entity]:
                 block = [f"=== КЛЮЧЕВЫЕ СЛОВА: {entity.upper()} ==="]
                 for term in ASTRO_TERMS[entity]:
                     block.append(f"• {term}")
                 blocks.append("\n".join(block))
 
+        # 🆕 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: если docs пустой — создаём fallback
+        if not docs:
+            if blocks:
+                fallback_content = "\n\n".join(blocks)
+                fallback_doc = Document(
+                    page_content=fallback_content,
+                    metadata={
+                        "source": "AUTHOR_DEFINITIONS (fallback)", "weight": 10}
+                )
+                logger.info(
+                    f"🔄 Fallback: BM25 не нашёл документов. Создан fallback-документ с {len(blocks)} блоками авторских определений.")
+                return [fallback_doc]
+            else:
+                logger.warning(
+                    "⚠️ BM25 не нашёл документов И нет авторских определений для сущностей запроса.")
+                return []
+
+        # Если docs не пустой — инжектируем в первый документ как раньше
         if blocks:
             combined = "\n\n".join(blocks)
             docs[0].page_content = combined + "\n\n" + docs[0].page_content
+            logger.info(
+                f"✅ Инжектировано {len(blocks)} блоков авторских определений в первый документ.")
 
         return docs
 

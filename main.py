@@ -104,6 +104,14 @@ async def get_ai_interpretation(query: str) -> str:
                 logger.info("=" * 60)
                 logger.info("КОНТЕКСТ RAG")
                 logger.info(stats)
+
+                # 🆕 Показываем ИСТОЧНИКИ документов (важно для диагностики!)
+                logger.info("===== ИСТОЧНИКИ ДОКУМЕНТОВ В КОНТЕКСТЕ =====")
+                for i, doc in enumerate(response["context"], 1):
+                    source = doc.metadata.get("source", "Неизвестно")
+                    preview = doc.page_content[:150].replace("\n", " ")
+                    logger.info(f"[{i}] {source} | {preview}...")
+
                 logger.info("=" * 60)
 
                 logger.info("===== ИСПОЛЬЗОВАННЫЕ ДОКУМЕНТЫ =====")
