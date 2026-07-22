@@ -231,47 +231,41 @@ class AstroRetriever:
         return self.search(query)
 
     def inject_context_blocks(self, query, docs):
-        """
-        Универсальный метод: инжектирует в контекст:
-        1. Авторские определения планет (из AUTHOR_DEFINITIONS)
-        2. Ключевые слова знаков и домов (из ASTRO_TERMS)
-
-        КРИТИЧЕСКИ ВАЖНО: Если docs пустой (BM25 ничего не нашёл),
-        создаём fallback-документ с авторскими определениями.
-        """
         from langchain_core.documents import Document
 
         entities = self.extract_entities(query)
-        logger.info(f"🔍 Извлечённые сущности из запроса: {entities}")
+        logger.info(f"🔍 1. Извлечённые сущности из запроса: {entities}")
 
         blocks = []
 
         # 1. Инжекция авторских определений планет
         for entity in entities:
             if entity in AUTHOR_DEFINITIONS:
-                logger.info(f"✅ Найдено авторское определение для: {entity}")
+                logger.info(
+                    f"✅ 2. НАЙДЕНО авторское определение для: '{entity}'")
                 blocks.append(AUTHOR_DEFINITIONS[entity])
             else:
-                logger.warning(f"⚠️ Нет авторского определения для: {entity}")
+                logger.warning(
+                    f"⚠️ 2. НЕ НАЙДЕНО авторское определение для: '{entity}' (проверьте weights.py)")
 
         # 2. Инжекция ключевых слов знаков и домов
         for entity in entities:
             if entity in self.PLANETS:
-                continue  # планеты уже в AUTHOR_DEFINITIONS
+                continue
             if entity in ASTRO_TERMS and ASTRO_TERMS[entity]:
-                logger.info(f"✅ Найдены ключевые слова для: {entity}")
+                logger.info(f"✅ 3. НАЙДЕНЫ ключевые слова для: '{entity}'")
                 block = [f"=== КЛЮЧЕВЫЕ СЛОВА: {entity.upper()} ==="]
                 for term in ASTRO_TERMS[entity]:
                     block.append(f"• {term}")
                 blocks.append("\n".join(block))
-            else:
-                logger.warning(f"⚠️ Нет ключевых слов для: {entity}")
 
-        logger.info(f"📦 Всего подготовлено блоков для инжекции: {len(blocks)}")
+        logger.info(
+            f"📦 4. Всего подготовлено блоков для инжекции: {len(blocks)}")
 
-        # 🆕 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: если docs пустой — создаём fallback
+        # 3. Логика применения блоков
         if not docs:
-            logger.warning("⚠️ BM25 не нашёл ни одного документа!")
+            logger.warning(
+                "⚠️ 5. BM25 не нашёл ни одного документа! Создаём fallback.")
             if blocks:
                 fallback_content = "\n\n".join(blocks)
                 fallback_doc = Document(
@@ -279,24 +273,20 @@ class AstroRetriever:
                     metadata={
                         "source": "AUTHOR_DEFINITIONS (fallback)", "weight": 10}
                 )
-                logger.info(
-                    f"🔄 Fallback: создан fallback-документ с {len(blocks)} блоками. Размер: {len(fallback_content)} символов.")
                 return [fallback_doc]
-            else:
-                logger.error(
-                    "❌ BM25 не нашёл документов И нет авторских определений для сущностей запроса.")
-                return []
+            return []
 
-        # Если docs не пустой — инжектируем в первый документ
+        # Если документы есть, впрыскиваем наши блоки в самое начало ПЕРВОГО документа
         if blocks:
             combined = "\n\n".join(blocks)
-            original_content = docs[0].page_content
-            docs[0].page_content = combined + "\n\n" + original_content
+            docs[0].page_content = combined + \
+                "\n\n=== НАЙДЕННЫЕ ФРАГМЕНТЫ ИЗ БАЗЫ ===\n\n" + \
+                docs[0].page_content
             logger.info(
-                f"✅ Инжектировано {len(blocks)} блоков в первый документ. Итоговый размер: {len(docs[0].page_content)} символов.")
+                f"✅ 5. УСПЕШНО инжектировано {len(blocks)} блоков в начало документа '{docs[0].metadata.get('source')}'")
         else:
             logger.warning(
-                "⚠️ Нет блоков для инжекции, но BM25 нашёл документы.")
+                "⚠️ 5. Блоков для инжекции нет, возвращаем документы как есть.")
 
         return docs
 
