@@ -2,7 +2,7 @@ from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from backend.config import settings
-from backend.logger import get_logger  # Добавлено для логирования
+from backend.logger import get_logger
 
 logger = get_logger()
 
@@ -16,51 +16,61 @@ def create_llm():
     - "openrouter": Лучший выбор для бесплатного тестирования (модели с суффиксом :free).
     - "gemini": Огромные бесплатные лимиты и контекст (Gemini 1.5 Flash).
     """
-
-    # Получаем настройки с дефолтными значениями groq
     provider = getattr(settings, "LLM_PROVIDER", "groq").lower().strip()
 
-    # Примеры корректных имен моделей:
-    # Groq: "llama-3.3-70b-versatile", "qwen/qwen3.6-27b"
-    # OpenRouter: "openai/gpt-4o", "qwen/qwen-2.5-72b-instruct:free"
-    # Gemini: "gemini-1.5-flash", "gemini-1.5-pro"
-    model_name = getattr(settings, "MODEL_NAME", "qwen/qwen3.6-27b")
+    # 🆕 Умный выбор модели по умолчанию в зависимости от провайдера
+    if provider == "openrouter":
+        default_model = "qwen/qwen-2.5-72b-instruct:free"
+    elif provider == "gemini":
+        default_model = "gemini-1.5-flash"
+    else:
+        default_model = "qwen/qwen3.6-27b"  # Актуальная модель на Groq [[1]]
 
-    # ИСПРАВЛЕНО: было "с" (кириллица), стало "TEMPERATURE"
-    temperature = float(getattr(settings, "TEMPERATURE", 0.2))
+    model_name = getattr(settings, "MODEL_NAME", default_model)
 
-    logger.info(
-        f"🤖 Инициализация LLM: Провайдер={provider}, Модель={model_name}, Температура={temperature}")
+    # 🆕 Безопасное приведение типов с fallback на значения по умолчанию
+    try:
+        temperature = float(getattr(settings, "TEMPERATURE", 0.2))
+        max_tokens = int(getattr(settings, "MAX_TOKENS", 4096))
+    except (ValueError, TypeError):
+        logger.warning(
+            "⚠️ Неверный формат TEMPERATURE или MAX_TOKENS в настройках. Используются значения по умолчанию.")
+        temperature = 0.2
+        max_tokens = 4096
+
+    logger.info(f"🤖 Инициализация LLM: Провайдер={provider}, Модель={model_name}, "
+                f"Температура={temperature}, MaxTokens={max_tokens}")
 
     if provider == "openrouter":
-        # OpenRouter использует API, полностью совместимый с OpenAI
         return ChatOpenAI(
-            openai_api_key=getattr(settings, "OPENROUTER_API_KEY", ""),
-            # base_url - более современный параметр в langchain_openai
+            api_key=getattr(settings, "OPENROUTER_API_KEY",
+                            ""),  # ✅ Обновлено на api_key
             base_url="https://openrouter.ai/api/v1",
             model=model_name,
             temperature=temperature,
+            max_tokens=max_tokens,
         )
 
     elif provider == "gemini":
         return ChatGoogleGenerativeAI(
-            google_api_key=getattr(settings, "GOOGLE_API_KEY", ""),
+            # ✅ Обновлено на api_key
+            api_key=getattr(settings, "GOOGLE_API_KEY", ""),
             model=model_name,
             temperature=temperature,
+            max_output_tokens=max_tokens,                         # ✅ Верно для Gemini
         )
 
     else:
         # По умолчанию используем Groq (для обратной совместимости)
-        # для model="qwen/qwen3.6-27b", если нужен стандартного быстрого ответа (Non-thinking), то -->
-        # reasoning_effort="none"
-        # THINKING MODE (Для сложных логических задач, математики и кодинга)
         return ChatGroq(
             api_key=getattr(settings, "GROQ_API_KEY", ""),
-            # model=model_name,
-            model="qwen/qwen3.6-27b",
+            model=model_name,
             temperature=temperature,
+            # ✅ Отключаем режим рассуждения для скорости (поддерживается langchain_groq) [[11]]
             reasoning_effort="none",
-            top_p=0.80,                    # Ограничивает выборку лучшими 80% токенов
-            presence_penalty=1.5,          # Заставляет модель использовать синонимы
-            max_tokens=4096,    # 1024 Оптимальный лимит для прямого ответа
+            # Ограничивает выборку лучшими 80% токенов
+            top_p=0.80,
+            # ✅ ИСПРАВЛЕНО: 1.5 было слишком агрессивно и могло ломать связность
+            presence_penalty=0.2,
+            max_tokens=max_tokens,
         )
