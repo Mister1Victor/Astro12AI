@@ -297,6 +297,7 @@ async def handle_user_input(message: types.Message):
 
     for chunk in chunks:
         await safe_answer(message, chunk, reply_markup=get_rephrase_keyboard())
+    return
 
 
 @dp.callback_query(F.data == "rephrase")

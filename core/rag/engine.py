@@ -237,31 +237,41 @@ class AstroRetriever:
         2. Ключевые слова знаков и домов (из ASTRO_TERMS)
 
         КРИТИЧЕСКИ ВАЖНО: Если docs пустой (BM25 ничего не нашёл),
-        создаём fallback-документ с авторскими определениями,
-        чтобы модель ВСЕГДА получала базу для ответа.
+        создаём fallback-документ с авторскими определениями.
         """
         from langchain_core.documents import Document
 
         entities = self.extract_entities(query)
+        logger.info(f"🔍 Извлечённые сущности из запроса: {entities}")
+
         blocks = []
 
         # 1. Инжекция авторских определений планет
         for entity in entities:
             if entity in AUTHOR_DEFINITIONS:
+                logger.info(f"✅ Найдено авторское определение для: {entity}")
                 blocks.append(AUTHOR_DEFINITIONS[entity])
+            else:
+                logger.warning(f"⚠️ Нет авторского определения для: {entity}")
 
         # 2. Инжекция ключевых слов знаков и домов
         for entity in entities:
             if entity in self.PLANETS:
                 continue  # планеты уже в AUTHOR_DEFINITIONS
             if entity in ASTRO_TERMS and ASTRO_TERMS[entity]:
+                logger.info(f"✅ Найдены ключевые слова для: {entity}")
                 block = [f"=== КЛЮЧЕВЫЕ СЛОВА: {entity.upper()} ==="]
                 for term in ASTRO_TERMS[entity]:
                     block.append(f"• {term}")
                 blocks.append("\n".join(block))
+            else:
+                logger.warning(f"⚠️ Нет ключевых слов для: {entity}")
+
+        logger.info(f"📦 Всего подготовлено блоков для инжекции: {len(blocks)}")
 
         # 🆕 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: если docs пустой — создаём fallback
         if not docs:
+            logger.warning("⚠️ BM25 не нашёл ни одного документа!")
             if blocks:
                 fallback_content = "\n\n".join(blocks)
                 fallback_doc = Document(
@@ -270,19 +280,23 @@ class AstroRetriever:
                         "source": "AUTHOR_DEFINITIONS (fallback)", "weight": 10}
                 )
                 logger.info(
-                    f"🔄 Fallback: BM25 не нашёл документов. Создан fallback-документ с {len(blocks)} блоками авторских определений.")
+                    f"🔄 Fallback: создан fallback-документ с {len(blocks)} блоками. Размер: {len(fallback_content)} символов.")
                 return [fallback_doc]
             else:
-                logger.warning(
-                    "⚠️ BM25 не нашёл документов И нет авторских определений для сущностей запроса.")
+                logger.error(
+                    "❌ BM25 не нашёл документов И нет авторских определений для сущностей запроса.")
                 return []
 
-        # Если docs не пустой — инжектируем в первый документ как раньше
+        # Если docs не пустой — инжектируем в первый документ
         if blocks:
             combined = "\n\n".join(blocks)
-            docs[0].page_content = combined + "\n\n" + docs[0].page_content
+            original_content = docs[0].page_content
+            docs[0].page_content = combined + "\n\n" + original_content
             logger.info(
-                f"✅ Инжектировано {len(blocks)} блоков авторских определений в первый документ.")
+                f"✅ Инжектировано {len(blocks)} блоков в первый документ. Итоговый размер: {len(docs[0].page_content)} символов.")
+        else:
+            logger.warning(
+                "⚠️ Нет блоков для инжекции, но BM25 нашёл документы.")
 
         return docs
 
