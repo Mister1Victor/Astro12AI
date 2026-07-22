@@ -202,10 +202,8 @@ class AstroRetriever(BaseRetriever):
             for keyword in ASTRO_TERMS[entity][:8]:
                 expanded.append(keyword)
 
-        print("=" * 80)
         print("QUERY:", query)
         print("EXPANDED QUERY:", " | ".join(expanded))
-        print("=" * 80)
 
         return " ".join(expanded)
 

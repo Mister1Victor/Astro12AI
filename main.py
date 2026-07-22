@@ -260,10 +260,10 @@ async def cmd_start(message: types.Message):
 
 @dp.message(F.text)
 async def handle_user_input(message: types.Message):
-    raw_text = message.text
+    raw_text = message.text.lower()  # Приводим к нижнему регистру для надежной проверки
 
-    # Фильтр сырых данных рождения
-    if re.search(r"\d{2}\.\d{2}\.\d{4}", raw_text) or any(word in raw_text.lower() for word in ["родился", "родилась", "город", "время"]):
+    # 1. Фильтр сырых данных рождения
+    if re.search(r"\d{2}\.\d{2}\.\d{4}", raw_text) or any(word in raw_text for word in ["родился", "родилась", "город", "время"]):
         redirect_text = (
             "⚠️ **Уведомление Школы Астрологии «12 Планет»**\n\n"
             "Вы ввели данные рождения (дату/время/город). Как сообщалось в приветствии, наш бот "
@@ -275,18 +275,18 @@ async def handle_user_input(message: types.Message):
         await message.answer(redirect_text, parse_mode="Markdown")
         return
 
-# 🆕 2. ФИЛЬТР ЗАПРЕЩЕННЫХ ОБЪЕКТОВ (Экономит токены и дает четкий ответ)
+    # 2. ФИЛЬТР ЗАПРЕЩЕННЫХ ОБЪЕКТОВ (🆕 ИСПРАВЛЕНА ПРОПУЩЕННАЯ ЗАПЯТАЯ после "прозерпин")
     forbidden_objects = [
         "лилит", "черная луна", "селен", "белая луна",
         "раху", "кету", "лунные узлы", "северный узел", "южный узел",
-        "астероид", "хирон", "паллада", "юнона", "веста", "прозерпин"
+        "астероид", "хирон", "паллада", "юнона", "веста", "прозерпин",  # <-- ЗАПЯТАЯ ДОБАВЛЕНА
         "звезд", "туманност", "жребий", "парс", "фиктивн",
     ]
 
     if any(word in raw_text for word in forbidden_objects):
         refusal_text = (
             "⚠️ **Уведомление Школы Астрологии «12 Планет»**\n\n"
-            "Вы упомянули астероиды (Хирон, Прозерпина), фиктивные точки (Лилит, Чёрная Луна), жребии (парсы), туманности или другие объекты, "
+            "Вы упомянули астероиды, фиктивные точки (Лилит, Лунные узлы), жребии (парсы), туманности или другие объекты, "
             "которые не входят в базовую методологию нашей Школы.\n\n"
             "Наша система специализируется на **глубокой, структурированной и точной интерпретации планет, знаков Зодиака и домов гороскопа**.\n\n"
             "Пожалуйста, переформулируйте вопрос, сосредоточившись на планетах, знаках и домах, чтобы мы могли дать вам качественный разбор по авторской методике."
@@ -294,15 +294,17 @@ async def handle_user_input(message: types.Message):
         await message.answer(refusal_text, parse_mode="Markdown")
         return
 
-    # 🆕 Фильтр слишком коротких запросов (экономия токенов)
-    if len(raw_text.strip()) < 10:
+    # 3. Фильтр слишком коротких запросов
+    if len(message.text.strip()) < 10:
         await message.answer("🔮 Пожалуйста, опишите астрологический показатель подробнее (например, скопируйте аспект из ZET или задайте конкретный вопрос).")
         return
 
-    processed_query = parse_astrological_input(raw_text)
+    # 4. Основной сценарий
+    # Используем исходный регистр для парсинга ZET
+    processed_query = parse_astrological_input(message.text)
     final_task = f"Показатель: {processed_query}\nЗадача: Комплексный анализ по всем фундаментальным сферам."
 
-    # 🆕 Сохраняем запрос пользователя для возможности перефразирования
+    # Сохраняем запрос пользователя для возможности перефразирования
     user_last_queries[message.from_user.id] = final_task
 
     await message.answer(
@@ -313,11 +315,7 @@ async def handle_user_input(message: types.Message):
 
     interpretation = await get_ai_interpretation(final_task)
 
-    # 🆕 Добавляем reply_markup=get_rephrase_keyboard() к каждому фрагменту (или к последнему)
-    for chunk in split_text_for_telegram(interpretation):
-        await safe_answer(message, chunk, reply_markup=get_rephrase_keyboard())
-
-    # 🆕 Лог для проверки: если текст короткий, значит обрезала модель. Если длинный - модель в порядке.
+    # Лог для проверки длины ответа
     logger.info(
         f"📝 Длина сгенерированного ответа: {len(interpretation)} символов")
 
@@ -325,11 +323,19 @@ async def handle_user_input(message: types.Message):
         await message.answer("⚠️ Модель вернула пустой или слишком короткий ответ. Попробуйте перефразировать запрос.")
         return
 
+    # 🆕 ЕДИНЫЙ ЧИСТЫЙ БЛОК ОТПРАВКИ С ЗАЩИТОЙ ОТ ДУБЛИКАТОВ
     chunks = split_text_for_telegram(interpretation)
     logger.info(f"📨 Ответ разбит на {len(chunks)} фрагмент(ов) для Telegram")
 
+    sent_texts = set()
     for chunk in chunks:
-        await safe_answer(message, chunk, reply_markup=get_rephrase_keyboard())
+        chunk_stripped = chunk.strip()
+        # Отправляем только если текст не пустой и еще не был отправлен
+        if chunk_stripped and chunk_stripped not in sent_texts:
+            await safe_answer(message, chunk_stripped, reply_markup=get_rephrase_keyboard())
+            sent_texts.add(chunk_stripped)
+
+    # Явно завершаем функцию, чтобы код не "проваливался" в другие обработчики
     return
 
 
