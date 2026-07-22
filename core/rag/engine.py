@@ -67,7 +67,7 @@ class AstroRetriever:
 
         # 2. Специфичные фильтрации и обогащение
         docs = self.force_school_definition(query, docs)
-        docs = self.inject_author_definition(query, docs)
+        docs = self.inject_context_blocks(query, docs)
 
         # 3. Фильтрация по запрещённым словам (удаляем документ целиком, а не портим текст)
         parsed = self.parse_chart(query)
@@ -202,26 +202,47 @@ class AstroRetriever:
         ])
         return "\n".join(parts)
 
-    def inject_author_definition(self, query, docs):
-        if not docs:
-            return docs
-
-        entities = self.extract_entities(query)
-        definitions = [AUTHOR_DEFINITIONS[entity]
-                       for entity in entities if entity in AUTHOR_DEFINITIONS]
-
-        if definitions:
-            docs[0].page_content = "\n\n".join(
-                definitions) + "\n\n" + docs[0].page_content
-
-        return docs
-
     def is_entity_query(self, query):
         return len(self.extract_entities(query)) == 1
 
     def _get_relevant_documents(self, query: str, *, run_manager=None) -> list:
         """Этот метод автоматически вызывается LangChain при создании rag_chain"""
         return self.search(query)
+
+    def inject_context_blocks(self, query, docs):
+        """
+        Универсальный метод: инжектирует в первый документ:
+        1. Авторские определения планет (из AUTHOR_DEFINITIONS)
+        2. Ключевые слова знаков и домов (из ASTRO_TERMS)
+        Только для сущностей, упомянутых в запросе.
+        """
+        if not docs:
+            return docs
+
+        entities = self.extract_entities(query)
+        blocks = []
+
+        # 1. Инжекция авторских определений планет
+        for entity in entities:
+            if entity in AUTHOR_DEFINITIONS:
+                blocks.append(AUTHOR_DEFINITIONS[entity])
+
+        # 2. Инжекция ключевых слов знаков и домов
+        for entity in entities:
+            # Пропускаем планеты — они уже в AUTHOR_DEFINITIONS
+            if entity in self.PLANETS:
+                continue
+            if entity in ASTRO_TERMS and ASTRO_TERMS[entity]:
+                block = [f"=== КЛЮЧЕВЫЕ СЛОВА: {entity.upper()} ==="]
+                for term in ASTRO_TERMS[entity]:
+                    block.append(f"• {term}")
+                blocks.append("\n".join(block))
+
+        if blocks:
+            combined = "\n\n".join(blocks)
+            docs[0].page_content = combined + "\n\n" + docs[0].page_content
+
+        return docs
 
     # ==========================================================
     # FILTERS
