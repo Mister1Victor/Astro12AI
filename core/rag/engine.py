@@ -1,16 +1,20 @@
+import re
+from collections import Counter
+from typing import List, Any
+from langchain_core.retrievers import BaseRetriever
+from langchain_core.documents import Document
+from langchain_community.retrievers import BM25Retriever
 from core.knowledge.weights import (
     ASTRO_TERMS,
     get_document_weight,
     AUTHOR_DEFINITIONS,
 )
-from langchain_community.retrievers import BM25Retriever
-from collections import Counter
-import re
 from backend.logger import get_logger
+
 logger = get_logger()
 
 
-class AstroRetriever:
+class AstroRetriever(BaseRetriever):
     """
     Центральный поисковый движок Astro12AI.
     """
@@ -226,8 +230,9 @@ class AstroRetriever:
     def is_entity_query(self, query):
         return len(self.extract_entities(query)) == 1
 
-    def _get_relevant_documents(self, query: str, *, run_manager=None) -> list:
-        """Этот метод автоматически вызывается LangChain при создании rag_chain"""
+# 🆕 ДОБАВЬТЕ ЭТОТ МЕТОД. Он скажет LangChain использовать ваш метод search
+    def _get_relevant_documents(self, query: str, *, run_manager: Any = None) -> List[Document]:
+        """Этот метод автоматически вызывается LangChain при запросе к ретриверу"""
         return self.search(query)
 
     def inject_context_blocks(self, query, docs):

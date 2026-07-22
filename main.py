@@ -58,7 +58,7 @@ prompt = ChatPromptTemplate.from_messages(
 
 question_answer_chain = create_stuff_documents_chain(llm, prompt)
 rag_chain = create_retrieval_chain(
-    astro_retriever.get_retriever(),
+    astro_retriever,  # Передаем сам экземпляр класса!
     question_answer_chain
 )
 
