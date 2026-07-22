@@ -93,66 +93,99 @@ def parse_astrological_input(text: str) -> str:
 
 
 async def get_ai_interpretation(query: str) -> str:
+    logger.info("=" * 60)
+    logger.info(f"📥 ВХОДНОЙ ЗАПРОС: {query[:200]}...")
+    logger.info("=" * 60)
+
+    start_time = time.time()
+
     for attempt in range(3):
         try:
             loop = asyncio.get_running_loop()
             response = await loop.run_in_executor(None, lambda: rag_chain.invoke({"input": query}))
 
+            elapsed = round(time.time() - start_time, 2)
+            logger.info(f"⏱️ Время выполнения запроса: {elapsed} сек")
+
             # 1. Логирование контекста RAG
             if "context" in response:
                 stats = context_statistics(response["context"])
                 logger.info("=" * 60)
-                logger.info("КОНТЕКСТ RAG")
+                logger.info("📚 КОНТЕКСТ RAG")
                 logger.info(stats)
-
-                # 🆕 Показываем ИСТОЧНИКИ документов (важно для диагностики!)
-                logger.info("===== ИСТОЧНИКИ ДОКУМЕНТОВ В КОНТЕКСТЕ =====")
-                for i, doc in enumerate(response["context"], 1):
-                    source = doc.metadata.get("source", "Неизвестно")
-                    preview = doc.page_content[:150].replace("\n", " ")
-                    logger.info(f"[{i}] {source} | {preview}...")
-
                 logger.info("=" * 60)
 
-                logger.info("===== ИСПОЛЬЗОВАННЫЕ ДОКУМЕНТЫ =====")
-                used = set()
-                for doc in response["context"]:
+                # 🆕 Детальное содержимое каждого документа в контексте
+                logger.info("===== СОДЕРЖИМОЕ КОНТЕКСТА =====")
+                for i, doc in enumerate(response["context"], 1):
                     source = doc.metadata.get("source", "Неизвестно")
-                    if source not in used:
-                        used.add(source)
-                        logger.info(source)
+                    weight = doc.metadata.get("weight", "N/A")
+                    content_length = len(doc.page_content)
+                    preview = doc.page_content[:300].replace("\n", " ")
+                    logger.info(
+                        f"[{i}] 📄 Источник: {source} | Вес: {weight} | Размер: {content_length} симв.")
+                    logger.info(f"    Превью: {preview}...")
 
-            # 2. 🆕 ГАРАНТИРОВАННОЕ извлечение токенов
+                    # Проверяем, есть ли в документе авторские определения
+                    if "АВТОРСКОЕ ОПРЕДЕЛЕНИЕ" in doc.page_content:
+                        logger.info(
+                            f"    ✅ Содержит АВТОРСКОЕ ОПРЕДЕЛЕНИЕ Школы")
+                    if "КЛЮЧЕВЫЕ СЛОВА:" in doc.page_content:
+                        logger.info(f"    ✅ Содержит КЛЮЧЕВЫЕ СЛОВА")
+                logger.info("=" * 60)
+
+            # 2. Логирование использования токенов
             answer_msg = response.get("answer")
             if answer_msg:
+                # Вариант 1: Современный LangChain (>= 0.2.x)
                 if hasattr(answer_msg, "usage_metadata") and answer_msg.usage_metadata:
                     u = answer_msg.usage_metadata
                     logger.info(
                         f"📊 ТОКЕНЫ: вход={u.get('input_tokens')}, выход={u.get('output_tokens')}, всего={u.get('total_tokens')}")
+                # Вариант 2: Старый LangChain или специфика провайдера
                 elif hasattr(answer_msg, "response_metadata"):
                     u = answer_msg.response_metadata.get(
                         "token_usage", {}) or answer_msg.response_metadata.get("usage", {})
                     if u:
-                        logger.info(
-                            f"📊 ТОКЕНЫ: вход={u.get('prompt_tokens') or u.get('input_tokens')}, выход={u.get('completion_tokens') or u.get('output_tokens')}, всего={u.get('total_tokens')}")
-                else:
-                    logger.info(
-                        f"📊 Сырые метаданные ответа: {getattr(answer_msg, 'response_metadata', 'Нет данных')}")
+                        logger.info(f"📊 ТОКЕНЫ: вход={u.get('prompt_tokens') or u.get('input_tokens')}, "
+                                    f"выход={u.get('completion_tokens') or u.get('output_tokens')}, "
+                                    f"всего={u.get('total_tokens')}")
+                    else:
+                        logger.info("📊 ТОКЕНЫ: метаданные отсутствуют")
 
-                    # 🆕 Проверяем, почему модель остановилась
-                    answer_msg = response.get("answer")
-                    if answer_msg and hasattr(answer_msg, "response_metadata"):
-                        finish = answer_msg.response_metadata.get(
-                            "finish_reason", "unknown")
-                        logger.info(f"🏁 Причина завершения: {finish}")
-                        # "stop" = модель закончила сама (ОК)
-                        # "length" = ОБРЕЗАНО по лимиту токенов (ПРОБЛЕМА!)
-            return response['answer']
+                # 🆕 Логируем причину завершения ответа
+                if hasattr(answer_msg, "response_metadata"):
+                    finish_reason = answer_msg.response_metadata.get(
+                        "finish_reason", "unknown")
+                    logger.info(
+                        f"🏁 Причина завершения генерации: {finish_reason}")
+                    if finish_reason == "length":
+                        logger.warning(
+                            "⚠️ Ответ ОБРЕЗАН по лимиту токенов! Увеличьте MAX_TOKENS в .env")
+
+            # 3. Логирование финального ответа
+            answer_text = response.get('answer', '')
+            if isinstance(answer_text, str):
+                logger.info(f"📝 Длина ответа: {len(answer_text)} символов")
+                logger.info(
+                    f"📝 Превью ответа: {answer_text[:200].replace(chr(10), ' ')}...")
+            else:
+                logger.warning(
+                    f"⚠️ Ответ имеет неожиданный тип: {type(answer_text)}")
+
+            return answer_text
 
         except Exception as e:
-            logger.warning(f"⚠️ Ошибка вызова ИИ (Попытка {attempt+1}): {e}")
-            await asyncio.sleep(3)
+            logger.warning(f"⚠️ Ошибка вызова ИИ (Попытка {attempt+1}/3): {e}")
+            if attempt < 2:
+                logger.info(f"⏳ Повторная попытка через 3 секунды...")
+                await asyncio.sleep(3)
+            else:
+                logger.error(
+                    f"❌ Все 3 попытки исчерпаны. Последняя ошибка: {e}")
 
+    logger.error(
+        "❌ Функция get_ai_interpretation вернула ошибку после всех попыток")
     return "❌ Извините, шлюз ИИ-интерпретации сейчас перегружен. Повторите отправку запроса через 5-10 минут."
 
 
