@@ -77,23 +77,37 @@ ZODIAC_MAP = {
 def parse_astrological_input(text: str) -> str:
     parsed_parts = []
 
-    # 1. Парсинг аспекта (с направлением сходящийся/расходящийся)
-    pattern = r"([а-яА-Я\w\s\-]+)\s+([а-яА-Я\w\-]+)\s*([><])\s*(\d+°\d+\'?)\s*([><])\s*(\d+)([a-zA-Z]{3})(\d+)\s*-\s*(\d+)([a-zA-Z]{3})(\d+)"
-    match = re.search(pattern, text)
+    # ============================================================
+    # 1. ПАРСИНГ АСПЕКТОВ (игнорируем градусы/минуты)
+    # ============================================================
+    # Пример: "Квадрат Сатурн-Нептун  > 91°19'<  20Vir16 - 21Sgr36"
+    # Группы: 1=аспект, 2=планеты, 3=скобка1, 4=градусы(игнор), 5=скобка2,
+    #         6=град1, 7=знак1, 8=мин1, 9=град2, 10=знак2, 11=мин2
+    aspect_pattern = (
+        # 1: аспект (Квадрат, Секстиль и т.д.)
+        r"([а-яА-Я\w\s\-]+?)\s+"
+        r"([а-яА-Я\w\-]+)\s*"              # 2: планеты (Сатурн-Нептун)
+        r"([><])\s*"                        # 3: скобка 1 (> или <)
+        r"[\d°\d\'\"]+\s*"                  # игнорируем градусы/минуты аспекта
+        r"([><])\s*"                        # 5: скобка 2
+        # 6,7: градусы и знак планеты 1 (минуты игнор)
+        r"(\d+)([a-zA-Z]{3})\d+\s*-\s*"
+        # 9,10: градусы и знак планеты 2 (минуты игнор)
+        r"(\d+)([a-zA-Z]{3})\d+"
+    )
+
+    match = re.search(aspect_pattern, text)
 
     if match:
         aspect_type = match.group(1).strip()
         planets = match.group(2).strip()
         bracket1 = match.group(3)
-        exact_angle = match.group(4)
         bracket2 = match.group(5)
 
-        p1_deg = match.group(6)
-        p1_sign = ZODIAC_MAP.get(match.group(7).capitalize(), match.group(7))
+        p1_sign = ZODIAC_MAP.get(match.group(7), match.group(7))
+        p2_sign = ZODIAC_MAP.get(match.group(10), match.group(10))
 
-        p2_deg = match.group(9)
-        p2_sign = ZODIAC_MAP.get(match.group(10).capitalize(), match.group(10))
-
+        # Определяем сходящийся/расходящийся аспект
         if bracket1 == ">" and bracket2 == "<":
             direction = "СХОДЯЩИЙСЯ (орбис уменьшается, аспект еще не стал точным, событие грядет и набирает силу)"
         elif bracket1 == "<" and bracket2 == ">":
@@ -103,41 +117,42 @@ def parse_astrological_input(text: str) -> str:
 
         parsed_parts.append(
             f"Аспект: {aspect_type} между {planets}. "
-            f"Точное расстояние: {exact_angle}. "
             f"Характер аспекта: {direction}. "
-            f"Первая планета находится в {p1_deg} градусах знака {p1_sign}, вторая планета — в {p2_deg} градусах знака {p2_sign}."
+            f"Первая планета в знаке {p1_sign}, вторая планета в знаке {p2_sign}."
         )
-    else:
-        # Если это не стандартный лог ZET с градусами, берем исходный текст для дальнейшего анализа
-        parsed_parts.append(text.strip())
 
-    # 2. 🆕 Парсинг номеров домов (римские или арабские цифры)
-    # Словарь для перевода римских цифр в арабские
-    roman_to_arabic = {
-        "I": "1", "II": "2", "III": "3", "IV": "4", "V": "5", "VI": "6",
-        "VII": "7", "VIII": "8", "IX": "9", "X": "10", "XI": "11", "XII": "12"
-    }
+    # ============================================================
+    # 2. 🆕 ПАРСИНГ КУСПИДОВ ДОМОВ (формат ZET)
+    # ============================================================
+    # Пример: "VII 29°48'25.08\"Sgr" → "7 дом в Стрельце"
+    # Ищем: римская цифра + градусы/минуты/секунды + 3-буквенный код знака
+    cusp_pattern = (
+        # 1: римская цифра (II-XII сначала, чтобы не съело I)
+        r"\b(II|III|IV|V|VI|VII|VIII|IX|X|XI|XII|I)\s+"
+        # игнорируем градусы/минуты/секунды
+        r"[\d°\d\'\".,\s]+\s*"
+        # 2: код знака (Vir, Sgr и т.д.)
+        r"([a-zA-Z]{3})\b"
+    )
 
-    # Регулярное выражение ищет римские или арабские цифры, за которыми следует слово "дом" (в любом падеже)
-    # ИЛИ римскую цифру в конце строки/в скобках (типичный формат ZET)
-    # (?i) делает поиск нечувствительным к регистру
-    house_pattern = r"(?i)\b(?:в\s+)?(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII|10|11|12|[1-9])\s*(?:дом|доме|дома|д\.?)?\b(?=\s*(?:дом|доме|дома|д\.?|$|\)))"
+    cusp_matches = re.findall(cusp_pattern, text)
 
-    house_matches = re.findall(house_pattern, text)
+    if cusp_matches:
+        roman_to_arabic = {
+            "I": "1", "II": "2", "III": "3", "IV": "4", "V": "5", "VI": "6",
+            "VII": "7", "VIII": "8", "IX": "9", "X": "10", "XI": "11", "XII": "12"
+        }
 
-    if house_matches:
-        normalized_houses = []
-        for h in house_matches:
-            h_upper = h.upper()
-            if h_upper in roman_to_arabic:
-                normalized_houses.append(f"{roman_to_arabic[h_upper]} дом")
-            else:
-                normalized_houses.append(f"{h} дом")
+        for roman, sign_code in cusp_matches:
+            house_num = roman_to_arabic[roman]
+            sign_name = ZODIAC_MAP.get(sign_code, sign_code)
+            parsed_parts.append(f"{house_num} дом в знаке {sign_name}.")
 
-        # Убираем дубликаты, сохраняя порядок
-        unique_houses = list(dict.fromkeys(normalized_houses))
-        parsed_parts.append(
-            f"Упомянутые дома гороскопа: {', '.join(unique_houses)}.")
+    # ============================================================
+    # 3. Если ничего не распознали — возвращаем исходный текст
+    # ============================================================
+    if not parsed_parts:
+        return text.strip()
 
     return " ".join(parsed_parts)
 
