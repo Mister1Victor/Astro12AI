@@ -75,11 +75,12 @@ ZODIAC_MAP = {
 
 
 def parse_astrological_input(text: str) -> str:
-    # 🆕 Обновленное регулярное выражение, которое захватывает направление скобок
-    # Группы: 1=аспект, 2=планеты, 3=скобка1, 4=градус, 5=скобка2, 6=град1, 7=знак1, 8=мин1, 9=град2, 10=знак2, 11=мин2
-    pattern = r"([а-яА-Я\w\s\-]+)\s+([а-яА-Я\w\-]+)\s*([><])\s*(\d+°\d+\'?)\s*([><])\s*(\d+)([a-zA-Z]{3})(\d+)\s*-\s*(\d+)([a-zA-Z]{3})(\d+)"
+    parsed_parts = []
 
+    # 1. Парсинг аспекта (с направлением сходящийся/расходящийся)
+    pattern = r"([а-яА-Я\w\s\-]+)\s+([а-яА-Я\w\-]+)\s*([><])\s*(\d+°\d+\'?)\s*([><])\s*(\d+)([a-zA-Z]{3})(\d+)\s*-\s*(\d+)([a-zA-Z]{3})(\d+)"
     match = re.search(pattern, text)
+
     if match:
         aspect_type = match.group(1).strip()
         planets = match.group(2).strip()
@@ -88,12 +89,11 @@ def parse_astrological_input(text: str) -> str:
         bracket2 = match.group(5)
 
         p1_deg = match.group(6)
-        p1_sign = ZODIAC_MAP.get(match.group(7), match.group(7))
+        p1_sign = ZODIAC_MAP.get(match.group(7).capitalize(), match.group(7))
 
         p2_deg = match.group(9)
-        p2_sign = ZODIAC_MAP.get(match.group(10), match.group(10))
+        p2_sign = ZODIAC_MAP.get(match.group(10).capitalize(), match.group(10))
 
-        # 🆕 Логика определения сходящегося/расходящегося аспекта по скобкам ZET
         if bracket1 == ">" and bracket2 == "<":
             direction = "СХОДЯЩИЙСЯ (орбис уменьшается, аспект еще не стал точным, событие грядет и набирает силу)"
         elif bracket1 == "<" and bracket2 == ">":
@@ -101,15 +101,45 @@ def parse_astrological_input(text: str) -> str:
         else:
             direction = "ТОЧНЫЙ (аспект в точном значении)"
 
-        return (
+        parsed_parts.append(
             f"Аспект: {aspect_type} между {planets}. "
             f"Точное расстояние: {exact_angle}. "
             f"Характер аспекта: {direction}. "
             f"Первая планета находится в {p1_deg} градусах знака {p1_sign}, вторая планета — в {p2_deg} градусах знака {p2_sign}."
         )
+    else:
+        # Если это не стандартный лог ZET с градусами, берем исходный текст для дальнейшего анализа
+        parsed_parts.append(text.strip())
 
-    # Если регулярное выражение не сработало, возвращаем исходный текст
-    return text
+    # 2. 🆕 Парсинг номеров домов (римские или арабские цифры)
+    # Словарь для перевода римских цифр в арабские
+    roman_to_arabic = {
+        "I": "1", "II": "2", "III": "3", "IV": "4", "V": "5", "VI": "6",
+        "VII": "7", "VIII": "8", "IX": "9", "X": "10", "XI": "11", "XII": "12"
+    }
+
+    # Регулярное выражение ищет римские или арабские цифры, за которыми следует слово "дом" (в любом падеже)
+    # ИЛИ римскую цифру в конце строки/в скобках (типичный формат ZET)
+    # (?i) делает поиск нечувствительным к регистру
+    house_pattern = r"(?i)\b(?:в\s+)?(I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII|10|11|12|[1-9])\s*(?:дом|доме|дома|д\.?)?\b(?=\s*(?:дом|доме|дома|д\.?|$|\)))"
+
+    house_matches = re.findall(house_pattern, text)
+
+    if house_matches:
+        normalized_houses = []
+        for h in house_matches:
+            h_upper = h.upper()
+            if h_upper in roman_to_arabic:
+                normalized_houses.append(f"{roman_to_arabic[h_upper]} дом")
+            else:
+                normalized_houses.append(f"{h} дом")
+
+        # Убираем дубликаты, сохраняя порядок
+        unique_houses = list(dict.fromkeys(normalized_houses))
+        parsed_parts.append(
+            f"Упомянутые дома гороскопа: {', '.join(unique_houses)}.")
+
+    return " ".join(parsed_parts)
 
 
 async def get_ai_interpretation(query: str) -> str:
@@ -295,18 +325,18 @@ async def handle_user_input(message: types.Message):
         await message.answer(redirect_text, parse_mode="Markdown")
         return
 
-    # 2. ФИЛЬТР ЗАПРЕЩЕННЫХ ОБЪЕКТОВ (🆕 ИСПРАВЛЕНА ПРОПУЩЕННАЯ ЗАПЯТАЯ после "прозерпин")
+    # 2. ФИЛЬТР ЗАПРЕЩЕННЫХ ОБЪЕКТОВ
     forbidden_objects = [
         "лилит", "черная луна", "селен", "белая луна",
         "раху", "кету", "лунные узлы", "северный узел", "южный узел",
         "астероид", "хирон", "паллада", "юнона", "веста", "прозерпин",  # <-- ЗАПЯТАЯ ДОБАВЛЕНА
-        "звезд", "туманност", "жребий", "парс", "фиктивн",
+        "звезд", "туманност", "жребий", "парс", "фиктивн", "экзальтац", "падени", "обител", "изгнан",
     ]
 
     if any(word in raw_text for word in forbidden_objects):
         refusal_text = (
             "⚠️ **Уведомление Школы Астрологии «12 Планет»**\n\n"
-            "Вы упомянули астероиды, фиктивные точки (Лилит, Лунные узлы), жребии (парсы), туманности или другие объекты, "
+            "Вы упомянули что-то из: астероиды, фиктивные точки (Лилит, Лунные узлы), жребии (парсы), туманности или другие объекты, экзальтации ил падения, "
             "которые не входят в базовую методологию нашей Школы.\n\n"
             "Наша система специализируется на **глубокой, структурированной и точной интерпретации планет, знаков Зодиака и домов гороскопа**.\n\n"
             "Пожалуйста, переформулируйте вопрос, сосредоточившись на планетах, знаках и домах, чтобы мы могли дать вам качественный разбор по авторской методике."
