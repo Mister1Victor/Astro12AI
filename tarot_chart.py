@@ -29,7 +29,7 @@ CONFIG = {
     'ZODIAC_WIDTH': 0.85,
 
     # ---- Начальный радиус линий-границ секторов (внутрь круга) ----
-    'ZODIAC_LINE_START_RADIUS': 0.20,   # 0.20 – до центрального круга
+    'ZODIAC_LINE_START_RADIUS': 0.35,   # 0.20 – до центрального круга
 
     # ---- Размеры карт ----
     'CARD_W_OUTER': 0.18,
@@ -44,7 +44,7 @@ CONFIG = {
     'HOUSE_CIRCLE_R': 0.038,      # радиус кружка дома
 
     # ---- Радиусы колец (не умножаются на ZODIAC_SCALE) ----
-    'RING_RADII': [1.2, 0.99, 0.60, 0.36, 0.26],
+    'RING_RADII': [1.2, 0.99, 0.60, 0.36, 0.35],
     'RING_LW': [4.0, 3.0, 1.5, 2.5, 5.0],
     'RING_ALPHA': [0.9, 0.7, 0.5, 0.5, 0.7],
 
@@ -58,7 +58,7 @@ CONFIG = {
 
     # ---- Глобальные стрелки ----
     'GLOBAL_OUTER_DIAM': 2.55,
-    'GLOBAL_INNER_RADIUS': 0.18,
+    'GLOBAL_INNER_RADIUS': 0.28,
 
     # ---- Повороты ----
     'ROTATE_OUTER': -15,
@@ -82,7 +82,7 @@ CONFIG = {
     'FONTSIZE': {
         'ZODIAC_SYMBOL': 24,
         'ZODIAC_NAME': 18,
-        'PLANET_SYMBOL': 22,
+        'PLANET_SYMBOL': 24,
         'HOUSE_NUM': 20,
         'CARD_NUM': 12,
         'CARD_SYMBOL': 28,
@@ -243,7 +243,7 @@ def main():
         y_planet = y - 0.055 * scale
         ax.text(x, y_planet, planet_symbols[i], ha='center', va='top',
                 fontsize=fs['PLANET_SYMBOL'], color=colors['DARK'],
-                alpha=0.8)
+                alpha=0.8, fontweight='bold')
 
         # Кружок с номером дома
         xh = r_house * np.cos(mid_rad)
@@ -307,7 +307,7 @@ def main():
         ('V', 'ИЕРОФАНТ', '✚'),
         ('VI', 'ВЛЮБЛЁННЫЕ', '♥'),
         ('VII', 'СИЛА', '♌'),
-        ('VIII', 'КОЛЕСНИЦА', '⚔'),
+        ('VIII', 'КОЛЕСНИЦА', '⏣'),
         ('IX', 'ОТШЕЛЬНИК', '▼'),
         ('X', 'КОЛЕСО ФОРТУНЫ', '☸'),
         ('XI', 'ПОВЕШЕННЫЙ', '♣'),
@@ -322,7 +322,7 @@ def main():
         ('XVII', 'ЗВЕЗДА', '★'),
         ('XVIII', 'СОЛНЦЕ', '☉'),
         ('XIX', 'ЛУНА', '●'),
-        ('XX', 'СУД', '📯'),
+        ('XX', 'СУД', '♪'),
         ('XXI', 'МИР', '◉'),
     ]
 

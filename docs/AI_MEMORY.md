@@ -1,6 +1,6 @@
 # AI MEMORY — Astro12AI
 
-**Версия:** 2.0.8 · **Дата:** 03.08.2026
+**Версия:** 2.0.9 · **Дата:** 03.08.2026
 
 ## Паспорт
 
@@ -27,10 +27,12 @@
 ## Текущая архитектура поиска
 
 ```
-User Query → Normalize → expand_query → BM25 (топ-10)
+User Query → build_task_hint (тип запроса → «Задача»)
+  → Normalize → expand_query (+ ключевые слова + тема вопроса) → BM25 (топ-10)
   → remove_duplicates → filter_short_documents → filter_by_entities
   → limit_same_source → force_school_definition
-  → FORBIDDEN-фильтр → inject_context_blocks (AUTHOR_DEFINITIONS + ASTRO_TERMS)
+  → FORBIDDEN-фильтр → sort_documents (авторский реранкинг: буст по ключевым словам Школы + теме вопроса)
+  → inject_context_blocks (AUTHOR_DEFINITIONS + ASTRO_TERMS)
   → LLM
 ```
 
@@ -48,13 +50,13 @@ User Query → Normalize → expand_query → BM25 (топ-10)
 
 ## Известный технический долг
 
-- Методы ранжирования (`calculate_score`, `sort_documents`, `entity_score`, `chart_score`) существуют в `engine.py`, но не вызываются в `search()`. Реальный порядок — как вернул BM25.
+- Морфология планет: `extract_entities` не ловит падежные формы (напр. «расскажи про Луну»), т.к. в `REPLACE` нет падежей планет. Не блокирует основной сценарий.
 - 7 дом закомментирован в `ASTRO_TERMS` (но есть в `AUTHOR_DEFINITIONS`).
 - Таро: символ `⚹` в центре отсутствует в DejaVu Sans.
 
 ## Следующая задача
 
-Пункт 2 Roadmap — **Оптимизация ответа**: формирование ответа на основе ключевых слов + авторских определений, с фильтрацией документов по контексту конкретного вопроса клиента.
+Следующие пункты Roadmap (полировка продукта, FastAPI + Android, монетизация). Текущая оптимизация ответа (пункт 2) реализована: ответ строится на основе авторских определений + ключевых слов Школы, а при конкретном вопросе выдача бустится по теме вопроса.
 
 ## Долгосрочное видение
 
