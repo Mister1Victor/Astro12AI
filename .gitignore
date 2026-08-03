@@ -27,6 +27,12 @@ venv/
 build/
 dist/
 
+# Generated artifacts (matplotlib Таро-карта и т.п.)
+output/
+
 # Android
 .gradle/
 local.properties
+
+output/
+
