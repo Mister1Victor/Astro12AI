@@ -376,7 +376,11 @@ async def handle_user_input(message: types.Message):
     # 4. Основной сценарий
     # Используем исходный регистр для парсинга ZET
     processed_query = parse_astrological_input(message.text)
-    final_task = f"Показатель: {processed_query}\nЗадача: Комплексный анализ по всем фундаментальным сферам."
+    # 🆕 Условная «Задача»: тип запроса определяется в AstroRetriever.build_task_hint
+    # (разбор ситуации / взаимодействие планет / контекст сферы дома / контекст вопроса).
+    # Раньше ко всем запросам жёстко дописывался «Комплексный анализ по всем сферам».
+    task_hint = astro_retriever.build_task_hint(processed_query)
+    final_task = f"Показатель: {processed_query}\nЗадача: {task_hint}."
 
     # Сохраняем запрос пользователя для возможности перефразирования
     user_last_queries[message.from_user.id] = final_task

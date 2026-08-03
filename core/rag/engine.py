@@ -11,6 +11,7 @@ from core.knowledge.weights import (
     get_document_weight,
     AUTHOR_DEFINITIONS,
 )
+from core.rag.classifier import classify_question, ASTRO_TOPICS
 from backend.logger import get_logger
 
 logger = get_logger()
@@ -92,6 +93,31 @@ class AstroRetriever(BaseRetriever):
         "эрида": ["конфликты", "протесты", "революции", "революционные идеи", "перевороты", "бунты"],
     }
 
+    # 🆕 Человеко-читаемые названия тем вопроса (для «Задачи» в main.py)
+    TOPIC_LABELS: ClassVar[dict] = {
+        "love": "отношения и любовь",
+        "money": "деньги, работа, финансы",
+        "health": "здоровье и самочувствие",
+        "spirit": "духовность, карма, предназначение",
+        "general": "общий разбор",
+    }
+
+    # 🆕 Краткие названия сфер домов (из AUTHOR_DEFINITIONS Школы) — для «Задачи»
+    HOUSE_SPHERE_LABELS: ClassVar[dict] = {
+        "1 дом": "сфера активных действий",
+        "2 дом": "материальная сфера и накопления",
+        "3 дом": "сфера коммуникаций и обучения",
+        "4 дом": "семейная сфера и жильё",
+        "5 дом": "сфера творчества и выступлений",
+        "6 дом": "сфера здоровья и работы/услуг",
+        "7 дом": "сфера партнёрства и отношений",
+        "8 дом": "финансовая и сексуальная сфера",
+        "9 дом": "сфера знаний и путешествий",
+        "10 дом": "деловая сфера и карьера",
+        "11 дом": "социальная сфера",
+        "12 дом": "духовная сфера",
+    }
+
     def __init__(self, documents: List[Document], k: int = 4, **kwargs):
         super().__init__(**kwargs)  # 🆕 Обязательно вызываем init базового класса!
 
@@ -140,11 +166,17 @@ class AstroRetriever(BaseRetriever):
                 if not any(word in doc.page_content.lower() for word in active_forbidden_words)
             ]
 
-        # 🆕 4. ИНЖЕКЦИЯ АВТОРСКИХ ОПРЕДЕЛЕНИЙ (теперь в чистые, отфильтрованные документы)
+        # 🆕 4. РАНЖИРОВАНИЕ по авторским ключевым словам Школы + теме вопроса.
+        # Раньше было мёртвым кодом: порядок документов полностью определялся BM25.
+        # Теперь: документы с авторскими ключевыми словами сущностей запроса
+        # и релевантные теме вопроса поднимаются выше (буст, без удаления остальных).
+        docs = self.sort_documents(query, docs)
+
+        # 🆕 5. ИНЖЕКЦИЯ АВТОРСКИХ ОПРЕДЕЛЕНИЙ (теперь в чистые, отфильтрованные и ранжированные документы)
         docs = self.inject_context_blocks(query, docs)
 
-        # 5. Логирование результатов (для отладки)
-        logger.info("\nTOP DOCUMENTS ПОСЛЕ ВСЕХ ФИЛЬТРОВ:")
+        # 6. Логирование результатов (для отладки)
+        logger.info("\nTOP DOCUMENTS ПОСЛЕ ВСЕХ ФИЛЬТРОВ И РАНЖИРОВАНИЯ:")
         for i, doc in enumerate(docs[:5], 1):
             logger.info(
                 f"{i}. {doc.metadata.get('source')} | weight={doc.metadata.get('weight')} | size={len(doc.page_content)}")
@@ -170,6 +202,61 @@ class AstroRetriever(BaseRetriever):
                 result.append(doc)
 
         return result or docs
+
+    def build_task_hint(self, query):
+        """
+        🆕 Детектор типа запроса → строка «Задачи» для LLM.
+        Заменяет жёсткий «Комплексный анализ по всем фундаментальным сферам».
+        Логика (по запросу пользователя):
+          • 1 планета + 1 знак           → разбор ситуации (функция планеты через качества знака)
+          • 2+ планеты + аспект          → анализ взаимодействия планет через аспект
+          • + дом(а)                     → анализ в контексте сферы жизни (по авторскому определению)
+          • + тема вопроса (love/...)    → анализ в контексте вопроса
+          • общий разбор                 → комплексный анализ
+        """
+        chart = self.parse_chart(query)
+        planets = chart["planets"]
+        signs = chart["signs"]
+        houses = chart["houses"]
+        aspects = chart["aspects"]
+        topic = classify_question(query)
+
+        has_aspect = bool(aspects)
+        multi_planets = len(planets) >= 2
+        has_sign = bool(signs)
+        has_house = bool(houses)
+        has_topic = topic != "general"
+
+        parts = []
+
+        # Базовый тип анализа по астрологической структуре запроса
+        if multi_planets and has_aspect:
+            parts.append("анализ взаимодействия планет через аспект")
+        elif planets and has_sign:
+            parts.append("разбор ситуации: функции планеты через качества знака")
+        elif planets:
+            parts.append("разбор функций и ролей планеты")
+        elif has_sign:
+            parts.append("разбор качеств знака Зодиака")
+        else:
+            parts.append("комплексный разбор")
+
+        # Если указан дом — анализ в контексте сферы жизни (по авторскому определению Школы)
+        if has_house:
+            spheres = [self.HOUSE_SPHERE_LABELS.get(h, h) for h in houses]
+            parts.append("в контексте сферы жизни: " + ", ".join(spheres))
+
+        # Если есть конкретная тема вопроса — анализ в контексте вопроса
+        if has_topic:
+            parts.append(f"в контексте вопроса: {self.TOPIC_LABELS.get(topic, topic)}")
+
+        task = ", ".join(parts)
+        # Если распознали только общий разбор и больше ничего — сохраняем прежнее поведение
+        if not has_aspect and not multi_planets and not planets and not has_sign and not has_house and not has_topic:
+            task = "комплексный анализ по фундаментальным сферам"
+
+        logger.info(f"🧭 Тип запроса: {task}")
+        return task
 
     def get_retriever(self):
         return self._retriever  # 🆕 _retriever
@@ -212,6 +299,11 @@ class AstroRetriever(BaseRetriever):
         }
 
     def expand_query(self, query):
+        """
+        Расширение запроса для BM25.
+        🆕 Уменьшено раздувание: вместо [:8] ключевых слов на каждую сущность — [:5],
+        плюс добавляются слова темы вопроса (если запрос конкретный).
+        """
         query = self.normalize_query(query)
         expanded = [query]
 
@@ -222,8 +314,14 @@ class AstroRetriever(BaseRetriever):
             if entity not in ASTRO_TERMS:
                 continue
 
-            for keyword in ASTRO_TERMS[entity][:8]:
+            # 🆕 Было [:8] — резкое раздувание запроса при нескольких сущностях.
+            for keyword in ASTRO_TERMS[entity][:5]:
                 expanded.append(keyword)
+
+        # 🆕 Добавляем слова темы вопроса (конкретный вопрос → контекст в поиске)
+        topic = classify_question(query)
+        if topic != "general":
+            expanded.extend(ASTRO_TOPICS.get(topic, []))
 
         print("QUERY:", query)
         print("EXPANDED QUERY:", " | ".join(expanded))
@@ -368,17 +466,19 @@ class AstroRetriever(BaseRetriever):
         astro_score = self.astro_terms_score(query, document)
         chart_score = self.chart_score(query, document)
         exact_score = self.exact_entity_match(query, document)
-        authority_score = self.authority_score(query, document)
+        topic_score = self.topic_score(query, document)
         weight = document.metadata.get("weight", 5)
 
+        # 🆕 Ранжирование по авторским ключевым словам Школы + теме вопроса.
+        # authority_score убран (дублировал astro_terms_score).
         return (
-            authority_score * 500 +
-            chart_score * 200 +
-            entity_score * 120 +
-            exact_score * 80 +
-            astro_score * 30 +
-            keyword_score * 10 +
-            weight
+            astro_score * 500 +      # авторские ключевые слова Школы (главный буст)
+            topic_score * 150 +      # 🆕 релевантность теме вопроса (буст контекста)
+            chart_score * 200 +      # совпадение планет/знаков/домов/аспектов
+            entity_score * 120 +     # совпадение астрологических сущностей
+            exact_score * 80 +       # точное совпадение набора сущностей
+            keyword_score * 10 +     # общее совпадение слов
+            weight                   # вес документа-источника
         )
 
     def entity_score(self, query, document):
@@ -406,22 +506,35 @@ class AstroRetriever(BaseRetriever):
         )
 
     def authority_score(self, query, document):
-        entities = self.extract_entities(query)
-        score = 0
-        text = self.normalize_query(document.page_content)
-        for entity in entities:
-            for word in ASTRO_TERMS.get(entity, []):
-                if word in text:
-                    score += 1
-        return score
+        # 🆕 УБРАН: полностью дублировал astro_terms_score. Оставлен как тонкая
+        # обёртка для обратной совместимости, если где-то вызывался напрямую.
+        return self.astro_terms_score(query, document)
 
     def astro_terms_score(self, query, document):
+        # Сколько авторских ключевых слов сущностей запроса встречаются в документе.
+        # Главный буст «ответ на основе ключевых слов Школы».
         score = 0
         document_text = self.normalize_query(document.page_content)
         for entity in self.extract_entities(query):
             for word in ASTRO_TERMS.get(entity, []):
                 if word in document_text:
                     score += 1
+        return score
+
+    def topic_score(self, query, document):
+        """
+        🆕 Буст по теме вопроса (love/money/health/spirit).
+        Реализует «конкретный вопрос → приоритет словам контекста вопроса».
+        Если в запросе есть тема жизни — поднимаем документы, где она проявлена.
+        """
+        topic = classify_question(query)
+        if topic == "general":
+            return 0
+        document_text = self.normalize_query(document.page_content)
+        score = 0
+        for word in ASTRO_TOPICS.get(topic, []):
+            if word in document_text:
+                score += 1
         return score
 
     def sort_documents(self, query, docs):
