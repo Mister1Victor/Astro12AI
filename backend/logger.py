@@ -1,10 +1,9 @@
 import logging
 
 
-def get_logger(name="Astro12AI"):
+def get_logger(name: str = "astro_bot") -> logging.Logger:
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s | %(levelname)s | %(message)s"
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
     )
-
     return logging.getLogger(name)
