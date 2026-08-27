@@ -992,7 +992,7 @@ async def main():
     logger.info(f"ENV: {settings.ENV}")
     logger.info(f"ИИ-модель: {model_name}")
     logger.info(f"Knowledge chunks: {len(documents)}")
-    logger.info(f"Tarot decks: {len(tarot_decks)}")
+
     logger.info("=" * 60)
 
     try:
