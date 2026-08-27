@@ -3,6 +3,7 @@ import os
 from typing import Optional, Tuple, List
 
 from core.tarot.models import TarotDeck, TarotCard
+from core.tarot.service import CELTIC_CROSS_POSITIONS, CHOICE_POSITIONS
 
 ORIENT_UP = "✅ Прямое положение"
 ORIENT_REV = "🔻 Перевёрнутое положение"
@@ -74,4 +75,72 @@ def format_three_cards(drawn: List[Tuple[TarotCard, bool]], deck: TarotDeck) -> 
         if meaning:
             lines.append(meaning)
         lines.append("")
+    return "\n".join(lines)
+
+
+def format_celtic_cross(drawn: List[Tuple[TarotCard, bool]], deck: TarotDeck) -> str:
+    """Расклад «Кельтский крест» (10 карт)."""
+    lines = [f"✝️ Расклад «Кельтский крест» — {deck.name}", ""]
+    for i, (card, rev) in enumerate(drawn[:10]):
+        pos = CELTIC_CROSS_POSITIONS[i] if i < len(
+            CELTIC_CROSS_POSITIONS) else f"Позиция {i+1}"
+        orient = "перевёрнуто" if rev else "прямо"
+        lines.append(f"【{i+1}. {pos}】 {card.name} ({orient})")
+        meaning = card.get_meaning(rev)
+        if meaning:
+            lines.append(meaning)
+        lines.append("")
+    return "\n".join(lines)
+
+
+def format_choice_spread(
+    drawn: List[Tuple[TarotCard, bool]],
+    deck: TarotDeck,
+    essence: str,
+    option_a: str,
+    option_b: str,
+) -> str:
+    """Расклад «Вариант выбора» (7 карт: 3 + 3 + совет)."""
+    lines = [
+        f"⚖️ Расклад «Вариант выбора» — {deck.name}",
+        f"",
+        f"📝 Суть выбора: {essence}",
+        "",
+        f"🅰️ ВАРИАНТ 1: {option_a}",
+    ]
+
+    # Карты варианта A (первые 3)
+    for i, (card, rev) in enumerate(drawn[:3]):
+        pos = CHOICE_POSITIONS["option_a"][i] if i < len(
+            CHOICE_POSITIONS["option_a"]) else f"Позиция {i+1}"
+        orient = "перевёрнуто" if rev else "прямо"
+        lines.append(f"  【{pos}】 {card.name} ({orient})")
+        meaning = card.get_meaning(rev)
+        if meaning:
+            lines.append(f"  {meaning}")
+        lines.append("")
+
+    lines.append(f"🅱️ ВАРИАНТ 2: {option_b}")
+
+    # Карты варианта B (следующие 3)
+    for i, (card, rev) in enumerate(drawn[3:6]):
+        pos = CHOICE_POSITIONS["option_b"][i] if i < len(
+            CHOICE_POSITIONS["option_b"]) else f"Позиция {i+4}"
+        orient = "перевёрнуто" if rev else "прямо"
+        lines.append(f"  【{pos}】 {card.name} ({orient})")
+        meaning = card.get_meaning(rev)
+        if meaning:
+            lines.append(f"  {meaning}")
+        lines.append("")
+
+    # Карта совета (последняя)
+    if len(drawn) >= 7:
+        card, rev = drawn[6]
+        orient = "перевёрнуто" if rev else "прямо"
+        lines.append(f"💡 СОВЕТ: {card.name} ({orient})")
+        meaning = card.get_meaning(rev)
+        if meaning:
+            lines.append(meaning)
+        lines.append("")
+
     return "\n".join(lines)

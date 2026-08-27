@@ -9,7 +9,7 @@
       "name": "Шут (0)",
       "arcana": "major",
       "number": 0,
-      "image": "major_00.jpg",
+      "image": "major_00.png",
       "astrology": "Уран",
       "keywords": [
         "начало",
@@ -26,7 +26,7 @@
       "name": "Маг (I)",
       "arcana": "major",
       "number": 1,
-      "image": "major_01.jpg",
+      "image": "major_01.png",
       "astrology": "Меркурий",
       "keywords": [
         "воля",

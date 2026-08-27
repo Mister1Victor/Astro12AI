@@ -1,4 +1,4 @@
-"""Бизнес-логика Таро: перемешивание, Карта Дня, вытягивание карт для раскладов."""
+"""Бизнес-логика Таро: перемешивание, Карта Дня, расклады."""
 import random
 from typing import Optional, Tuple, List
 
@@ -6,6 +6,35 @@ from backend.logger import get_logger
 from core.tarot.models import TarotDeck, TarotCard
 
 logger = get_logger()
+
+# Позиции Кельтского креста (10 карт)
+CELTIC_CROSS_POSITIONS = [
+    "Суть ситуации (сигнификатор)",
+    "Препятствие / что пересекает",
+    "Цель / сознательное стремление",
+    "Корни / подсознательное",
+    "Прошлое (уходящее)",
+    "Ближайшее будущее",
+    "Я (самовосприятие)",
+    "Окружение (внешние влияния)",
+    "Надежды и страхи",
+    "Итог"
+]
+
+# Позиции Варианта выбора (7 карт)
+CHOICE_POSITIONS = {
+    "option_a": [
+        "Вариант 1 — Достоинство",
+        "Вариант 1 — Недостаток",
+        "Вариант 1 — Исход"
+    ],
+    "option_b": [
+        "Вариант 2 — Достоинство",
+        "Вариант 2 — Недостаток",
+        "Вариант 2 — Исход"
+    ],
+    "advice": "Совет"
+}
 
 
 class TarotService:
@@ -42,22 +71,21 @@ class TarotService:
     def card_of_the_day(
         self,
         deck_id: Optional[str] = None,
-        seed: Optional[str] = None,
     ) -> Tuple[Optional[TarotCard], bool]:
         """
         Карта Дня: случайная карта из колоды.
         Возвращает (карта, перевёрнута ли).
-        Если передан seed — выбор детерминирован (например, 'дата:user_id').
+        Перемешивает колоду каждый раз для полной случайности.
         """
         deck = self.get_deck(deck_id)
         if not deck or not deck.cards:
             return None, False
 
-        cards = deck.all_cards()
-        rnd = random.Random(seed) if seed is not None else random.Random()
+        # Перемешиваем колоду перед выбором
+        cards = self.shuffle(deck_id)
 
-        card = rnd.choice(cards)
-        is_reversed = rnd.random() < 0.5  # 50% — перевёрнутая
+        card = random.choice(cards)
+        is_reversed = random.random() < 0.5  # 50% — перевёрнутая
 
         logger.info(
             f"🃏 Карта Дня из «{deck.name}»: {card.name} "
@@ -72,14 +100,31 @@ class TarotService:
         deck_id: Optional[str] = None,
         allow_reversed: bool = True,
     ) -> List[Tuple[TarotCard, bool]]:
-        """Тянет N уникальных карт для расклада. Возвращает [(карта, перевёрнута)]."""
+        """
+        Тянет N уникальных карт для расклада.
+        Перемешивает колоду каждый раз для полной случайности.
+        Возвращает [(карта, перевёрнута)].
+        """
         deck = self.get_deck(deck_id)
         if not deck:
             return []
-        cards = deck.all_cards()
-        random.shuffle(cards)
+
+        # Перемешиваем колоду перед вытягиванием
+        cards = self.shuffle(deck_id)
         drawn = cards[: max(0, count)]
         result = [(c, (allow_reversed and random.random() < 0.5))
                   for c in drawn]
         logger.info(f"🎴 Вытянуто {len(result)} карт из «{deck.name}»")
         return result
+
+    def draw_three_cards(self, deck_id: Optional[str] = None) -> List[Tuple[TarotCard, bool]]:
+        """Трёхкарточный расклад: Прошлое — Настоящее — Будущее."""
+        return self.draw_cards(3, deck_id)
+
+    def draw_celtic_cross(self, deck_id: Optional[str] = None) -> List[Tuple[TarotCard, bool]]:
+        """Кельтский крест: 10 карт."""
+        return self.draw_cards(10, deck_id)
+
+    def draw_choice_spread(self, deck_id: Optional[str] = None) -> List[Tuple[TarotCard, bool]]:
+        """Вариант выбора: 7 карт (3 для варианта A + 3 для варианта B + 1 совет)."""
+        return self.draw_cards(7, deck_id)
