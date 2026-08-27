@@ -164,40 +164,78 @@ async def get_ai_interpretation(query: str) -> str:
     for attempt in range(3):
         try:
             loop = asyncio.get_running_loop()
-            response = await loop.run_in_executor(None, lambda: rag_chain.invoke({"input": query}))
+            response = await loop.run_in_executor(
+                None, lambda: rag_chain.invoke({"input": query})
+            )
             elapsed = round(time.time() - start_time, 2)
             logger.info(f"⏱️ Время выполнения запроса: {elapsed} сек")
 
+            # --- Контекст (безопасно) ---
             if "context" in response:
-                stats = context_statistics(response["context"])
-                logger.info("📚 КОНТЕКСТ RAG:\n" + stats)
+                try:
+                    stats = context_statistics(response["context"])
+                    if not isinstance(stats, str):
+                        stats = str(stats)
+                    logger.info("📚 КОНТЕКСТ RAG:\n" + stats)
+                except Exception as e:
+                    logger.warning(
+                        f"⚠️ Не удалось вывести статистику контекста: {e}")
 
-            answer_msg = response.get("answer")
-            if answer_msg and hasattr(answer_msg, "usage_metadata") and answer_msg.usage_metadata:
-                u = answer_msg.usage_metadata
-                logger.info(
-                    f"📊 ТОКЕНЫ: вход={u.get('input_tokens')}, выход={u.get('output_tokens')}")
+            # --- Использование токенов (безопасно) ---
+            answer = response.get("answer")
+            if answer and hasattr(answer, "usage_metadata") and answer.usage_metadata:
+                try:
+                    u = answer.usage_metadata
+                    if isinstance(u, dict):
+                        logger.info(
+                            f"📊 ТОКЕНЫ: вход={u.get('input_tokens')}, "
+                            f"выход={u.get('output_tokens')}"
+                        )
+                except Exception:
+                    pass
 
-            answer_text = response.get("answer", "")
-            if isinstance(answer_text, str):
-                logger.info(f"📝 Длина ответа: {len(answer_text)} символов")
-                return answer_text
-            logger.warning(f"⚠️ Unexpected answer type: {type(answer_text)}")
-            return str(answer_text)
+            # --- Извлечение текста ответа (безопасно) ---
+            if answer is None:
+                logger.warning("⚠️ Ответ пуст (None)")
+                continue
+
+            if hasattr(answer, "content"):
+                answer_text = answer.content
+            elif isinstance(answer, str):
+                answer_text = answer
+            else:
+                answer_text = str(answer)
+
+            # Если ответ пришёл как dict (например {"text": "..."}), нормализуем
+            if isinstance(answer_text, dict):
+                answer_text = answer_text.get("text") or answer_text.get(
+                    "answer") or str(answer_text)
+
+            if not isinstance(answer_text, str):
+                answer_text = str(answer_text)
+
+            logger.info(f"📝 Длина ответа: {len(answer_text)} символов")
+
+            if not answer_text.strip():
+                logger.warning("⚠️ Пустой текст ответа — повторяем")
+                continue
+
+            return answer_text
 
         except Exception as e:
             logger.warning(f"⚠️ Ошибка вызова ИИ (попытка {attempt+1}/3): {e}")
             if attempt < 2:
-                await asyncio.sleep(3)
+                # прогрессивная задержка
+                await asyncio.sleep(3 * (attempt + 1))
             else:
                 logger.error(f"❌ Все попытки исчерпаны: {e}")
 
     return "❌ Извините, шлюз ИИ-интерпретации перегружен. Повторите запрос через 5–10 минут."
-
-
 # ============================================================
 # ТАРО: вызов ИИ напрямую (без астро-RAG)
 # ============================================================
+
+
 async def get_tarot_ai_interpretation(question: str, drawn, deck_name: str) -> str:
     """Интерпретация расклада Таро через LLM (прямой вызов, без астро-контекста)."""
     positions = ["Прошлое", "Настоящее", "Будущее"]
