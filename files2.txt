@@ -1,0 +1,62 @@
+astro12_bot/
+│
+├── main.py                          # ← ИЗМЕНЁН: меню Таро/Астрология/Карта Дня + хендлеры
+├── requirements.txt                 # ← ОБНОВЛЁН
+├── .env.example                     # шаблон переменных окружения
+├── README.md
+│
+├── backend/                         # инфраструктура (без изменений по сути)
+│   ├── __init__.py
+│   ├── config.py                    # настройки (settings)
+│   ├── logger.py                    # логгер
+│   └── validators.py                # проверка settings
+│
+├── core/
+│   ├── __init__.py
+│   │
+│   ├── prompts/
+│   │   ├── __init__.py
+│   │   ├── system_prompt.py         # ваш существующий (Астрология) — НЕ трогаем
+│   │   └── tarot_prompt.py          # ← НОВЫЙ: системный промпт для Таро
+│   │
+│   ├── llm/
+│   │   ├── __init__.py
+│   │   └── model.py                 # ваш существующий create_llm() — НЕ трогаем
+│   │
+│   ├── knowledge/
+│   │   ├── __init__.py
+│   │   └── loader.py                # ваш существующий (база знаний Астрологии)
+│   │
+│   ├── rag/
+│   │   ├── __init__.py
+│   │   ├── engine.py                # ваш AstroRetriever — НЕ трогаем
+│   │   ├── context.py               # context_statistics
+│   │   └── classifier.py            # classify_question
+│   │
+│   └── tarot/                       # ← НОВЫЙ МОДУЛЬ ТАРО (ядро задачи)
+│       ├── __init__.py
+│       ├── models.py                # TarotCard, TarotDeck (dataclasses)
+│       ├── loader.py                # загрузка колод из data/tarot/decks/
+│       ├── service.py               # логика: перемешать, Карта Дня, расклады
+│       ├── keyboards.py             # inline-клавиатуры Таро
+│       └── render.py                # путь к картинке + форматирование подписей
+│
+├── data/
+│   ├── knowledge/                   # база знаний Астрологии (существует)
+│   │   └── *.txt / *.md
+│   │
+│   └── tarot/                       # ← НОВОЕ
+│       └── decks/                   # каждая подпапка = одна колода
+│           ├── rider_waite/
+│           │   ├── deck.json        # метаданные колоды + все 78 карт
+│           │   └── images/          # картинки карт (major_00.jpg, wands_ace.jpg ...)
+│           │       ├── major_00.jpg
+│           │       ├── major_01.jpg
+│           │       └── ... (78 файлов)
+│           │
+│           └── _template/           # шаблон для добавления СВОЕЙ колоды
+│               └── deck.json
+│
+└── docs/
+    ├── VERSION
+    └── CHANGELOG.md

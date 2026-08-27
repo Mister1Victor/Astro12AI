@@ -29,10 +29,12 @@ dist/
 
 # Generated artifacts (matplotlib Таро-карта и т.п.)
 output/
+images/
 
 # Android
 .gradle/
 local.properties
 
 output/
+images/
 

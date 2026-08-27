@@ -4,10 +4,12 @@
 """
 АСТРОЛОГИЧЕСКАЯ КАРТА ТАРО
 Старшие Арканы Уэйта, знаки зодиака и планеты-управители.
-Символ Эриды: белый PNG на картах, чёрный PNG под знаком Девы.
+Поддержка реальных изображений карт (PNG).
+Символы планет на картах с полупрозрачным фоном.
+Стрелки внешнего круга сдвинуты на 15° по часовой стрелке.
+Подписи карт вынесены вниз под изображение, белые с тёмным фоном.
 """
 
-from PIL import Image
 from matplotlib.patches import Wedge, Circle, FancyBboxPatch, Arc
 import matplotlib.pyplot as plt
 import os
@@ -15,43 +17,6 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 
-
-# ============================================================================
-#  ЗАГРУЗКА PNG-СИМВОЛА ЭРИДЫ (БЕЛЫЙ И ЧЁРНЫЙ ВАРИАНТЫ)
-# ============================================================================
-ERIS_IMAGE_WHITE = None
-ERIS_IMAGE_BLACK = None
-ERIS_PNG_PATH = os.path.join(os.path.dirname(
-    __file__), 'images', 'eris_symbol.png')
-
-if os.path.exists(ERIS_PNG_PATH):
-    try:
-        img = Image.open(ERIS_PNG_PATH).convert('RGBA')
-        data = np.array(img)
-        alpha = data[:, :, 3]
-        mask = alpha > 0
-
-        # Белый вариант
-        white_data = data.copy()
-        white_data[mask, 0] = 255
-        white_data[mask, 1] = 255
-        white_data[mask, 2] = 255
-        ERIS_IMAGE_WHITE = white_data
-
-        # Чёрный вариант
-        black_data = data.copy()
-        black_data[mask, 0] = 0
-        black_data[mask, 1] = 0
-        black_data[mask, 2] = 0
-        ERIS_IMAGE_BLACK = black_data
-
-        print("✅ PNG-символ Эриды загружен (белый и чёрный варианты).")
-    except Exception as e:
-        print(f"⚠️ Ошибка загрузки/обработки PNG: {e}")
-else:
-    print("⚠️ Файл eris_symbol.png не найден. Будет использован текст '⚸'.")
-
-ERIS_TEXT_SYMBOL = '⚸'  # запасной текстовый символ
 
 # ============================================================================
 #  НАСТРОЙКИ
@@ -112,68 +77,65 @@ CONFIG = {
         'facecolor': 'black',
         'alpha': 0.5,
     },
-    'LABEL_BBOX': {
+    'LABEL_BBOX': {                      # ← новый параметр для подписи
         'boxstyle': 'round,pad=0.15',
         'facecolor': 'black',
         'alpha': 0.5,
     },
-    'CARD_LABEL_OFFSET': 0.0,
-    'CARD_NUMBER_OFFSET': 0.015,
-    'CARD_PLANET_OFFSET': 0.015,
+    'CARD_LABEL_OFFSET': 0.00,
 }
+
+# ============================================================================
+#  ЗАГРУЗКА ИЗОБРАЖЕНИЙ
+# ============================================================================
+image_cache = {}
+image_dir = os.path.join(os.path.dirname(__file__), 'images')
+
+if CONFIG['USE_IMAGES'] and os.path.exists(image_dir):
+    card_names = {
+        '0': '00_durak',
+        'I': '01_mag',
+        'II': '02_high_priestess',
+        'III': '03_empress',
+        'IV': '04_emperor',
+        'V': '05_hierophant',
+        'VI': '06_lovers',
+        'VII': '07_chariot',
+        'VIII': '08_strength',
+        'IX': '09_hermit',
+        'X': '10_wheel',
+        'XI': '11_justice',
+        'XII': '12_hanged_man',
+        'XIII': '13_death',
+        'XIV': '14_temperance',
+        'XV': '15_devil',
+        'XVI': '16_tower',
+        'XVII': '17_star',
+        'XVIII': '18_moon',
+        'XIX': '19_sun',
+        'XX': '20_judgement',
+        'XXI': '21_world'
+    }
+    for num, fname in card_names.items():
+        img_path = os.path.join(image_dir, f'{fname}.png')
+        if os.path.exists(img_path):
+            try:
+                image_cache[num] = plt.imread(img_path)
+            except Exception as e:
+                print(f"Не удалось загрузить {img_path}: {e}")
+        else:
+            print(f"Файл {img_path} не найден.")
+
 
 # ----------------------------------------------------------------------------
 #  Вспомогательные функции
 # ----------------------------------------------------------------------------
-
-
-def draw_planet_symbol(ax, x, y, symbol, fontsize, color, bbox=None, alpha=1.0, weight='bold'):
-    """
-    Выводит символ планеты.
-    Для 'ERIS_IMG' использует PNG (белый или чёрный в зависимости от color).
-    Для остальных – текстовый символ.
-    """
-    if symbol == 'ERIS_IMG':
-        # Выбираем изображение по цвету
-        if color == 'white' and ERIS_IMAGE_WHITE is not None:
-            img = ERIS_IMAGE_WHITE
-        elif color == 'black' and ERIS_IMAGE_BLACK is not None:
-            img = ERIS_IMAGE_BLACK
-        else:
-            # Если нужного цвета нет – используем текстовый запасной
-            img = None
-
-        if img is not None:
-            # Рисуем полупрозрачный фон
-            if bbox is not None:
-                ax.text(x, y, ' ', ha='center', va='center',
-                        fontsize=fontsize, bbox=bbox, zorder=8)
-            # Вставляем изображение
-            size_coord = fontsize / 1000.0 * CONFIG['SCALE']
-            half = size_coord / 2
-            ax.imshow(img, extent=(x-half, x+half, y-half, y+half),
-                      aspect='auto', zorder=9)
-            return
-
-    # Текстовый режим (если изображение не загружено или не подходит)
-    kwargs = {
-        'ha': 'center', 'va': 'center',
-        'fontsize': fontsize, 'color': color,
-        'fontweight': weight, 'alpha': alpha, 'zorder': 9
-    }
-    if bbox is not None:
-        kwargs['bbox'] = bbox
-    ax.text(x, y, symbol if symbol !=
-            'ERIS_IMG' else ERIS_TEXT_SYMBOL, **kwargs)
-
 
 def draw_card(ax, cx, cy, w, h, num, name, color, symbol='', planet_sym='', extra=''):
     fs = CONFIG['FONTSIZE']
     bbox_planet = CONFIG['PLANET_BBOX']
     bbox_label = CONFIG['LABEL_BBOX']
     label_offset = CONFIG['CARD_LABEL_OFFSET'] * CONFIG['SCALE']
-    number_off = CONFIG['CARD_NUMBER_OFFSET']
-    planet_off = CONFIG['CARD_PLANET_OFFSET']
 
     if CONFIG['USE_IMAGES'] and num in image_cache:
         img = image_cache[num]
@@ -182,25 +144,26 @@ def draw_card(ax, cx, cy, w, h, num, name, color, symbol='', planet_sym='', extr
         ax.imshow(img, extent=(left, right, bottom, top),
                   aspect='auto', zorder=7)
 
-        # Номер карты
-        ax.text(cx, top - number_off, num, ha='center', va='top',
+        # Номер карты (римская цифра)
+        ax.text(cx, top - 0.015, num, ha='center', va='top',
                 fontsize=fs['CARD_NUM'], color='white', fontweight='bold',
                 bbox=dict(boxstyle="round,pad=0.2",
                           facecolor='black', alpha=0.6),
                 zorder=8)
 
-        # Символ планеты (на картах – белый)
+        # Символ планеты с полупрозрачным фоном
         if planet_sym:
-            draw_planet_symbol(ax, cx, bottom + planet_off, planet_sym,
-                               fs['CARD_PLANET'], 'white', bbox=bbox_planet,
-                               weight='bold')
+            ax.text(cx, bottom + 0.015, planet_sym, ha='center', va='bottom',
+                    fontsize=fs['CARD_PLANET'], color='white', fontweight='bold',
+                    bbox=bbox_planet, zorder=9)
 
-        # Подпись карты
+        # ---- ПОДПИСЬ КАРТЫ (белая с тёмным фоном) ----
         label_y = bottom - label_offset
         ax.text(cx, label_y, name, ha='center', va='top',
                 fontsize=fs['CARD_NAME'], color='white', fontweight='bold',
                 bbox=bbox_label, zorder=9)
 
+        # Дополнительный текст (разворот) – тоже белый с фоном
         if extra:
             extra_y = label_y - 0.02 * CONFIG['SCALE']
             ax.text(cx, extra_y, extra, ha='center', va='top',
@@ -208,7 +171,7 @@ def draw_card(ax, cx, cy, w, h, num, name, color, symbol='', planet_sym='', extr
                     bbox=bbox_label, zorder=9)
         return
 
-    # Текстовый режим (резерв) – без изменений
+    # Текстовый режим (fallback)
     rect = FancyBboxPatch((cx - w/2, cy - h/2), w, h,
                           boxstyle="round,pad=0.005",
                           facecolor='white', edgecolor=color,
@@ -227,9 +190,9 @@ def draw_card(ax, cx, cy, w, h, num, name, color, symbol='', planet_sym='', extr
         ax.text(cx, cy + 0.02, symbol, ha='center', va='center',
                 fontsize=fs['CARD_SYMBOL'], color=color, zorder=9)
     if planet_sym:
-        draw_planet_symbol(ax, cx, cy - 0.025, planet_sym,
-                           fs['CARD_PLANET'], CONFIG['COLORS']['DARK'],
-                           alpha=0.8, weight='bold')
+        ax.text(cx, cy - 0.025, planet_sym, ha='center', va='center',
+                fontsize=fs['CARD_PLANET'], color=CONFIG['COLORS']['DARK'],
+                alpha=0.8, fontweight='bold', zorder=9)
     ax.text(cx, cy - h/2 + 0.022, name, ha='center', va='bottom',
             fontsize=fs['CARD_NAME'], color=CONFIG['COLORS']['DARK'],
             fontweight='bold', zorder=9)
@@ -279,48 +242,6 @@ def get_zodiac_index(angle):
     return 0
 
 
-# ============================================================================
-#  ЗАГРУЗКА ИЗОБРАЖЕНИЙ КАРТ
-# ============================================================================
-image_cache = {}
-image_dir = os.path.join(os.path.dirname(__file__), 'images')
-
-if CONFIG['USE_IMAGES'] and os.path.exists(image_dir):
-    card_names = {
-        '0': '00_durak',
-        'I': '01_mag',
-        'II': '02_high_priestess',
-        'III': '03_empress',
-        'IV': '04_emperor',
-        'V': '05_hierophant',
-        'VI': '06_lovers',
-        'VII': '07_chariot',
-        'VIII': '08_strength',
-        'IX': '09_hermit',
-        'X': '10_wheel',
-        'XI': '11_justice',
-        'XII': '12_hanged_man',
-        'XIII': '13_death',
-        'XIV': '14_temperance',
-        'XV': '15_devil',
-        'XVI': '16_tower',
-        'XVII': '17_star',
-        'XVIII': '18_moon',
-        'XIX': '19_sun',
-        'XX': '20_judgement',
-        'XXI': '21_world'
-    }
-    for num, fname in card_names.items():
-        img_path = os.path.join(image_dir, f'{fname}.png')
-        if os.path.exists(img_path):
-            try:
-                image_cache[num] = plt.imread(img_path)
-            except Exception as e:
-                print(f"Не удалось загрузить {img_path}: {e}")
-        else:
-            print(f"Файл {img_path} не найден.")
-
-
 # ----------------------------------------------------------------------------
 #  Основная программа
 # ----------------------------------------------------------------------------
@@ -342,7 +263,6 @@ def main():
     ax.set_aspect('equal')
     ax.axis('off')
 
-    # ---- Знаки зодиака и управители ----
     signs = [
         ('Овен', '♈', colors['FIRE'], 1),
         ('Телец', '♉', colors['EARTH'], 2),
@@ -358,20 +278,8 @@ def main():
         ('Рыбы', '♓', colors['WATER'], 12),
     ]
 
-    # Символы планет: для Эриды – маркер 'ERIS_IMG'
     planet_symbols = [
-        '♂',   # Овен – Марс
-        '♀',   # Телец – Венера
-        '☿',   # Близнецы – Меркурий
-        '☽',   # Рак – Луна
-        '☉',   # Лев – Солнце
-        'ERIS_IMG',  # Дева – Эрида (PNG, цвет будет задан отдельно)
-        '♇',   # Весы – Плутон
-        '♆',   # Скорпион – Нептун
-        '♅',   # Стрелец – Уран
-        '♄',   # Козерог – Сатурн
-        '♃',   # Водолей – Юпитер
-        '⚳',   # Рыбы – Церера
+        '♂', '♀', '☿', '☽', '☉', 'ER', '♇', '♆', '♅', '♄', '♃', '⚳'  # \u2BF0 '⚸'
     ]
 
     r_z = cfg['R_ZODIAC'] * z_scale * scale
@@ -379,7 +287,6 @@ def main():
     r_house = cfg['R_HOUSE'] * z_scale * scale
     house_circ_r = cfg['HOUSE_CIRCLE_R'] * scale
 
-    # ---- Отрисовка секторов зодиака ----
     for i, (name, sym, color, house_num) in enumerate(signs):
         t1 = 180 + i * 30
         t2 = 180 + (i + 1) * 30
@@ -399,15 +306,9 @@ def main():
                 fontweight='bold')
 
         y_planet = y - 0.055 * scale
-        # Для знака Дева (индекс 5) используем чёрный PNG
-        if i == 5:
-            draw_planet_symbol(ax, x, y_planet, 'ERIS_IMG',
-                               fs['PLANET_SYMBOL'], 'black',
-                               bbox=None, alpha=1.0, weight='bold')
-        else:
-            draw_planet_symbol(ax, x, y_planet, planet_symbols[i],
-                               fs['PLANET_SYMBOL'], 'black',
-                               alpha=0.9, weight='bold')
+        ax.text(x, y_planet, planet_symbols[i], ha='center', va='top',
+                fontsize=fs['PLANET_SYMBOL'], color='black',
+                alpha=0.9, fontweight='bold')
 
         xh = r_house * np.cos(mid_rad)
         yh = r_house * np.sin(mid_rad)
@@ -419,7 +320,6 @@ def main():
                 fontsize=fs['HOUSE_NUM'], color=colors['BORDER'],
                 fontweight='bold', zorder=6)
 
-    # ---- Линии между секторами ----
     start_r = line_start * scale
     for i in range(12):
         t = 180 + i * 30
@@ -428,13 +328,11 @@ def main():
                 [start_r * np.sin(rad), r_z * np.sin(rad)],
                 color=colors['BORDER'], linewidth=1.2, alpha=0.5)
 
-    # ---- Асцендент ----
     ax.plot([-1.10 * scale, -0.999 * scale], [0, 0],
             color=colors['ASC'], linewidth=5, zorder=10)
     ax.text(-1.15 * scale, 0, 'ASC', ha='center', va='center',
             fontsize=22, color=colors['ASC'], fontweight='bold', zorder=10)
 
-    # ---- Внутренняя глобальная стрелка ----
     r_inner_global = cfg['GLOBAL_INNER_RADIUS'] * scale
     theta_arc = np.radians(np.linspace(165, 15, 100))
     x_arc = r_inner_global * np.cos(theta_arc)
@@ -448,10 +346,10 @@ def main():
     ax.annotate('', xy=(x_end, y_end), xytext=(x_start, y_start),
                 arrowprops=dict(arrowstyle='->', color=colors['BORDER'], lw=2))
 
-    # ---- Арканы (с перестановками) ----
     boundaries_outer = [210, 240, 270, 300, 330, 0, 30, 60, 90, 120, 150, 180]
     boundaries_inner = boundaries_outer[:-1]
 
+    # *** Перестановки: VII↔VIII, XI↔XII, XVIII↔XIX ***
     arcana_outer = [
         ('0', 'ДУРАК', '✿'),
         ('I', 'МАГ', '∞'),
@@ -460,27 +358,28 @@ def main():
         ('IV', 'ИМПЕРАТОР', '♔'),
         ('V', 'ИЕРОФАНТ', '✚'),
         ('VI', 'ВЛЮБЛЁННЫЕ', '♥'),
-        ('VII', 'КОЛЕСНИЦА', '⏣'),
-        ('VIII', 'СИЛА', '♌'),
+        ('VIII', 'СИЛА', '♌'),     # ('VII', 'КОЛЕСНИЦА', '⏣'),
+        ('VII', 'КОЛЕСНИЦА', '⏣'),          # ('VIII', 'СИЛА', '♌'),
         ('IX', 'ОТШЕЛЬНИК', '▼'),
         ('X', 'КОЛЕСО ФОРТУНЫ', '☸'),
-        ('XI', 'СПРАВЕДЛИВОСТЬ', '⚖'),
+        ('XII', 'ПОВЕШЕННЫЙ', '♣'),   # ('XI', 'СПРАВЕДЛИВОСТЬ', '⚖'),
     ]
 
     arcana_inner = [
-        ('XII', 'ПОВЕШЕННЫЙ', '♣'),
+        # ('XII', 'ПОВЕШЕННЫЙ', '♣'),
+        ('XI', 'СПРАВЕДЛИВОСТЬ', '⚖'),
         ('XIII', 'СМЕРТЬ', '☠'),
         ('XIV', 'УМЕРЕННОСТЬ', '⚱'),
         ('XV', 'ДЬЯВОЛ', '♦'),
         ('XVI', 'БАШНЯ', '⌁'),
         ('XVII', 'ЗВЕЗДА', '★'),
-        ('XVIII', 'ЛУНА', '●'),
-        ('XIX', 'СОЛНЦЕ', '☉'),
+        ('XIX', 'СОЛНЦЕ', '☉'),           # ('XVIII', 'ЛУНА', '●'),
+        ('XVIII', 'ЛУНА', '●'),           # ('XIX', 'СОЛНЦЕ', '☉'),
         ('XX', 'СУД', '♪'),
         ('XXI', 'МИР', '◉'),
     ]
 
-    # ---- Внешний круг ----
+    # Внешний круг
     outer_order = cfg['OUTER_ORDER']
     rotate_outer = cfg['ROTATE_OUTER']
     r_card_outer = cfg['OUTER_RAD_CARD'] * scale
@@ -511,7 +410,7 @@ def main():
         draw_arc_arrow(ax, arrow_angle, r_arrow_outer, 'ccw',
                        colors['BORDER'], span=span_outer, lw=2, linestyle='--')
 
-    # ---- Внутренний круг ----
+    # Внутренний круг
     inner_order = cfg['INNER_ORDER']
     rotate_inner = cfg['ROTATE_INNER']
     r_card_inner = cfg['INNER_RAD_CARD'] * scale
@@ -541,14 +440,14 @@ def main():
         draw_arc_arrow(ax, angle, r_arrow_inner, 'cw',
                        colors['BORDER'], span=span_inner, lw=2, linestyle='--')
 
-    # ---- Кольца ----
+    # Кольца
     for r, lw, alpha in zip(cfg['RING_RADII'], cfg['RING_LW'], cfg['RING_ALPHA']):
         circle = Circle((0, 0), r * scale, fill=False,
                         color=colors['BORDER'],
                         linewidth=lw, alpha=alpha)
         ax.add_patch(circle)
 
-    # ---- Центральный круг ----
+    # Центральный круг
     center_bg = Circle((0, 0), 0.20 * scale, facecolor='white',
                        edgecolor=colors['BORDER'], linewidth=2)
     ax.add_patch(center_bg)
@@ -557,7 +456,7 @@ def main():
     ax.text(0, -0.06 * scale, 'TAROT', ha='center', va='center',
             fontsize=10, color=colors['BORDER'], alpha=0.7)
 
-    # ---- Легенда ----
+    # Легенда
     leg_x = 0.88 * scale
     leg_y = -1.08 * scale
     ax.text(leg_x, leg_y, 'Перестановки:',
@@ -567,7 +466,7 @@ def main():
             ha='left', va='center', fontsize=fs['LEGEND_SMALL'],
             color=colors['DARK'], alpha=0.8)
 
-    # ---- Сохранение ----
+    # Сохранение
     script_dir = os.path.dirname(os.path.abspath(__file__))
     out_dir = os.path.join(script_dir, 'output')
     os.makedirs(out_dir, exist_ok=True)
