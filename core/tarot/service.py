@@ -43,12 +43,22 @@ class TarotService:
     def __init__(self, decks: dict):
         self.decks = decks
         self.default_deck_id = next(iter(decks), None) if decks else None
+        # Хранилище пользовательских настроек: {user_id: use_reversed}
+        self.user_settings: dict[int, bool] = {}
         logger.info(
             f"🎴 TarotService инициализирован. Колода по умолчанию: {self.default_deck_id}")
 
+    def set_user_reversed_setting(self, user_id: int, use_reversed: bool):
+        """Запоминает настройку перевёрнутых карт для пользователя."""
+        self.user_settings[user_id] = use_reversed
+        logger.info(f"🎴 Пользователь {user_id}: перевёрнутые={use_reversed}")
+
+    def get_user_reversed_setting(self, user_id: int) -> bool:
+        """Возвращает настройку перевёрнутых карт (по умолчанию True)."""
+        return self.user_settings.get(user_id, True)
+
     # ---------- колоды ----------
     def get_deck(self, deck_id: Optional[str] = None) -> Optional[TarotDeck]:
-        """Колода по id или колода по умолчанию."""
         if deck_id:
             return self.decks.get(deck_id)
         return self.decks.get(self.default_deck_id) if self.default_deck_id else None
@@ -58,7 +68,6 @@ class TarotService:
 
     # ---------- перемешивание ----------
     def shuffle(self, deck_id: Optional[str] = None) -> List[TarotCard]:
-        """Перемешивает колоду и возвращает случайный порядок."""
         deck = self.get_deck(deck_id)
         if not deck:
             return []
@@ -71,25 +80,23 @@ class TarotService:
     def card_of_the_day(
         self,
         deck_id: Optional[str] = None,
+        user_id: Optional[int] = None,
     ) -> Tuple[Optional[TarotCard], bool]:
-        """
-        Карта Дня: случайная карта из колоды.
-        Возвращает (карта, перевёрнута ли).
-        Перемешивает колоду каждый раз для полной случайности.
-        """
         deck = self.get_deck(deck_id)
         if not deck or not deck.cards:
             return None, False
 
-        # Перемешиваем колоду перед выбором
         cards = self.shuffle(deck_id)
-
         card = random.choice(cards)
-        is_reversed = random.random() < 0.5  # 50% — перевёрнутая
+
+        # Учитываем настройку пользователя
+        use_reversed = self.get_user_reversed_setting(
+            user_id) if user_id else True
+        is_reversed = (random.random() < 0.5) if use_reversed else False
 
         logger.info(
             f"🃏 Карта Дня из «{deck.name}»: {card.name} "
-            f"(перевёрнута={is_reversed})"
+            f"(перевёрнута={is_reversed}, use_reversed={use_reversed})"
         )
         return card, is_reversed
 
@@ -98,7 +105,7 @@ class TarotService:
         self,
         count: int,
         deck_id: Optional[str] = None,
-        allow_reversed: bool = True,
+        user_id: Optional[int] = None,
     ) -> List[Tuple[TarotCard, bool]]:
         """
         Тянет N уникальных карт для расклада.
@@ -107,24 +114,38 @@ class TarotService:
         """
         deck = self.get_deck(deck_id)
         if not deck:
+            logger.error(f"❌ Колода не найдена: {deck_id}")
             return []
 
         # Перемешиваем колоду перед вытягиванием
         cards = self.shuffle(deck_id)
-        drawn = cards[: max(0, count)]
-        result = [(c, (allow_reversed and random.random() < 0.5))
-                  for c in drawn]
-        logger.info(f"🎴 Вытянуто {len(result)} карт из «{deck.name}»")
+        drawn = cards[:count]
+
+        if len(drawn) < count:
+            logger.error(
+                f"❌ Недостаточно карт: запрошено {count}, вытянуто {len(drawn)}")
+
+        # Учитываем настройку пользователя
+        use_reversed = self.get_user_reversed_setting(
+            user_id) if user_id else True
+        result = [(c, (use_reversed and random.random() < 0.5)) for c in drawn]
+
+        logger.info(
+            f"🎴 Вытянуто {len(result)} карт из «{deck.name}» (use_reversed={use_reversed})")
         return result
 
-    def draw_three_cards(self, deck_id: Optional[str] = None) -> List[Tuple[TarotCard, bool]]:
+    def draw_three_cards(self, deck_id: Optional[str] = None, user_id: Optional[int] = None) -> List[Tuple[TarotCard, bool]]:
         """Трёхкарточный расклад: Прошлое — Настоящее — Будущее."""
-        return self.draw_cards(3, deck_id)
+        return self.draw_cards(3, deck_id, user_id)
 
-    def draw_celtic_cross(self, deck_id: Optional[str] = None) -> List[Tuple[TarotCard, bool]]:
+    def draw_celtic_cross(self, deck_id: Optional[str] = None, user_id: Optional[int] = None) -> List[Tuple[TarotCard, bool]]:
         """Кельтский крест: 10 карт."""
-        return self.draw_cards(10, deck_id)
+        return self.draw_cards(10, deck_id, user_id)
 
-    def draw_choice_spread(self, deck_id: Optional[str] = None) -> List[Tuple[TarotCard, bool]]:
+    def draw_choice_spread(self, deck_id: Optional[str] = None, user_id: Optional[int] = None) -> List[Tuple[TarotCard, bool]]:
         """Вариант выбора: 7 карт (3 для варианта A + 3 для варианта B + 1 совет)."""
-        return self.draw_cards(7, deck_id)
+        drawn = self.draw_cards(7, deck_id, user_id)
+        if len(drawn) != 7:
+            logger.error(
+                f"❌ КРИТИЧЕСКАЯ ОШИБКА: Вариант выбора должен иметь 7 карт, получено {len(drawn)}")
+        return drawn
