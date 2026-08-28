@@ -1,19 +1,20 @@
 """
 Генератор данных Таро.
-
-Создаёт:
-    data/tarot/decks/rider_waite/  — Таро Райдера-Уэйта (78 карт, деканы, 2 Жезлов = «Владея миром»)
-    data/tarot/decks/thoth/        — Таро Тота Алистера Кроули (78 карт, значения по Банцхаф/Телер)
-    data/tarot/decks/author_deck/  — Авторская колода Школы (пустая заготовка)
-    data/tarot/decks/_template/    — шаблон для добавления своих колод
-
-Запуск:
-    python scripts/init_tarot_data.py          # создаёт отсутствующие колоды
-    python scripts/init_tarot_data.py --force  # пересоздаёт ВСЕ колоды
+...
 """
 import json
 import sys
 from pathlib import Path
+
+# ============================================================
+# FIX: кодировка консоли Windows (cp1251/cp866 не умеет эмодзи).
+# Переводим вывод в UTF-8; если нельзя — заменяем символы вместо падения.
+# ============================================================
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except Exception:
+    pass
 
 ROOT = Path(__file__).resolve().parent.parent
 DECKS = ROOT / "data" / "tarot" / "decks"
