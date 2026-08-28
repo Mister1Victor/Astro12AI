@@ -40,11 +40,15 @@ CHOICE_POSITIONS = {
 class TarotService:
     """Сервис Таро. Хранит колоды и предоставляет операции над ними."""
 
-    def __init__(self, decks: dict):
+
+def __init__(self, decks: dict):
         self.decks = decks
-        self.default_deck_id = next(iter(decks), None) if decks else None
-        # Хранилище пользовательских настроек: {user_id: use_reversed}
-        self.user_settings: dict[int, bool] = {}
+        # Умный выбор дефолтной колоды: берём ту, где больше всего карт
+        # (защита от ситуации, когда шаблон _template становится дефолтом)
+        self.default_deck_id = None
+        if decks:
+            self.default_deck_id = max(
+                decks.keys(), key=lambda k: decks[k].cards_count)
         logger.info(
             f"🎴 TarotService инициализирован. Колода по умолчанию: {self.default_deck_id}")
 

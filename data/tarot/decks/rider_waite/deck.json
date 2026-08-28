@@ -9,7 +9,7 @@
       "name": "Шут (0)",
       "arcana": "major",
       "number": 0,
-      "image": "major_00.png",
+      "image": "major_00.jpg",
       "astrology": "Уран",
       "keywords": [
         "начало",
@@ -26,7 +26,7 @@
       "name": "Маг (I)",
       "arcana": "major",
       "number": 1,
-      "image": "major_01.png",
+      "image": "major_01.jpg",
       "astrology": "Меркурий",
       "keywords": [
         "воля",
@@ -43,7 +43,7 @@
       "name": "Верховная Жрица (II)",
       "arcana": "major",
       "number": 2,
-      "image": "major_02.png",
+      "image": "major_02.jpg",
       "astrology": "Луна",
       "keywords": [
         "интуиция",
@@ -59,7 +59,7 @@
       "name": "Императрица (III)",
       "arcana": "major",
       "number": 3,
-      "image": "major_03.png",
+      "image": "major_03.jpg",
       "astrology": "Венера",
       "keywords": [
         "плодородие",
@@ -75,7 +75,7 @@
       "name": "Император (IV)",
       "arcana": "major",
       "number": 4,
-      "image": "major_04.png",
+      "image": "major_04.jpg",
       "astrology": "Овен / Марс",
       "keywords": [
         "структура",
@@ -91,7 +91,7 @@
       "name": "Иерофант (V)",
       "arcana": "major",
       "number": 5,
-      "image": "major_05.png",
+      "image": "major_05.jpg",
       "astrology": "Телец",
       "keywords": [
         "традиция",
@@ -107,7 +107,7 @@
       "name": "Влюблённые (VI)",
       "arcana": "major",
       "number": 6,
-      "image": "major_06.png",
+      "image": "major_06.jpg",
       "astrology": "Близнецы",
       "keywords": [
         "выбор",
@@ -123,7 +123,7 @@
       "name": "Колесница (VII)",
       "arcana": "major",
       "number": 7,
-      "image": "major_07.png",
+      "image": "major_07.jpg",
       "astrology": "Рак",
       "keywords": [
         "победа",
@@ -139,7 +139,7 @@
       "name": "Сила (VIII)",
       "arcana": "major",
       "number": 8,
-      "image": "major_08.png",
+      "image": "major_08.jpg",
       "astrology": "Лев",
       "keywords": [
         "мужество",
@@ -155,7 +155,7 @@
       "name": "Отшельник (IX)",
       "arcana": "major",
       "number": 9,
-      "image": "major_09.png",
+      "image": "major_09.jpg",
       "astrology": "Дева",
       "keywords": [
         "уединение",
@@ -171,7 +171,7 @@
       "name": "Колесо Фортуны (X)",
       "arcana": "major",
       "number": 10,
-      "image": "major_10.png",
+      "image": "major_10.jpg",
       "astrology": "Юпитер",
       "keywords": [
         "судьба",
@@ -187,7 +187,7 @@
       "name": "Справедливость (XI)",
       "arcana": "major",
       "number": 11,
-      "image": "major_11.png",
+      "image": "major_11.jpg",
       "astrology": "Весы",
       "keywords": [
         "истина",
@@ -203,7 +203,7 @@
       "name": "Повешенный (XII)",
       "arcana": "major",
       "number": 12,
-      "image": "major_12.png",
+      "image": "major_12.jpg",
       "astrology": "Нептун",
       "keywords": [
         "пауза",
@@ -219,7 +219,7 @@
       "name": "Смерть (XIII)",
       "arcana": "major",
       "number": 13,
-      "image": "major_13.png",
+      "image": "major_13.jpg",
       "astrology": "Скорпион",
       "keywords": [
         "трансформация",
@@ -235,7 +235,7 @@
       "name": "Умеренность (XIV)",
       "arcana": "major",
       "number": 14,
-      "image": "major_14.png",
+      "image": "major_14.jpg",
       "astrology": "Стрелец",
       "keywords": [
         "баланс",
@@ -251,7 +251,7 @@
       "name": "Дьявол (XV)",
       "arcana": "major",
       "number": 15,
-      "image": "major_15.png",
+      "image": "major_15.jpg",
       "astrology": "Козерог",
       "keywords": [
         "привязанность",
@@ -267,7 +267,7 @@
       "name": "Башня (XVI)",
       "arcana": "major",
       "number": 16,
-      "image": "major_16.png",
+      "image": "major_16.jpg",
       "astrology": "Марс",
       "keywords": [
         "крушение",
@@ -283,7 +283,7 @@
       "name": "Звезда (XVII)",
       "arcana": "major",
       "number": 17,
-      "image": "major_17.png",
+      "image": "major_17.jpg",
       "astrology": "Водолей",
       "keywords": [
         "надежда",
@@ -299,7 +299,7 @@
       "name": "Луна (XVIII)",
       "arcana": "major",
       "number": 18,
-      "image": "major_18.png",
+      "image": "major_18.jpg",
       "astrology": "Рыбы",
       "keywords": [
         "иллюзия",
@@ -315,7 +315,7 @@
       "name": "Солнце (XIX)",
       "arcana": "major",
       "number": 19,
-      "image": "major_19.png",
+      "image": "major_19.jpg",
       "astrology": "Солнце",
       "keywords": [
         "радость",
@@ -331,7 +331,7 @@
       "name": "Суд (XX)",
       "arcana": "major",
       "number": 20,
-      "image": "major_20.png",
+      "image": "major_20.jpg",
       "astrology": "Плутон",
       "keywords": [
         "пробуждение",
@@ -347,7 +347,7 @@
       "name": "Мир (XXI)",
       "arcana": "major",
       "number": 21,
-      "image": "major_21.png",
+      "image": "major_21.jpg",
       "astrology": "Сатурн",
       "keywords": [
         "завершение",

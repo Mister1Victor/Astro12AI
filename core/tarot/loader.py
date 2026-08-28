@@ -8,15 +8,12 @@ from core.tarot.models import TarotDeck, TarotCard
 
 logger = get_logger()
 
-# Корень с колодами: <project_root>/data/tarot/decks
 DECKS_ROOT = Path(__file__).resolve().parent.parent.parent / \
     "data" / "tarot" / "decks"
-
 VALID_SUITS = {"wands", "cups", "swords", "pentacles"}
 
 
 def _parse_card(card_data: dict) -> Optional[TarotCard]:
-    """Разбирает одну карту из JSON. Возвращает None при отсутствии id/name."""
     card_id = str(card_data.get("id", "")).strip()
     name = str(card_data.get("name", "")).strip()
     if not card_id or not name:
@@ -38,7 +35,6 @@ def _parse_card(card_data: dict) -> Optional[TarotCard]:
 
 
 def load_deck(deck_path: Path) -> Optional[TarotDeck]:
-    """Загружает одну колоду из папки. Папка обязана содержать deck.json."""
     deck_json = deck_path / "deck.json"
     if not deck_json.exists():
         logger.warning(f"⚠️ deck.json не найден: {deck_json}")
@@ -74,14 +70,24 @@ def load_all_decks() -> Dict[str, TarotDeck]:
     decks: Dict[str, TarotDeck] = {}
 
     if not DECKS_ROOT.exists():
-        logger.warning(f"⚠️ Папка колод не найдена: {DECKS_ROOT}")
+        logger.error(f"❌ Папка колод не найдена: {DECKS_ROOT}")
         return decks
 
-    for entry in sorted(DECKS_ROOT.iterdir()):
-        if entry.is_dir() and not entry.name.startswith("."):
-            deck = load_deck(entry)
-            if deck and deck.cards_count > 0:
-                decks[deck.deck_id] = deck
+    # Детальное логирование всех найденных папок
+    all_dirs = [d for d in sorted(
+        DECKS_ROOT.iterdir()) if d.is_dir() and not d.name.startswith(".")]
+    logger.info(f"📂 Папка колод: {DECKS_ROOT}")
+    logger.info(
+        f"📂 Найдено подпапок: {len(all_dirs)} → {[d.name for d in all_dirs]}")
 
-    logger.info(f"🎴 Всего загружено колод: {len(decks)}")
+    for entry in all_dirs:
+        deck = load_deck(entry)
+        if deck and deck.cards_count > 0:
+            decks[deck.deck_id] = deck
+        else:
+            logger.warning(
+                f"⚠️ Колода из папки '{entry.name}' пропущена (нет карт или ошибка)")
+
+    logger.info(
+        f"🎴 Всего загружено колод: {len(decks)} → {list(decks.keys())}")
     return decks
