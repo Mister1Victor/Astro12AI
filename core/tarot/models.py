@@ -6,40 +6,45 @@ from typing import Optional, List, Dict
 @dataclass
 class TarotCard:
     """Одна карта Таро."""
-    card_id: str                                 # уникальный id: "major_00", "wands_ace"
-    name: str                                    # "Шут (0)"
+    card_id: str                                 # уникальный id: "major_00", "wands_2"
+    name: str                                    # родовое имя: "Двойка Жезлов"
     arcana: str = "major"                        # "major" | "minor"
-    # для minor: wands/cups/swords/pentacles
-    suit: Optional[str] = None
-    number: Optional[int] = None                 # номер карты
-    # имя файла в images/ (например major_00.jpg)
-    image: Optional[str] = None
+    suit: Optional[str] = None                   # wands/cups/swords/pentacles
+    number: Optional[int] = None
+    image: Optional[str] = None                  # имя файла в images/
+    # колодочное название: «Владея миром», «Владычество»
+    title: str = ""
     keywords: List[str] = field(default_factory=list)
-    upright: str = ""                            # толкование в прямом положении
-    reversed: str = ""                           # толкование в перевёрнутом положении
-    description: str = ""                        # описание символики
-    astrology: str = ""                          # астрологическое соответствие
+    upright: str = ""
+    reversed: str = ""
+    description: str = ""
+    astrology: str = ""                          # «Марс в Овне»
+
+    @property
+    def full_name(self) -> str:
+        """Имя карты с колодочным названием: Двойка Жезлов — «Владея миром»."""
+        if self.title:
+            return f"{self.name} — «{self.title}»"
+        return self.name
 
     def get_meaning(self, is_reversed: bool = False) -> str:
-        """Толкование с учётом ориентации."""
         if is_reversed and self.reversed:
             return self.reversed
         return self.upright
 
     @property
     def is_court(self) -> bool:
-        """Придворная ли карта (Паж/Рыцарь/Королева/Король)."""
-        return bool(self.card_id.split("_")[-1] in {"page", "knight", "queen", "king"})
+        return self.card_id.split("_")[-1] in {"page", "knight", "queen", "king"}
 
 
 @dataclass
 class TarotDeck:
     """Колода Таро."""
-    deck_id: str                                 # уникальный id папки: "rider_waite"
-    name: str                                    # отображаемое название
+    deck_id: str
+    name: str
     author: str = ""
     description: str = ""
-    images_dir: str = ""                         # абсолютный путь к images/
+    images_dir: str = ""
     cards: Dict[str, TarotCard] = field(default_factory=dict)
 
     def get_card(self, card_id: str) -> Optional[TarotCard]:
@@ -57,7 +62,3 @@ class TarotDeck:
     @property
     def cards_count(self) -> int:
         return len(self.cards)
-
-    @property
-    def has_images(self) -> bool:
-        return any(c.image for c in self.cards.values())

@@ -82,6 +82,8 @@ ZODIAC_MAP = {
 class AppStates(StatesGroup):
     waiting_astro_question = State()
     waiting_tarot_reversed_setting = State()
+    # НОВОЕ: ожидание текста вопроса для раскладов «Три карты» и «Кельтский крест»
+    waiting_tarot_question_text = State()
     waiting_choice_essence = State()
     waiting_choice_option_a = State()
     waiting_choice_option_b = State()
@@ -813,7 +815,7 @@ async def tarot_question(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query(F.data.startswith("q_spread:"))
 async def question_spread(callback: types.CallbackQuery, state: FSMContext):
-    """Выбор расклада в разделе Вопрос → выбор колоды (если их несколько)."""
+    """Выбор расклада в разделе Вопрос → выбор колоды (если их несколько) → ввод вопроса."""
     logger.info(f"🔘 Callback: {callback.data}")
     spread_type = callback.data.split(":", 1)[1]
     decks = _drawable_decks()
@@ -827,7 +829,7 @@ async def question_spread(callback: types.CallbackQuery, state: FSMContext):
         if spread_type == "choice":
             await _start_choice_fsm(callback.message, deck, state)
         else:
-            await _run_question_spread(callback.message, spread_type, deck, callback.from_user.id)
+            await _start_question_fsm(callback.message, spread_type, deck, state)
     else:
         text = "🎴 <b>Выберите колоду для расклада:</b>"
         kb = tarot_kb.deck_pick_keyboard(
@@ -838,7 +840,7 @@ async def question_spread(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query(F.data.startswith("q_deck:"))
 async def question_deck_pick(callback: types.CallbackQuery, state: FSMContext):
-    """Колода выбрана: запускаем расклад или ФСМ Варианта выбора."""
+    """Колода выбрана: запускаем ФСМ вопроса или ФСМ Варианта выбора."""
     logger.info(f"🔘 Callback: {callback.data}")
     _, spread_type, deck_id = callback.data.split(":", 2)
     deck = tarot.get_deck(deck_id)
@@ -850,7 +852,28 @@ async def question_deck_pick(callback: types.CallbackQuery, state: FSMContext):
     if spread_type == "choice":
         await _start_choice_fsm(callback.message, deck, state)
     else:
-        await _run_question_spread(callback.message, spread_type, deck, callback.from_user.id)
+        await _start_question_fsm(callback.message, spread_type, deck, state)
+
+
+async def _start_question_fsm(msg: types.Message, spread_type: str, deck, state: FSMContext):
+    """Запуск ФСМ: сначала пользователь пишет вопрос, затем выполняется расклад."""
+    await state.set_state(AppStates.waiting_tarot_question_text)
+    await state.update_data(q_spread_type=spread_type, deck_id=deck.deck_id)
+
+    spread_names = {
+        "three": "Трёхкарточный расклад (Прошлое — Настоящее — Будущее)",
+        "celtic": "Кельтский крест (10 позиций)",
+    }
+    name = spread_names.get(spread_type, "Расклад")
+    text = (
+        f"❓ <b>ВОПРОС ТАРО</b>\n"
+        f"Расклад: {name}\n"
+        f"Колода: «{deck.name}»\n\n"
+        f"Напишите ваш <b>вопрос</b>, на который должен ответить расклад:"
+    )
+    if not await safe_edit_text(msg, text, parse_mode="HTML",
+                                reply_markup=tarot_kb.back_to_main_keyboard()):
+        await msg.answer(text, parse_mode="HTML", reply_markup=tarot_kb.back_to_main_keyboard())
 
 
 async def _start_choice_fsm(msg: types.Message, deck, state: FSMContext):
@@ -866,17 +889,15 @@ async def _start_choice_fsm(msg: types.Message, deck, state: FSMContext):
         await msg.answer(text, parse_mode="HTML", reply_markup=tarot_kb.back_to_main_keyboard())
 
 
-async def _run_question_spread(msg: types.Message, spread_type: str, deck, user_id: int):
-    """Расклад на вопрос: альбом карт + текстовая расшифровка + ИИ-интерпретация."""
+async def _run_question_spread(msg: types.Message, spread_type: str, deck, user_id: int, question: str):
+    """Расклад на вопрос: альбом карт + текстовая расшифровка + ИИ-интерпретация вопроса."""
     if spread_type == "three":
         drawn = tarot.draw_three_cards(deck.deck_id, user_id)
         positions = ["Прошлое", "Настоящее", "Будущее"]
-        question = "Трёхкарточный расклад (Прошлое — Настоящее — Будущее)"
         caption = tarot_render.format_three_cards(drawn, deck)
     elif spread_type == "celtic":
         drawn = tarot.draw_celtic_cross(deck.deck_id, user_id)
         positions = CELTIC_CROSS_POSITIONS
-        question = "Кельтский крест (10 позиций)"
         caption = tarot_render.format_celtic_cross(drawn, deck)
     else:
         return
@@ -890,15 +911,17 @@ async def _run_question_spread(msg: types.Message, spread_type: str, deck, user_
         await msg.answer(chunk)
 
     await bot.send_chat_action(chat_id=msg.chat.id, action=ChatAction.TYPING)
+    # Вопрос клиента отправляется ВМЕСТЕ с картами в ИИ
     interpretation = await get_tarot_ai_interpretation(question, drawn, deck.name)
     if interpretation:
         for chunk in split_text_for_telegram(interpretation, 3900):
             await msg.answer(chunk)
 
-
 # ============================================================
 # ВАРИАНТ ВЫБОРА: FSM
 # ============================================================
+
+
 @dp.message(StateFilter(AppStates.waiting_choice_essence), F.text)
 async def choice_essence(message: types.Message, state: FSMContext):
     await state.update_data(essence=message.text.strip())
@@ -958,10 +981,39 @@ async def choice_option_b(message: types.Message, state: FSMContext):
         for chunk in split_text_for_telegram(interpretation, 3900):
             await message.answer(chunk)
 
+# ============================================================
+# ВОПРОС ТАРО: текст вопроса → расклад → ИИ-интерпретация
+# ============================================================
+
+
+@dp.message(StateFilter(AppStates.waiting_tarot_question_text), F.text)
+async def handle_question_text(message: types.Message, state: FSMContext):
+    """Пользователь написал вопрос → выполняем расклад и отправляем вопрос + карты в ИИ."""
+    data = await state.get_data()
+    await state.clear()
+
+    question = message.text.strip()
+    spread_type = data.get("q_spread_type")
+    deck_id = data.get("deck_id")
+    user_id = message.from_user.id
+
+    if len(question) < 5:
+        await message.answer("🔮 Пожалуйста, опишите вопрос подробнее.")
+        return
+
+    deck = tarot.get_deck(deck_id) if deck_id else tarot.get_deck()
+    if not deck or not deck.cards:
+        await message.answer("⚠️ Колода недоступна.")
+        return
+
+    await message.answer(f"🔮 Тяну карты из колоды «{deck.name}»...")
+    await _run_question_spread(message, spread_type, deck, user_id, question)
 
 # ============================================================
 # АСТРОЛОГИЯ: текст
 # ============================================================
+
+
 @dp.message(StateFilter(AppStates.waiting_astro_question), F.text)
 async def handle_astro_question(message: types.Message, state: FSMContext):
     await state.clear()
