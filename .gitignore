@@ -38,5 +38,8 @@ local.properties
 output/
 images/
 !data/tarot/decks/*/images/
+# Таро: картинки колод
+!data/tarot/decks/rider_waite/images/*.jpg
+!data/tarot/decks/thoth/images/*.jpg
 
 
