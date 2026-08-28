@@ -2,7 +2,7 @@
   "id": "rider_waite",
   "name": "Таро Райдера-Уэйта",
   "author": "Артур Эдвард Уэйт",
-  "description": "Классическая колода 1909 года. Эталон западной традиции Таро: символика, проверенная временем.",
+  "description": "Классическая колода 1909 года. Эталон западной традиции Таро.",
   "cards": [
     {
       "id": "major_00",
@@ -365,6 +365,7 @@
       "suit": "wands",
       "number": 1,
       "image": "wands_ace.jpg",
+      "astrology": "Стихия Огня (корень масти)",
       "keywords": [
         "импульс",
         "вдохновение",
@@ -375,17 +376,18 @@
     },
     {
       "id": "wands_2",
-      "name": "Двойка Жезлов",
+      "name": "Владея миром (2 Жезлов)",
       "arcana": "minor",
       "suit": "wands",
       "number": 2,
       "image": "wands_2.jpg",
+      "astrology": "Марс в Овне",
       "keywords": [
-        "план",
-        "выбор",
-        "перспектива"
+        "власть",
+        "обзор",
+        "планирование"
       ],
-      "upright": "Планирование, выбор пути, взгляд в будущее.",
+      "upright": "Обзор своих владений, уверенность, планирование экспансии, обладание достигнутым.",
       "reversed": "Страх перемен, неожиданности, плохой план."
     },
     {
@@ -395,6 +397,7 @@
       "suit": "wands",
       "number": 3,
       "image": "wands_3.jpg",
+      "astrology": "Солнце в Овне",
       "keywords": [
         "расширение",
         "прогресс",
@@ -410,6 +413,7 @@
       "suit": "wands",
       "number": 4,
       "image": "wands_4.jpg",
+      "astrology": "Венера в Овне",
       "keywords": [
         "праздник",
         "дом",
@@ -425,6 +429,7 @@
       "suit": "wands",
       "number": 5,
       "image": "wands_5.jpg",
+      "astrology": "Сатурн во Льве",
       "keywords": [
         "конкуренция",
         "конфликт",
@@ -440,6 +445,7 @@
       "suit": "wands",
       "number": 6,
       "image": "wands_6.jpg",
+      "astrology": "Юпитер во Льве",
       "keywords": [
         "победа",
         "признание",
@@ -455,6 +461,7 @@
       "suit": "wands",
       "number": 7,
       "image": "wands_7.jpg",
+      "astrology": "Марс во Льве",
       "keywords": [
         "оборона",
         "настойчивость"
@@ -469,6 +476,7 @@
       "suit": "wands",
       "number": 8,
       "image": "wands_8.jpg",
+      "astrology": "Меркурий в Стрельце",
       "keywords": [
         "скорость",
         "движение",
@@ -484,6 +492,7 @@
       "suit": "wands",
       "number": 9,
       "image": "wands_9.jpg",
+      "astrology": "Луна в Стрельце",
       "keywords": [
         "стойкость",
         "выдержка",
@@ -499,6 +508,7 @@
       "suit": "wands",
       "number": 10,
       "image": "wands_10.jpg",
+      "astrology": "Солнце в Стрельце",
       "keywords": [
         "бремя",
         "ответственность"
@@ -513,6 +523,7 @@
       "suit": "wands",
       "number": 11,
       "image": "wands_page.jpg",
+      "astrology": "",
       "keywords": [
         "энтузиазм",
         "новости",
@@ -528,6 +539,7 @@
       "suit": "wands",
       "number": 12,
       "image": "wands_knight.jpg",
+      "astrology": "",
       "keywords": [
         "страсть",
         "приключение",
@@ -543,6 +555,7 @@
       "suit": "wands",
       "number": 13,
       "image": "wands_queen.jpg",
+      "astrology": "",
       "keywords": [
         "уверенность",
         "тепло",
@@ -558,6 +571,7 @@
       "suit": "wands",
       "number": 14,
       "image": "wands_king.jpg",
+      "astrology": "",
       "keywords": [
         "лидерство",
         "видение",
@@ -573,6 +587,7 @@
       "suit": "cups",
       "number": 1,
       "image": "cups_ace.jpg",
+      "astrology": "Стихия Воды (корень масти)",
       "keywords": [
         "любовь",
         "чувства",
@@ -588,6 +603,7 @@
       "suit": "cups",
       "number": 2,
       "image": "cups_2.jpg",
+      "astrology": "Венера в Раке",
       "keywords": [
         "союз",
         "партнёрство",
@@ -603,6 +619,7 @@
       "suit": "cups",
       "number": 3,
       "image": "cups_3.jpg",
+      "astrology": "Меркурий в Раке",
       "keywords": [
         "дружба",
         "праздник",
@@ -618,6 +635,7 @@
       "suit": "cups",
       "number": 4,
       "image": "cups_4.jpg",
+      "astrology": "Луна в Раке",
       "keywords": [
         "апатия",
         "раздумье",
@@ -633,6 +651,7 @@
       "suit": "cups",
       "number": 5,
       "image": "cups_5.jpg",
+      "astrology": "Марс в Скорпионе",
       "keywords": [
         "потеря",
         "сожаление",
@@ -648,6 +667,7 @@
       "suit": "cups",
       "number": 6,
       "image": "cups_6.jpg",
+      "astrology": "Солнце в Скорпионе",
       "keywords": [
         "ностальгия",
         "детство",
@@ -663,6 +683,7 @@
       "suit": "cups",
       "number": 7,
       "image": "cups_7.jpg",
+      "astrology": "Венера в Скорпионе",
       "keywords": [
         "иллюзии",
         "выбор",
@@ -678,6 +699,7 @@
       "suit": "cups",
       "number": 8,
       "image": "cups_8.jpg",
+      "astrology": "Сатурн в Рыбах",
       "keywords": [
         "уход",
         "поиск",
@@ -693,6 +715,7 @@
       "suit": "cups",
       "number": 9,
       "image": "cups_9.jpg",
+      "astrology": "Юпитер в Рыбах",
       "keywords": [
         "удовлетворение",
         "желание",
@@ -708,6 +731,7 @@
       "suit": "cups",
       "number": 10,
       "image": "cups_10.jpg",
+      "astrology": "Марс в Рыбах",
       "keywords": [
         "счастье",
         "семья",
@@ -723,6 +747,7 @@
       "suit": "cups",
       "number": 11,
       "image": "cups_page.jpg",
+      "astrology": "",
       "keywords": [
         "творчество",
         "интуиция",
@@ -738,6 +763,7 @@
       "suit": "cups",
       "number": 12,
       "image": "cups_knight.jpg",
+      "astrology": "",
       "keywords": [
         "романтика",
         "обаяние",
@@ -753,6 +779,7 @@
       "suit": "cups",
       "number": 13,
       "image": "cups_queen.jpg",
+      "astrology": "",
       "keywords": [
         "сочувствие",
         "интуиция",
@@ -768,6 +795,7 @@
       "suit": "cups",
       "number": 14,
       "image": "cups_king.jpg",
+      "astrology": "",
       "keywords": [
         "эмоциональная зрелость",
         "дипломатия"
@@ -782,6 +810,7 @@
       "suit": "swords",
       "number": 1,
       "image": "swords_ace.jpg",
+      "astrology": "Стихия Воздуха (корень масти)",
       "keywords": [
         "ясность",
         "истина",
@@ -797,6 +826,7 @@
       "suit": "swords",
       "number": 2,
       "image": "swords_2.jpg",
+      "astrology": "Луна в Весах",
       "keywords": [
         "тупик",
         "выбор",
@@ -812,6 +842,7 @@
       "suit": "swords",
       "number": 3,
       "image": "swords_3.jpg",
+      "astrology": "Сатурн в Весах",
       "keywords": [
         "боль",
         "разочарование",
@@ -827,6 +858,7 @@
       "suit": "swords",
       "number": 4,
       "image": "swords_4.jpg",
+      "astrology": "Юпитер в Весах",
       "keywords": [
         "отдых",
         "восстановление",
@@ -842,6 +874,7 @@
       "suit": "swords",
       "number": 5,
       "image": "swords_5.jpg",
+      "astrology": "Венера в Водолее",
       "keywords": [
         "конфликт",
         "поражение",
@@ -857,6 +890,7 @@
       "suit": "swords",
       "number": 6,
       "image": "swords_6.jpg",
+      "astrology": "Меркурий в Водолее",
       "keywords": [
         "переход",
         "перемены",
@@ -872,6 +906,7 @@
       "suit": "swords",
       "number": 7,
       "image": "swords_7.jpg",
+      "astrology": "Луна в Водолее",
       "keywords": [
         "хитрость",
         "стратегия",
@@ -887,6 +922,7 @@
       "suit": "swords",
       "number": 8,
       "image": "swords_8.jpg",
+      "astrology": "Юпитер в Близнецах",
       "keywords": [
         "ограничение",
         "ловушка",
@@ -902,6 +938,7 @@
       "suit": "swords",
       "number": 9,
       "image": "swords_9.jpg",
+      "astrology": "Марс в Близнецах",
       "keywords": [
         "тревога",
         "страх",
@@ -917,6 +954,7 @@
       "suit": "swords",
       "number": 10,
       "image": "swords_10.jpg",
+      "astrology": "Солнце в Близнецах",
       "keywords": [
         "конец",
         "предательство",
@@ -932,6 +970,7 @@
       "suit": "swords",
       "number": 11,
       "image": "swords_page.jpg",
+      "astrology": "",
       "keywords": [
         "любознательность",
         "бдительность"
@@ -946,6 +985,7 @@
       "suit": "swords",
       "number": 12,
       "image": "swords_knight.jpg",
+      "astrology": "",
       "keywords": [
         "действие",
         "амбиции",
@@ -961,6 +1001,7 @@
       "suit": "swords",
       "number": 13,
       "image": "swords_queen.jpg",
+      "astrology": "",
       "keywords": [
         "независимость",
         "ясность",
@@ -976,6 +1017,7 @@
       "suit": "swords",
       "number": 14,
       "image": "swords_king.jpg",
+      "astrology": "",
       "keywords": [
         "интеллект",
         "авторитет",
@@ -991,6 +1033,7 @@
       "suit": "pentacles",
       "number": 1,
       "image": "pentacles_ace.jpg",
+      "astrology": "Стихия Земли (корень масти)",
       "keywords": [
         "возможность",
         "достаток",
@@ -1006,6 +1049,7 @@
       "suit": "pentacles",
       "number": 2,
       "image": "pentacles_2.jpg",
+      "astrology": "Юпитер в Козероге",
       "keywords": [
         "баланс",
         "адаптация",
@@ -1021,6 +1065,7 @@
       "suit": "pentacles",
       "number": 3,
       "image": "pentacles_3.jpg",
+      "astrology": "Марс в Козероге",
       "keywords": [
         "мастерство",
         "команда",
@@ -1036,6 +1081,7 @@
       "suit": "pentacles",
       "number": 4,
       "image": "pentacles_4.jpg",
+      "astrology": "Солнце в Козероге",
       "keywords": [
         "стабильность",
         "контроль",
@@ -1051,6 +1097,7 @@
       "suit": "pentacles",
       "number": 5,
       "image": "pentacles_5.jpg",
+      "astrology": "Меркурий в Тельце",
       "keywords": [
         "нужда",
         "потеря",
@@ -1066,6 +1113,7 @@
       "suit": "pentacles",
       "number": 6,
       "image": "pentacles_6.jpg",
+      "astrology": "Луна в Тельце",
       "keywords": [
         "щедрость",
         "помощь",
@@ -1081,6 +1129,7 @@
       "suit": "pentacles",
       "number": 7,
       "image": "pentacles_7.jpg",
+      "astrology": "Сатурн в Тельце",
       "keywords": [
         "терпение",
         "вложение",
@@ -1096,6 +1145,7 @@
       "suit": "pentacles",
       "number": 8,
       "image": "pentacles_8.jpg",
+      "astrology": "Солнце в Деве",
       "keywords": [
         "усердие",
         "мастерство",
@@ -1111,6 +1161,7 @@
       "suit": "pentacles",
       "number": 9,
       "image": "pentacles_9.jpg",
+      "astrology": "Венера в Деве",
       "keywords": [
         "изобилие",
         "самодостаточность"
@@ -1125,6 +1176,7 @@
       "suit": "pentacles",
       "number": 10,
       "image": "pentacles_10.jpg",
+      "astrology": "Меркурий в Деве",
       "keywords": [
         "богатство",
         "наследие",
@@ -1140,6 +1192,7 @@
       "suit": "pentacles",
       "number": 11,
       "image": "pentacles_page.jpg",
+      "astrology": "",
       "keywords": [
         "обучение",
         "возможность",
@@ -1155,6 +1208,7 @@
       "suit": "pentacles",
       "number": 12,
       "image": "pentacles_knight.jpg",
+      "astrology": "",
       "keywords": [
         "надёжность",
         "методичность"
@@ -1169,6 +1223,7 @@
       "suit": "pentacles",
       "number": 13,
       "image": "pentacles_queen.jpg",
+      "astrology": "",
       "keywords": [
         "забота",
         "практичность",
@@ -1184,6 +1239,7 @@
       "suit": "pentacles",
       "number": 14,
       "image": "pentacles_king.jpg",
+      "astrology": "",
       "keywords": [
         "благосостояние",
         "бизнес",

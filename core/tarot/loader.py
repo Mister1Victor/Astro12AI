@@ -61,19 +61,22 @@ def load_deck(deck_path: Path) -> Optional[TarotDeck]:
         if card:
             deck.cards[card.card_id] = card
 
-    logger.info(f"🎴 Колода «{deck.name}» загружена: {deck.cards_count} карт")
+    if deck.cards_count == 0:
+        logger.info(f"🛠️ Колода «{deck.name}» пуста (в разработке)")
+    else:
+        logger.info(
+            f"🎴 Колода «{deck.name}» загружена: {deck.cards_count} карт")
     return deck
 
 
 def load_all_decks() -> Dict[str, TarotDeck]:
-    """Загружает ВСЕ колоды из data/tarot/decks/ (подпапки)."""
+    """Загружает ВСЕ колоды из data/tarot/decks/ (включая пустые заготовки)."""
     decks: Dict[str, TarotDeck] = {}
 
     if not DECKS_ROOT.exists():
         logger.error(f"❌ Папка колод не найдена: {DECKS_ROOT}")
         return decks
 
-    # Детальное логирование всех найденных папок
     all_dirs = [d for d in sorted(
         DECKS_ROOT.iterdir()) if d.is_dir() and not d.name.startswith(".")]
     logger.info(f"📂 Папка колод: {DECKS_ROOT}")
@@ -82,11 +85,8 @@ def load_all_decks() -> Dict[str, TarotDeck]:
 
     for entry in all_dirs:
         deck = load_deck(entry)
-        if deck and deck.cards_count > 0:
+        if deck:
             decks[deck.deck_id] = deck
-        else:
-            logger.warning(
-                f"⚠️ Колода из папки '{entry.name}' пропущена (нет карт или ошибка)")
 
     logger.info(
         f"🎴 Всего загружено колод: {len(decks)} → {list(decks.keys())}")

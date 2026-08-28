@@ -7,8 +7,12 @@ Astro12AI + TAROT
 - Таро: Колоды, Расклады, Вопрос (3 типа раскладов)
 - Карта Дня: случайная карта с перемешиванием
 
-Настройки пользователя:
-- Перевёрнутые карты (запоминается при первом входе)
+Возможности Таро:
+- Несколько колод (Райдер-Уэйт, Таро Тота, авторская)
+- Выбор колоды перед каждым раскладом
+- Визуальные образы карт (альбомы) во всех раскладах
+- Названия карт в конкретной колоде + астрологический символизм
+- Настройка перевёрнутых карт (запоминается при первом входе)
 """
 
 import os
@@ -16,7 +20,7 @@ import re
 import time
 import asyncio
 import aiohttp
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List
 
 from aiohttp import web
 from dotenv import load_dotenv
@@ -48,7 +52,7 @@ from core.knowledge.loader import load_knowledge_base
 
 # ===== ТАРО =====
 from core.tarot.loader import load_all_decks
-from core.tarot.service import TarotService
+from core.tarot.service import TarotService, CELTIC_CROSS_POSITIONS, CHOICE_POSITIONS
 from core.tarot import keyboards as tarot_kb
 from core.tarot import render as tarot_render
 
@@ -84,7 +88,7 @@ class AppStates(StatesGroup):
 
 
 # ============================================================
-# ИНИЦИАЛИЗАЦИЯ ЯДРА (строго до bot/dp!)
+# ИНИЦИАЛИЗАЦИЯ ЯДРА (строго до bot/dp)
 # ============================================================
 documents = load_knowledge_base()
 logger.info(f"🔥 Успешно создано фрагментов (Астрология): {len(documents)}")
@@ -105,9 +109,7 @@ rag_chain = create_retrieval_chain(astro_retriever, question_answer_chain)
 tarot_decks = load_all_decks()
 tarot = TarotService(tarot_decks)
 
-# ============================================================
-# БОТ И ДИСПЕТЧЕР (СТРОГО ДО ВСЕХ @dp.* ХЕНДЛЕРОВ!)
-# ============================================================
+# Бот и диспетчер (СТРОГО ДО всех @dp.*)
 bot = Bot(token=settings.TELEGRAM_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
@@ -254,8 +256,9 @@ async def get_tarot_ai_interpretation(question: str, drawn, deck_name: str) -> s
     for i, (card, rev) in enumerate(drawn):
         orient = "перевёрнутое" if rev else "прямое"
         meaning = card.get_meaning(rev)
+        astro = f" [{card.astrology}]" if card.astrology else ""
         cards_desc.append(
-            f"Позиция {i + 1}: {card.name} ({orient}) — {meaning}")
+            f"Позиция {i + 1}: {card.name} ({orient}{astro}) — {meaning}")
     cards_text = "\n".join(cards_desc)
 
     human = (
@@ -326,7 +329,6 @@ def get_rephrase_keyboard():
 
 
 def main_menu_keyboard():
-    """Главное меню — собираем прямо здесь, чтобы callback_data точно совпадал."""
     kb = InlineKeyboardBuilder()
     kb.button(text="🎴 Таро", callback_data="menu_tarot")
     kb.button(text="🪐 Астрология 12", callback_data="menu_astro")
@@ -334,6 +336,35 @@ def main_menu_keyboard():
     kb.button(text="🌙 Разбудить сервер", url=SELF_URL)
     kb.adjust(2, 1, 1)
     return kb.as_markup()
+
+
+def _drawable_decks():
+    """Колоды, из которых можно тянуть карты (не пустые)."""
+    return [d for d in tarot.list_decks() if d.cards_count > 0]
+
+
+async def send_spread_cards_visual(msg: types.Message, deck, drawn, positions) -> int:
+    """
+    Отправляет альбом картинок расклада (до 10 фото на альбом).
+    Возвращает число отправленных изображений.
+    """
+    items = tarot_render.spread_cards_visual(deck, drawn, positions)
+    media = []
+    for it in items:
+        if it["path"]:
+            media.append(InputMediaPhoto(media=FSInputFile(
+                it["path"]), caption=it["caption"]))
+
+    sent = 0
+    for i in range(0, len(media), 10):
+        try:
+            await bot.send_media_group(chat_id=msg.chat.id, media=media[i:i + 10])
+            sent += len(media[i:i + 10])
+        except TelegramBadRequest as e:
+            logger.warning(f"⚠️ send_media_group не удался: {e}")
+    if media:
+        logger.info(f"🖼️ Отправлено изображений расклада: {sent}")
+    return sent
 
 
 async def safe_answer(message: types.Message, text: str, **kwargs):
@@ -434,7 +465,7 @@ async def cmd_start(message: types.Message, state: FSMContext):
 
 
 # ============================================================
-# ГЛАВНОЕ МЕНЮ: переходы (ОБЯЗАТЕЛЬНО callback_query!)
+# ГЛАВНОЕ МЕНЮ: переходы
 # ============================================================
 @dp.callback_query(F.data == "back_to_main")
 async def back_to_main(callback: types.CallbackQuery, state: FSMContext):
@@ -454,7 +485,6 @@ async def menu_tarot(callback: types.CallbackQuery, state: FSMContext):
 
     user_id = callback.from_user.id
 
-    # Проверяем, есть ли настройка перевёрнутых карт
     if user_id not in tarot.user_settings:
         await state.set_state(AppStates.waiting_tarot_reversed_setting)
         text = (
@@ -511,13 +541,16 @@ async def menu_astro(callback: types.CallbackQuery, state: FSMContext):
         await callback.message.answer(text, parse_mode="HTML", reply_markup=tarot_kb.back_to_main_keyboard())
 
 
+# ============================================================
+# КАРТА ДНЯ (только непустые колоды)
+# ============================================================
 @dp.callback_query(F.data == "menu_card_of_day")
 async def menu_card_of_day(callback: types.CallbackQuery):
     logger.info("🔘 Callback: menu_card_of_day")
     await callback.answer()
-    decks = tarot.list_decks()
+    decks = _drawable_decks()
     if not decks:
-        await safe_edit_text(callback.message, "⚠️ Колоды не загружены.")
+        await safe_edit_text(callback.message, "⚠️ Нет колод с картами.")
         return
     if len(decks) == 1:
         await _show_cod_shuffle_screen(callback.message, decks[0])
@@ -529,9 +562,6 @@ async def menu_card_of_day(callback: types.CallbackQuery):
                                           reply_markup=tarot_kb.cod_decks_keyboard(decks))
 
 
-# ============================================================
-# КАРТА ДНЯ — подменю
-# ============================================================
 async def _show_cod_shuffle_screen(msg: types.Message, deck):
     text = (
         f"🃏 <b>КАРТА ДНЯ</b>\n"
@@ -549,8 +579,8 @@ async def cod_select_deck(callback: types.CallbackQuery):
     deck_id = callback.data.split(":", 1)[1]
     deck = tarot.get_deck(deck_id)
     await callback.answer()
-    if not deck:
-        await callback.answer("Колода не найдена", show_alert=True)
+    if not deck or not deck.cards:
+        await callback.answer("Колода недоступна", show_alert=True)
         return
     await _show_cod_shuffle_screen(callback.message, deck)
 
@@ -618,7 +648,21 @@ async def deck_view(callback: types.CallbackQuery):
     if not deck:
         await callback.answer("Колода не найдена", show_alert=True)
         return
+
     author = f"\nАвтор: {deck.author}" if deck.author else ""
+
+    # Пустая колода (в разработке)
+    if deck.cards_count == 0:
+        text = (
+            f"🛠️ <b>{deck.name}</b>{author}\n\n"
+            f"{deck.description}\n\n"
+            f"Карт в колоде пока нет — колода в разработке."
+        )
+        kb = tarot_kb.back_to_deck_keyboard(deck_id)
+        if not await safe_edit_text(callback.message, text, parse_mode="HTML", reply_markup=kb):
+            await callback.message.answer(text, parse_mode="HTML", reply_markup=kb)
+        return
+
     text = (
         f"🎴 <b>{deck.name}</b>{author}\n"
         f"Карт: {deck.cards_count}\n\n"
@@ -678,7 +722,7 @@ async def deck_card(callback: types.CallbackQuery):
 
 
 # ============================================================
-# ТАРО: РАСКЛАДЫ (простые)
+# ТАРО: РАСКЛАДЫ (простые) — С ВЫБОРОМ КОЛОДЫ
 # ============================================================
 @dp.callback_query(F.data == "tarot_spreads")
 async def tarot_spreads(callback: types.CallbackQuery):
@@ -691,50 +735,76 @@ async def tarot_spreads(callback: types.CallbackQuery):
 
 
 @dp.callback_query(F.data.startswith("spread:"))
-async def spread(callback: types.CallbackQuery):
+async def spread_pick(callback: types.CallbackQuery):
+    """Выбор типа расклада → выбор колоды (если их несколько)."""
     logger.info(f"🔘 Callback: {callback.data}")
     stype = callback.data.split(":", 1)[1]
-    deck = tarot.get_deck()
-    user_id = callback.from_user.id
-
-    await callback.answer("🎴 Тяну карты...")
-    if not deck:
-        await callback.answer("Колода не найдена", show_alert=True)
+    decks = _drawable_decks()
+    await callback.answer()
+    if not decks:
+        await callback.answer("Нет колод с картами", show_alert=True)
         return
 
+    if len(decks) == 1:
+        await _run_simple_spread(callback.message, stype, decks[0], callback.from_user.id)
+    else:
+        text = f"🎴 <b>Выберите колоду для расклада:</b>"
+        kb = tarot_kb.deck_pick_keyboard(
+            f"spread_deck:{stype}", decks, "tarot_spreads")
+        if not await safe_edit_text(callback.message, text, parse_mode="HTML", reply_markup=kb):
+            await callback.message.answer(text, parse_mode="HTML", reply_markup=kb)
+
+
+@dp.callback_query(F.data.startswith("spread_deck:"))
+async def spread_deck(callback: types.CallbackQuery):
+    """Расклад выполняется с выбранной колодой."""
+    logger.info(f"🔘 Callback: {callback.data}")
+    _, stype, deck_id = callback.data.split(":", 2)
+    deck = tarot.get_deck(deck_id)
+    if not deck or not deck.cards:
+        await callback.answer("Колода недоступна", show_alert=True)
+        return
+    await callback.answer("🎴 Тяну карты...")
+    await _run_simple_spread(callback.message, stype, deck, callback.from_user.id)
+
+
+async def _run_simple_spread(msg: types.Message, stype: str, deck, user_id: int):
+    """Выполнение простых раскладов (одна / три карты) с визуалом."""
     if stype == "one":
         card, is_rev = tarot.card_of_the_day(deck.deck_id, user_id)
         if not card:
-            await callback.answer("Не удалось вытянуть карту", show_alert=True)
+            await msg.answer("⚠️ Не удалось вытянуть карту.")
             return
         caption = tarot_render.format_card_of_day(card, is_rev, deck)
         img = tarot_render.resolve_image(deck, card)
         kb = tarot_kb.back_to_main_keyboard()
         if img:
-            await callback.message.answer_photo(FSInputFile(img), caption=caption[:1024], reply_markup=kb)
+            await msg.answer_photo(FSInputFile(img), caption=caption[:1024], reply_markup=kb)
         else:
-            await callback.message.answer(caption, reply_markup=kb)
+            await msg.answer(caption, reply_markup=kb)
 
     elif stype == "three":
         drawn = tarot.draw_three_cards(deck.deck_id, user_id)
+        if not drawn:
+            await msg.answer("⚠️ Не удалось вытянуть карты.")
+            return
+        positions = ["Прошлое", "Настоящее", "Будущее"]
+        await send_spread_cards_visual(msg, deck, drawn, positions)
         caption = tarot_render.format_three_cards(drawn, deck)
         kb = tarot_kb.back_to_main_keyboard()
         for chunk in split_text_for_telegram(caption, 3900):
-            await callback.message.answer(chunk, reply_markup=kb)
+            await msg.answer(chunk, reply_markup=kb)
 
 
 # ============================================================
-# ТАРО: ВОПРОС (ВЫБОР РАСКЛАДА)
+# ТАРО: ВОПРОС — С ВЫБОРОМ КОЛОДЫ
 # ============================================================
 @dp.callback_query(F.data == "tarot_question")
 async def tarot_question(callback: types.CallbackQuery, state: FSMContext):
     logger.info("🔘 Callback: tarot_question")
     await state.clear()
     await callback.answer()
-    text = (
-        "❓ <b>ВОПРОС ТАРО</b>\n\n"
-        "Выберите тип расклада:"
-    )
+    text = "❓ <b>ВОПРОС ТАРО</b>\n\nВыберите тип расклада:"
     if not await safe_edit_text(callback.message, text, parse_mode="HTML",
                                 reply_markup=tarot_kb.tarot_question_menu_keyboard()):
         await callback.message.answer(text, parse_mode="HTML",
@@ -743,49 +813,87 @@ async def tarot_question(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query(F.data.startswith("q_spread:"))
 async def question_spread(callback: types.CallbackQuery, state: FSMContext):
+    """Выбор расклада в разделе Вопрос → выбор колоды (если их несколько)."""
     logger.info(f"🔘 Callback: {callback.data}")
     spread_type = callback.data.split(":", 1)[1]
-    user_id = callback.from_user.id
-
-    await callback.answer("🎴 Тяну карты...")
-
-    deck = tarot.get_deck()
-    if not deck:
-        await callback.answer("Колода не найдена", show_alert=True)
+    decks = _drawable_decks()
+    await callback.answer()
+    if not decks:
+        await callback.answer("Нет колод с картами", show_alert=True)
         return
 
+    if len(decks) == 1:
+        deck = decks[0]
+        if spread_type == "choice":
+            await _start_choice_fsm(callback.message, deck, state)
+        else:
+            await _run_question_spread(callback.message, spread_type, deck, callback.from_user.id)
+    else:
+        text = "🎴 <b>Выберите колоду для расклада:</b>"
+        kb = tarot_kb.deck_pick_keyboard(
+            f"q_deck:{spread_type}", decks, "tarot_question")
+        if not await safe_edit_text(callback.message, text, parse_mode="HTML", reply_markup=kb):
+            await callback.message.answer(text, parse_mode="HTML", reply_markup=kb)
+
+
+@dp.callback_query(F.data.startswith("q_deck:"))
+async def question_deck_pick(callback: types.CallbackQuery, state: FSMContext):
+    """Колода выбрана: запускаем расклад или ФСМ Варианта выбора."""
+    logger.info(f"🔘 Callback: {callback.data}")
+    _, spread_type, deck_id = callback.data.split(":", 2)
+    deck = tarot.get_deck(deck_id)
+    if not deck or not deck.cards:
+        await callback.answer("Колода недоступна", show_alert=True)
+        return
+    await callback.answer()
+
+    if spread_type == "choice":
+        await _start_choice_fsm(callback.message, deck, state)
+    else:
+        await _run_question_spread(callback.message, spread_type, deck, callback.from_user.id)
+
+
+async def _start_choice_fsm(msg: types.Message, deck, state: FSMContext):
+    """Запуск ФСМ «Вариант выбора» с запоминанием колоды."""
+    await state.set_state(AppStates.waiting_choice_essence)
+    await state.update_data(deck_id=deck.deck_id)
+    text = (
+        f"⚖️ <b>ВАРИАНТ ВЫБОРА</b> — колода «{deck.name}»\n\n"
+        f"Напишите <b>суть выбора</b> (в чём заключается дилемма?):"
+    )
+    if not await safe_edit_text(msg, text, parse_mode="HTML",
+                                reply_markup=tarot_kb.back_to_main_keyboard()):
+        await msg.answer(text, parse_mode="HTML", reply_markup=tarot_kb.back_to_main_keyboard())
+
+
+async def _run_question_spread(msg: types.Message, spread_type: str, deck, user_id: int):
+    """Расклад на вопрос: альбом карт + текстовая расшифровка + ИИ-интерпретация."""
     if spread_type == "three":
         drawn = tarot.draw_three_cards(deck.deck_id, user_id)
+        positions = ["Прошлое", "Настоящее", "Будущее"]
+        question = "Трёхкарточный расклад (Прошлое — Настоящее — Будущее)"
         caption = tarot_render.format_three_cards(drawn, deck)
-        for chunk in split_text_for_telegram(caption, 3900):
-            await callback.message.answer(chunk)
-        await bot.send_chat_action(chat_id=callback.message.chat.id, action=ChatAction.TYPING)
-        interpretation = await get_tarot_ai_interpretation("Трёхкарточный расклад", drawn, deck.name)
-        if interpretation:
-            for chunk in split_text_for_telegram(interpretation, 3900):
-                await callback.message.answer(chunk)
-
     elif spread_type == "celtic":
         drawn = tarot.draw_celtic_cross(deck.deck_id, user_id)
+        positions = CELTIC_CROSS_POSITIONS
+        question = "Кельтский крест (10 позиций)"
         caption = tarot_render.format_celtic_cross(drawn, deck)
-        for chunk in split_text_for_telegram(caption, 3900):
-            await callback.message.answer(chunk)
-        await bot.send_chat_action(chat_id=callback.message.chat.id, action=ChatAction.TYPING)
-        interpretation = await get_tarot_ai_interpretation("Кельтский крест", drawn, deck.name)
-        if interpretation:
-            for chunk in split_text_for_telegram(interpretation, 3900):
-                await callback.message.answer(chunk)
+    else:
+        return
 
-    elif spread_type == "choice":
-        await state.set_state(AppStates.waiting_choice_essence)
-        text = (
-            "⚖️ <b>ВАРИАНТ ВЫБОРА</b>\n\n"
-            "Напишите <b>суть выбора</b>:"
-        )
-        if not await safe_edit_text(callback.message, text, parse_mode="HTML",
-                                    reply_markup=tarot_kb.back_to_main_keyboard()):
-            await callback.message.answer(text, parse_mode="HTML",
-                                          reply_markup=tarot_kb.back_to_main_keyboard())
+    if not drawn:
+        await msg.answer("⚠️ Не удалось вытянуть карты.")
+        return
+
+    await send_spread_cards_visual(msg, deck, drawn, positions)
+    for chunk in split_text_for_telegram(caption, 3900):
+        await msg.answer(chunk)
+
+    await bot.send_chat_action(chat_id=msg.chat.id, action=ChatAction.TYPING)
+    interpretation = await get_tarot_ai_interpretation(question, drawn, deck.name)
+    if interpretation:
+        for chunk in split_text_for_telegram(interpretation, 3900):
+            await msg.answer(chunk)
 
 
 # ============================================================
@@ -795,14 +903,14 @@ async def question_spread(callback: types.CallbackQuery, state: FSMContext):
 async def choice_essence(message: types.Message, state: FSMContext):
     await state.update_data(essence=message.text.strip())
     await state.set_state(AppStates.waiting_choice_option_a)
-    await message.answer("✅ Сохранено.\n\nТеперь <b>Вариант 1</b>:", parse_mode="HTML")
+    await message.answer("✅ Сохранено.\n\nТеперь напишите <b>Вариант 1</b>:", parse_mode="HTML")
 
 
 @dp.message(StateFilter(AppStates.waiting_choice_option_a), F.text)
 async def choice_option_a(message: types.Message, state: FSMContext):
     await state.update_data(option_a=message.text.strip())
     await state.set_state(AppStates.waiting_choice_option_b)
-    await message.answer("✅ Сохранено.\n\nТеперь <b>Вариант 2</b>:", parse_mode="HTML")
+    await message.answer("✅ Сохранено.\n\nТеперь напишите <b>Вариант 2</b>:", parse_mode="HTML")
 
 
 @dp.message(StateFilter(AppStates.waiting_choice_option_b), F.text)
@@ -813,28 +921,34 @@ async def choice_option_b(message: types.Message, state: FSMContext):
     option_b = message.text.strip()
     essence = data.get("essence", "")
     option_a = data.get("option_a", "")
+    deck_id = data.get("deck_id")
     user_id = message.from_user.id
 
-    await message.answer("🔮 Тяну 7 карт для Варианта выбора...")
-    await bot.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
-
-    deck = tarot.get_deck()
-    if not deck:
-        await message.answer("⚠️ Колоды не загружены.")
+    deck = tarot.get_deck(deck_id) if deck_id else tarot.get_deck()
+    if not deck or not deck.cards:
+        await message.answer("⚠️ Колода недоступна.")
         return
 
-    drawn = tarot.draw_choice_spread(deck.deck_id, user_id)
+    await message.answer(f"🔮 Тяну 7 карт из колоды «{deck.name}»...")
+    await bot.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
 
+    drawn = tarot.draw_choice_spread(deck.deck_id, user_id)
     if len(drawn) != 7:
         logger.error(f"❌ Вариант выбора: {len(drawn)} карт вместо 7")
         await message.answer(f"⚠️ Ошибка: {len(drawn)} карт вместо 7. Попробуйте ещё раз.")
         return
 
+    # 1. Альбом картинок
+    positions = tarot_render.choice_positions_list()
+    await send_spread_cards_visual(message, deck, drawn, positions)
+
+    # 2. Текстовая расшифровка
     caption = tarot_render.format_choice_spread(
         drawn, deck, essence, option_a, option_b)
     for chunk in split_text_for_telegram(caption, 3900):
         await message.answer(chunk)
 
+    # 3. ИИ-интерпретация
     interpretation = await get_tarot_ai_interpretation(
         f"Вариант выбора: {essence}. Вариант 1: {option_a}. Вариант 2: {option_b}.",
         drawn,
@@ -857,7 +971,6 @@ async def handle_astro_question(message: types.Message, state: FSMContext):
 @dp.message(F.text)
 async def handle_default_text(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
-    # Если пользователь в каком-то FSM-состоянии (например, вариант выбора) — игнорируем
     if current_state is not None:
         return
     await process_astro_request(message, message.text)
@@ -959,13 +1072,14 @@ async def main():
     await bot.delete_webhook(drop_pending_updates=True)
     await setup_bot_ui()
 
+    drawable = len(_drawable_decks())
     logger.info(f"🚀 Бот запущен в режиме: {settings.ENV}")
     logger.info("=" * 60)
     logger.info("Astro12AI + TAROT")
     logger.info(f"ENV: {settings.ENV}")
     logger.info(f"ИИ-модель: {model_name}")
     logger.info(f"Knowledge chunks: {len(documents)}")
-
+    logger.info(f"Tarot decks: всего={len(tarot_decks)}, с картами={drawable}")
     logger.info("=" * 60)
 
     try:

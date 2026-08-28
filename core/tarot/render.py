@@ -1,4 +1,4 @@
-"""Отображение Таро: поиск картинок и форматирование подписей (без Markdown-инъекций)."""
+"""Отображение Таро: картинки, подписи, астрологический символизм."""
 import os
 from typing import Optional, Tuple, List
 
@@ -10,11 +10,45 @@ ORIENT_REV = "🔻 Перевёрнутое положение"
 
 
 def resolve_image(deck: TarotDeck, card: TarotCard) -> Optional[str]:
-    """Абсолютный путь к картинке карты или None, если файла нет."""
+    """Абсолютный путь к картинке карты или None."""
     if not card.image:
         return None
     path = os.path.join(deck.images_dir, card.image)
     return path if os.path.exists(path) else None
+
+
+def choice_positions_list() -> List[str]:
+    """7 позиций расклада «Вариант выбора» по порядку карт."""
+    return (
+        CHOICE_POSITIONS["option_a"]
+        + CHOICE_POSITIONS["option_b"]
+        + [CHOICE_POSITIONS["advice"]]
+    )
+
+
+def spread_cards_visual(
+    deck: TarotDeck,
+    drawn: List[Tuple[TarotCard, bool]],
+    positions: List[str],
+) -> List[dict]:
+    """
+    Визуал расклада: для каждой карты возвращает
+    {"path": путь к картинке или None, "caption": подпись, "name": имя карты}.
+    НЕ зависит от aiogram — Telegram-объекты собираются в main.py.
+    """
+    items = []
+    for i, (card, rev) in enumerate(drawn):
+        pos = positions[i] if i < len(positions) else f"Позиция {i + 1}"
+        orient = "перевёрнуто" if rev else "прямо"
+        lines = [f"【{pos}】", f"{card.name} — {orient}"]
+        if card.astrology:
+            lines.append(f"🪐 {card.astrology}")
+        items.append({
+            "path": resolve_image(deck, card),
+            "caption": "\n".join(lines)[:1024],
+            "name": card.name,
+        })
+    return items
 
 
 def format_card_of_day(card: TarotCard, is_reversed: bool, deck: TarotDeck) -> str:
@@ -43,7 +77,7 @@ def format_card_of_day(card: TarotCard, is_reversed: bool, deck: TarotDeck) -> s
 
 
 def format_card_detail(card: TarotCard) -> str:
-    """Подробная карточка (для просмотра в Колодах). Показывает оба положения."""
+    """Подробная карточка (для просмотра в Колодах)."""
     lines = [f"🎴 {card.name}"]
     if card.astrology:
         lines.append("🪐 " + card.astrology)
@@ -68,9 +102,11 @@ def format_three_cards(drawn: List[Tuple[TarotCard, bool]], deck: TarotDeck) -> 
     positions = ["ПРОШЛОЕ", "НАСТОЯЩЕЕ", "БУДУЩЕЕ"]
     lines = [f"🔮 Расклад «Три карты» — {deck.name}", ""]
     for i, (card, rev) in enumerate(drawn[:3]):
-        pos = positions[i] if i < len(positions) else f"Позиция {i+1}"
+        pos = positions[i] if i < len(positions) else f"Позиция {i + 1}"
         orient = "перевёрнуто" if rev else "прямо"
         lines.append(f"【{pos}】 {card.name} ({orient})")
+        if card.astrology:
+            lines.append(f"🪐 {card.astrology}")
         meaning = card.get_meaning(rev)
         if meaning:
             lines.append(meaning)
@@ -83,9 +119,11 @@ def format_celtic_cross(drawn: List[Tuple[TarotCard, bool]], deck: TarotDeck) ->
     lines = [f"✝️ Расклад «Кельтский крест» — {deck.name}", ""]
     for i, (card, rev) in enumerate(drawn[:10]):
         pos = CELTIC_CROSS_POSITIONS[i] if i < len(
-            CELTIC_CROSS_POSITIONS) else f"Позиция {i+1}"
+            CELTIC_CROSS_POSITIONS) else f"Позиция {i + 1}"
         orient = "перевёрнуто" if rev else "прямо"
-        lines.append(f"【{i+1}. {pos}】 {card.name} ({orient})")
+        lines.append(f"【{i + 1}. {pos}】 {card.name} ({orient})")
+        if card.astrology:
+            lines.append(f"🪐 {card.astrology}")
         meaning = card.get_meaning(rev)
         if meaning:
             lines.append(meaning)
@@ -103,18 +141,18 @@ def format_choice_spread(
     """Расклад «Вариант выбора» (7 карт: 3 + 3 + совет)."""
     lines = [
         f"⚖️ Расклад «Вариант выбора» — {deck.name}",
-        f"",
+        "",
         f"📝 Суть выбора: {essence}",
         "",
         f"🅰️ ВАРИАНТ 1: {option_a}",
     ]
 
-    # Карты варианта A (первые 3)
     for i, (card, rev) in enumerate(drawn[:3]):
-        pos = CHOICE_POSITIONS["option_a"][i] if i < len(
-            CHOICE_POSITIONS["option_a"]) else f"Позиция {i+1}"
+        pos = CHOICE_POSITIONS["option_a"][i]
         orient = "перевёрнуто" if rev else "прямо"
         lines.append(f"  【{pos}】 {card.name} ({orient})")
+        if card.astrology:
+            lines.append(f"  🪐 {card.astrology}")
         meaning = card.get_meaning(rev)
         if meaning:
             lines.append(f"  {meaning}")
@@ -122,22 +160,23 @@ def format_choice_spread(
 
     lines.append(f"🅱️ ВАРИАНТ 2: {option_b}")
 
-    # Карты варианта B (следующие 3)
     for i, (card, rev) in enumerate(drawn[3:6]):
-        pos = CHOICE_POSITIONS["option_b"][i] if i < len(
-            CHOICE_POSITIONS["option_b"]) else f"Позиция {i+4}"
+        pos = CHOICE_POSITIONS["option_b"][i]
         orient = "перевёрнуто" if rev else "прямо"
         lines.append(f"  【{pos}】 {card.name} ({orient})")
+        if card.astrology:
+            lines.append(f"  🪐 {card.astrology}")
         meaning = card.get_meaning(rev)
         if meaning:
             lines.append(f"  {meaning}")
         lines.append("")
 
-    # Карта совета (последняя)
     if len(drawn) >= 7:
         card, rev = drawn[6]
         orient = "перевёрнуто" if rev else "прямо"
         lines.append(f"💡 СОВЕТ: {card.name} ({orient})")
+        if card.astrology:
+            lines.append(f"🪐 {card.astrology}")
         meaning = card.get_meaning(rev)
         if meaning:
             lines.append(meaning)

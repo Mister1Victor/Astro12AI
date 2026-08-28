@@ -16,7 +16,6 @@ SUIT_NAMES = {
 
 # ================= ГЛАВНОЕ МЕНЮ =================
 def main_menu_keyboard():
-    """Главное меню: Таро, Астрология 12, Карта Дня."""
     kb = InlineKeyboardBuilder()
     kb.button(text="🎴 Таро", callback_data="menu_tarot")
     kb.button(text="🪐 Астрология 12", callback_data="menu_astro")
@@ -34,7 +33,6 @@ def back_to_main_keyboard():
 
 # ================= НАСТРОЙКА ПЕРЕВЁРНУТЫХ КАРТ =================
 def reversed_setting_keyboard():
-    """Выбор настройки перевёрнутых карт при первом входе в Таро."""
     kb = InlineKeyboardBuilder()
     kb.button(text="✅ Да, использовать перевёрнутые",
               callback_data="reversed:yes")
@@ -45,7 +43,6 @@ def reversed_setting_keyboard():
 
 # ================= МЕНЮ ТАРО =================
 def tarot_menu_keyboard():
-    """Таро: Колоды, Расклады, Вопрос."""
     kb = InlineKeyboardBuilder()
     kb.button(text="📚 Колоды", callback_data="tarot_decks")
     kb.button(text="📖 Расклады", callback_data="tarot_spreads")
@@ -55,20 +52,39 @@ def tarot_menu_keyboard():
     return kb.as_markup()
 
 
-# ================= КОЛОДЫ =================
-def decks_list_keyboard(decks: List[TarotDeck]):
-    """Список колод (для просмотра)."""
+# ================= ВЫБОР КОЛОДЫ ПЕРЕД РАСКЛАДОМ =================
+def deck_pick_keyboard(prefix: str, decks: List[TarotDeck], back_callback: str):
+    """
+    Выбор колоды перед раскладом.
+    prefix — начало callback_data, например 'spread_deck:three' или 'q_deck:choice'.
+    Итог: 'spread_deck:three:rider_waite'.
+    """
     kb = InlineKeyboardBuilder()
     for d in decks:
         kb.button(text=f"🎴 {d.name} · {d.cards_count}",
-                  callback_data=f"deck_view:{d.deck_id}")
+                  callback_data=f"{prefix}:{d.deck_id}")
+    kb.button(text="🔙 Назад", callback_data=back_callback)
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+# ================= КОЛОДЫ =================
+def decks_list_keyboard(decks: List[TarotDeck]):
+    """Список колод (для просмотра, включая пустые заготовки)."""
+    kb = InlineKeyboardBuilder()
+    for d in decks:
+        if d.cards_count > 0:
+            kb.button(text=f"🎴 {d.name} · {d.cards_count}",
+                      callback_data=f"deck_view:{d.deck_id}")
+        else:
+            kb.button(text=f"🛠️ {d.name} · в разработке",
+                      callback_data=f"deck_view:{d.deck_id}")
     kb.button(text="🔙 Назад", callback_data="menu_tarot")
     kb.adjust(1)
     return kb.as_markup()
 
 
 def deck_categories_keyboard(deck_id: str):
-    """Категории карт внутри колоды."""
     kb = InlineKeyboardBuilder()
     kb.button(text="✨ Старшие Арканы (22)",
               callback_data=f"deck_arcana:{deck_id}:major")
@@ -83,7 +99,6 @@ def deck_categories_keyboard(deck_id: str):
 
 
 def deck_cards_keyboard(deck_id: str, cards, title: str):
-    """Список карт одной масти/аркана."""
     kb = InlineKeyboardBuilder()
     for c in cards:
         kb.button(
@@ -103,7 +118,6 @@ def back_to_deck_keyboard(deck_id: str):
 
 # ================= КАРТА ДНЯ =================
 def cod_decks_keyboard(decks: List[TarotDeck]):
-    """Выбор колоды для Карты Дня."""
     kb = InlineKeyboardBuilder()
     for d in decks:
         kb.button(text=f"🎴 {d.name}", callback_data=f"cod_deck:{d.deck_id}")
@@ -113,7 +127,6 @@ def cod_decks_keyboard(decks: List[TarotDeck]):
 
 
 def card_of_day_keyboard(deck_id: str):
-    """Экран Карты Дня: кнопка перемешивания."""
     kb = InlineKeyboardBuilder()
     kb.button(text="🔀 Перемешать и вытянуть карту",
               callback_data=f"cod_shuffle:{deck_id}")
@@ -123,7 +136,6 @@ def card_of_day_keyboard(deck_id: str):
 
 
 def card_result_keyboard(deck_id: str):
-    """После вытягивания карты: перемешать ещё раз."""
     kb = InlineKeyboardBuilder()
     kb.button(text="🔀 Перемешать ещё раз",
               callback_data=f"cod_shuffle:{deck_id}")
@@ -146,7 +158,6 @@ def spreads_keyboard():
 
 # ================= ВОПРОС (ВЫБОР РАСКЛАДА) =================
 def tarot_question_menu_keyboard():
-    """Меню выбора расклада для вопроса."""
     kb = InlineKeyboardBuilder()
     kb.button(text="🔮 Трёхкарточный (Прошлое-Настоящее-Будущее)",
               callback_data="q_spread:three")
