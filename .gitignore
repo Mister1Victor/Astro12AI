@@ -36,5 +36,7 @@ images/
 local.properties
 
 output/
+images/
 !data/tarot/decks/*/images/
+
 
