@@ -158,9 +158,17 @@ def spreads_keyboard():
 
 # ================= ВОПРОС (ВЫБОР РАСКЛАДА) =================
 def tarot_question_menu_keyboard():
+    """Меню выбора расклада для вопроса."""
     kb = InlineKeyboardBuilder()
+    kb.button(text="🃏 Карта Дня", callback_data="q_spread:cod")
     kb.button(text="🔮 Трёхкарточный (Прошлое-Настоящее-Будущее)",
               callback_data="q_spread:three")
+    kb.button(text="➕➖ Плюс — Минус — Итог",
+              callback_data="q_spread:plusminus")
+    kb.button(text="💭 Мысли — Чувства — Действия",
+              callback_data="q_spread:mindheart")
+    kb.button(text="🌀 Динамический триплет (Достоинства стихий)",
+              callback_data="q_spread:triplet")
     kb.button(text="✝️ Кельтский крест (10 карт)",
               callback_data="q_spread:celtic")
     kb.button(text="⚖️ Вариант выбора (два пути + совет)",

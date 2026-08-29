@@ -815,7 +815,7 @@ async def tarot_question(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query(F.data.startswith("q_spread:"))
 async def question_spread(callback: types.CallbackQuery, state: FSMContext):
-    """Выбор расклада в разделе Вопрос → выбор колоды (если их несколько) → ввод вопроса."""
+    """Выбор расклада в разделе Вопрос → выбор колоды (если их несколько) → вопрос/карты."""
     logger.info(f"🔘 Callback: {callback.data}")
     spread_type = callback.data.split(":", 1)[1]
     decks = _drawable_decks()
@@ -828,6 +828,8 @@ async def question_spread(callback: types.CallbackQuery, state: FSMContext):
         deck = decks[0]
         if spread_type == "choice":
             await _start_choice_fsm(callback.message, deck, state)
+        elif spread_type == "cod":
+            await _run_cod_question(callback.message, deck, callback.from_user.id)
         else:
             await _start_question_fsm(callback.message, spread_type, deck, state)
     else:
@@ -840,7 +842,7 @@ async def question_spread(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query(F.data.startswith("q_deck:"))
 async def question_deck_pick(callback: types.CallbackQuery, state: FSMContext):
-    """Колода выбрана: запускаем ФСМ вопроса или ФСМ Варианта выбора."""
+    """Колода выбрана: запускаем расклад, ФСМ вопроса или ФСМ Варианта выбора."""
     logger.info(f"🔘 Callback: {callback.data}")
     _, spread_type, deck_id = callback.data.split(":", 2)
     deck = tarot.get_deck(deck_id)
@@ -851,6 +853,8 @@ async def question_deck_pick(callback: types.CallbackQuery, state: FSMContext):
 
     if spread_type == "choice":
         await _start_choice_fsm(callback.message, deck, state)
+    elif spread_type == "cod":
+        await _run_cod_question(callback.message, deck, callback.from_user.id)
     else:
         await _start_question_fsm(callback.message, spread_type, deck, state)
 
@@ -863,6 +867,9 @@ async def _start_question_fsm(msg: types.Message, spread_type: str, deck, state:
     spread_names = {
         "three": "Трёхкарточный расклад (Прошлое — Настоящее — Будущее)",
         "celtic": "Кельтский крест (10 позиций)",
+        "plusminus": "Плюс — Минус — Итог",
+        "mindheart": "Мысли — Чувства — Действия (для отношений)",
+        "triplet": "Динамический триплет (Достоинства стихий)",
     }
     name = spread_names.get(spread_type, "Расклад")
     text = (
@@ -874,6 +881,33 @@ async def _start_question_fsm(msg: types.Message, spread_type: str, deck, state:
     if not await safe_edit_text(msg, text, parse_mode="HTML",
                                 reply_markup=tarot_kb.back_to_main_keyboard()):
         await msg.answer(text, parse_mode="HTML", reply_markup=tarot_kb.back_to_main_keyboard())
+
+
+async def _run_cod_question(msg: types.Message, deck, user_id: int):
+    """«Карта Дня» в разделе Вопрос: тянем карту и отправляем в RAG на интерпретацию."""
+    card, is_rev = tarot.card_of_the_day(deck.deck_id, user_id)
+    if not card:
+        await msg.answer("⚠️ Не удалось вытянуть карту.")
+        return
+
+    # Визуал карты
+    caption = tarot_render.format_card_of_day(card, is_rev, deck)
+    img = tarot_render.resolve_image(deck, card)
+    if img:
+        await msg.answer_photo(FSInputFile(img), caption=caption[:1024])
+    else:
+        await msg.answer(caption)
+
+    # Интерпретация через RAG (LLM)
+    await bot.send_chat_action(chat_id=msg.chat.id, action=ChatAction.TYPING)
+    question = (
+        "Карта Дня: какая энергия сегодня главная, чего ожидать, "
+        "на что обратить внимание и каков совет дня."
+    )
+    interpretation = await get_tarot_ai_interpretation(question, [(card, is_rev)], deck.name)
+    if interpretation:
+        for chunk in split_text_for_telegram(interpretation, 3900):
+            await msg.answer(chunk)
 
 
 async def _start_choice_fsm(msg: types.Message, deck, state: FSMContext):
@@ -891,6 +925,8 @@ async def _start_choice_fsm(msg: types.Message, deck, state: FSMContext):
 
 async def _run_question_spread(msg: types.Message, spread_type: str, deck, user_id: int, question: str):
     """Расклад на вопрос: альбом карт + текстовая расшифровка + ИИ-интерпретация вопроса."""
+    question_for_llm = question
+
     if spread_type == "three":
         drawn = tarot.draw_three_cards(deck.deck_id, user_id)
         positions = ["Прошлое", "Настоящее", "Будущее"]
@@ -899,6 +935,24 @@ async def _run_question_spread(msg: types.Message, spread_type: str, deck, user_
         drawn = tarot.draw_celtic_cross(deck.deck_id, user_id)
         positions = CELTIC_CROSS_POSITIONS
         caption = tarot_render.format_celtic_cross(drawn, deck)
+    elif spread_type == "plusminus":
+        drawn = tarot.draw_three_cards(deck.deck_id, user_id)
+        positions = tarot_render.PLUS_MINUS_POSITIONS
+        caption = tarot_render.format_plus_minus(drawn, deck)
+    elif spread_type == "mindheart":
+        drawn = tarot.draw_three_cards(deck.deck_id, user_id)
+        positions = tarot_render.MIND_HEART_POSITIONS
+        caption = tarot_render.format_mind_heart(drawn, deck)
+    elif spread_type == "triplet":
+        drawn = tarot.draw_three_cards(deck.deck_id, user_id)
+        positions = tarot_render.TRIPLET_POSITIONS
+        caption = tarot_render.format_triplet(drawn, deck)
+        # Достоинства стихий (вычислены программно) — передаём и в LLM
+        dignities_text = "\n".join(tarot_render.triplet_dignities(drawn))
+        question_for_llm = (
+            f"{question}\n\n"
+            f"Анализ «Достоинства стихий» (вычислен, следуй ему строго):\n{dignities_text}"
+        )
     else:
         return
 
@@ -911,11 +965,11 @@ async def _run_question_spread(msg: types.Message, spread_type: str, deck, user_
         await msg.answer(chunk)
 
     await bot.send_chat_action(chat_id=msg.chat.id, action=ChatAction.TYPING)
-    # Вопрос клиента отправляется ВМЕСТЕ с картами в ИИ
-    interpretation = await get_tarot_ai_interpretation(question, drawn, deck.name)
+    interpretation = await get_tarot_ai_interpretation(question_for_llm, drawn, deck.name)
     if interpretation:
         for chunk in split_text_for_telegram(interpretation, 3900):
             await msg.answer(chunk)
+
 
 # ============================================================
 # ВАРИАНТ ВЫБОРА: FSM

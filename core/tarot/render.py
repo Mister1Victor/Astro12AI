@@ -1,12 +1,34 @@
-"""Отображение Таро: картинки, подписи, астрологический символизм."""
+"""Отображение Таро: картинки, подписи, астрологический символизм, достоинства стихий."""
 import os
 from typing import Optional, Tuple, List
 
 from core.tarot.models import TarotDeck, TarotCard
 from core.tarot.service import CELTIC_CROSS_POSITIONS, CHOICE_POSITIONS
+from core.tarot import dignities as tarot_dignities
 
 ORIENT_UP = "✅ Прямое положение"
 ORIENT_REV = "🔻 Перевёрнутое положение"
+
+# Позиции расклада «Плюс — Минус — Итог»
+PLUS_MINUS_POSITIONS = [
+    "ПЛЮС — Благоприятные факторы, плюсы решения",
+    "МИНУС — Скрытые угрозы, риски",
+    "ИТОГ — Общий результат при выборе этого пути",
+]
+
+# Позиции расклада «Мысли — Чувства — Действия»
+MIND_HEART_POSITIONS = [
+    "МЫСЛИ — Что человек думает о вас / ситуации",
+    "ЧУВСТВА — Что он чувствует на самом деле",
+    "ДЕЙСТВИЯ — Как он проявит себя в действиях",
+]
+
+# Позиции «Динамического триплета» (вектор чтения)
+TRIPLET_POSITIONS = [
+    "Карта 1 — ЯДРО (суть)",
+    "Карта 2 — МОДИФИКАТОР (катализатор)",
+    "Карта 3 — ВЕКТОР (итог)",
+]
 
 
 def resolve_image(deck: TarotDeck, card: TarotCard) -> Optional[str]:
@@ -26,16 +48,13 @@ def choice_positions_list() -> List[str]:
     )
 
 
-def spread_cards_visual(
-    deck: TarotDeck,
-    drawn: List[Tuple[TarotCard, bool]],
-    positions: List[str],
-) -> List[dict]:
-    """
-    Визуал расклада: для каждой карты возвращает
-    {"path": путь к картинке или None, "caption": подпись, "name": имя карты}.
-    НЕ зависит от aiogram — Telegram-объекты собираются в main.py.
-    """
+def triplet_dignities(drawn) -> List[str]:
+    """Строки Достоинств стихий для триплета (для подписи и для LLM)."""
+    return tarot_dignities.triplet_dignities(drawn)
+
+
+def spread_cards_visual(deck: TarotDeck, drawn, positions: List[str]) -> List[dict]:
+    """Визуал расклада: для каждой карты {"path", "caption", "name"}."""
     items = []
     for i, (card, rev) in enumerate(drawn):
         pos = positions[i] if i < len(positions) else f"Позиция {i + 1}"
@@ -97,7 +116,7 @@ def format_card_detail(card: TarotCard) -> str:
     return "\n".join(lines)
 
 
-def format_three_cards(drawn: List[Tuple[TarotCard, bool]], deck: TarotDeck) -> str:
+def format_three_cards(drawn, deck: TarotDeck) -> str:
     """Расклад «Три карты»."""
     positions = ["ПРОШЛОЕ", "НАСТОЯЩЕЕ", "БУДУЩЕЕ"]
     lines = [f"🔮 Расклад «Три карты» — {deck.name}", ""]
@@ -114,7 +133,62 @@ def format_three_cards(drawn: List[Tuple[TarotCard, bool]], deck: TarotDeck) -> 
     return "\n".join(lines)
 
 
-def format_celtic_cross(drawn: List[Tuple[TarotCard, bool]], deck: TarotDeck) -> str:
+def format_plus_minus(drawn, deck: TarotDeck) -> str:
+    """Расклад «Плюс — Минус — Итог»."""
+    icons = ["➕", "➖", "🎯"]
+    lines = [f"➕➖ Расклад «Плюс — Минус — Итог» — {deck.name}", ""]
+    for i, (card, rev) in enumerate(drawn[:3]):
+        orient = "перевёрнуто" if rev else "прямо"
+        lines.append(
+            f"{icons[i]}【{PLUS_MINUS_POSITIONS[i]}】 {card.name} ({orient})")
+        if card.astrology:
+            lines.append(f"🪐 {card.astrology}")
+        meaning = card.get_meaning(rev)
+        if meaning:
+            lines.append(meaning)
+        lines.append("")
+    return "\n".join(lines)
+
+
+def format_mind_heart(drawn, deck: TarotDeck) -> str:
+    """Расклад «Мысли — Чувства — Действия» (для отношений)."""
+    icons = ["💭", "❤️", "🎬"]
+    lines = [f"💭 Расклад «Мысли — Чувства — Действия» — {deck.name}", ""]
+    for i, (card, rev) in enumerate(drawn[:3]):
+        orient = "перевёрнуто" if rev else "прямо"
+        lines.append(
+            f"{icons[i]}【{MIND_HEART_POSITIONS[i]}】 {card.name} ({orient})")
+        if card.astrology:
+            lines.append(f"🪐 {card.astrology}")
+        meaning = card.get_meaning(rev)
+        if meaning:
+            lines.append(meaning)
+        lines.append("")
+    return "\n".join(lines)
+
+
+def format_triplet(drawn, deck: TarotDeck) -> str:
+    """Динамический триплет: карты + анализ Достоинств стихий."""
+    lines = [f"🌀 Расклад «Динамический триплет» — {deck.name}", ""]
+    for i, (card, rev) in enumerate(drawn[:3]):
+        orient = "перевёрнуто" if rev else "прямо"
+        lines.append(f"【{TRIPLET_POSITIONS[i]}】 {card.name} ({orient})")
+        lines.append(f"Стихия: {tarot_dignities.element_label(card)}")
+        if card.astrology:
+            lines.append(f"🪐 {card.astrology}")
+        meaning = card.get_meaning(rev)
+        if meaning:
+            lines.append(meaning)
+        lines.append("")
+    lines.append("⚖️ ДОСТОИНСТВА СТИХИЙ:")
+    lines.extend(tarot_dignities.triplet_dignities(drawn))
+    lines.append("")
+    lines.append("Карты читаются как одно связное предложение: "
+                 "карта 2 влияет на карту 1, карта 3 — на карту 2 и направляет всю связку к финалу.")
+    return "\n".join(lines)
+
+
+def format_celtic_cross(drawn, deck: TarotDeck) -> str:
     """Расклад «Кельтский крест» (10 карт)."""
     lines = [f"✝️ Расклад «Кельтский крест» — {deck.name}", ""]
     for i, (card, rev) in enumerate(drawn[:10]):
@@ -131,13 +205,7 @@ def format_celtic_cross(drawn: List[Tuple[TarotCard, bool]], deck: TarotDeck) ->
     return "\n".join(lines)
 
 
-def format_choice_spread(
-    drawn: List[Tuple[TarotCard, bool]],
-    deck: TarotDeck,
-    essence: str,
-    option_a: str,
-    option_b: str,
-) -> str:
+def format_choice_spread(drawn, deck: TarotDeck, essence: str, option_a: str, option_b: str) -> str:
     """Расклад «Вариант выбора» (7 карт: 3 + 3 + совет)."""
     lines = [
         f"⚖️ Расклад «Вариант выбора» — {deck.name}",
