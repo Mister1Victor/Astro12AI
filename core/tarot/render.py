@@ -167,6 +167,27 @@ def format_mind_heart(drawn, deck: TarotDeck) -> str:
     return "\n".join(lines)
 
 
+def format_yes_no(card: TarotCard, is_reversed: bool, deck: TarotDeck, question: str) -> str:
+    """Расклад «Да или Нет»: одна карта-ответ."""
+    orient = ORIENT_REV if is_reversed else ORIENT_UP
+    lines = [
+        f"🎯 Расклад «Да или Нет» — {deck.name}",
+        "",
+        f"❓ Вопрос: {question}",
+        "",
+        f"【КАРТА ОТВЕТА】 {card.name}",
+        f"Положение: {orient}",
+        f"Стихия: {tarot_dignities.element_label(card)}",
+    ]
+    if card.astrology:
+        lines.append(f"🪐 {card.astrology}")
+    meaning = card.get_meaning(is_reversed)
+    if meaning:
+        lines.append("")
+        lines.append("📖 " + meaning)
+    return "\n".join(lines)
+
+
 def format_triplet(drawn, deck: TarotDeck) -> str:
     """Динамический триплет: карты + анализ Достоинств стихий."""
     lines = [f"🌀 Расклад «Динамический триплет» — {deck.name}", ""]

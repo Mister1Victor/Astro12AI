@@ -161,6 +161,7 @@ def tarot_question_menu_keyboard():
     """Меню выбора расклада для вопроса."""
     kb = InlineKeyboardBuilder()
     kb.button(text="🃏 Карта Дня", callback_data="q_spread:cod")
+    kb.button(text="🎯 Да или Нет", callback_data="q_spread:yesno")
     kb.button(text="🔮 Трёхкарточный (Прошлое-Настоящее-Будущее)",
               callback_data="q_spread:three")
     kb.button(text="➕➖ Плюс — Минус — Итог",
@@ -174,5 +175,19 @@ def tarot_question_menu_keyboard():
     kb.button(text="⚖️ Вариант выбора (два пути + совет)",
               callback_data="q_spread:choice")
     kb.button(text="🔙 Назад", callback_data="menu_tarot")
+    kb.adjust(1)
+    return kb.as_markup()
+
+# ================= ФИНАЛЬНАЯ НАВИГАЦИЯ ПОСЛЕ РАСКЛАДА =================
+
+
+def spread_done_keyboard(back_callback: str):
+    """
+    Клавиатура в конце каждого расклада и ответа ИИ.
+    back_callback: 'tarot_question' (раздел Вопрос) или 'tarot_spreads' (раздел Расклады).
+    """
+    kb = InlineKeyboardBuilder()
+    kb.button(text="🔙 Назад", callback_data=back_callback)
+    kb.button(text="🏠 Главное меню", callback_data="back_to_main")
     kb.adjust(1)
     return kb.as_markup()

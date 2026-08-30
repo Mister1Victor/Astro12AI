@@ -369,6 +369,20 @@ async def send_spread_cards_visual(msg: types.Message, deck, drawn, positions) -
     return sent
 
 
+async def send_chunks(msg: types.Message, text: str):
+    """Отправка текста по фрагментам БЕЗ клавиатуры."""
+    for chunk in split_text_for_telegram(text, 3900):
+        await msg.answer(chunk)
+
+
+async def send_chunks_with_nav(msg: types.Message, text: str, back_callback: str):
+    """Отправка текста по фрагментам; к ПОСЛЕДНЕМУ фрагменту крепит клавиатуру Назад/Главное меню."""
+    chunks = split_text_for_telegram(text, 3900)
+    kb = tarot_kb.spread_done_keyboard(back_callback)
+    for i, chunk in enumerate(chunks):
+        await msg.answer(chunk, reply_markup=(kb if i == len(chunks) - 1 else None))
+
+
 async def safe_answer(message: types.Message, text: str, **kwargs):
     try:
         await message.answer(text, parse_mode="Markdown", **kwargs)
@@ -771,15 +785,16 @@ async def spread_deck(callback: types.CallbackQuery):
 
 
 async def _run_simple_spread(msg: types.Message, stype: str, deck, user_id: int):
-    """Выполнение простых раскладов (одна / три карты) с визуалом."""
+    """Выполнение простых раскладов (одна / три карты) с финальной навигацией."""
     if stype == "one":
         card, is_rev = tarot.card_of_the_day(deck.deck_id, user_id)
         if not card:
-            await msg.answer("⚠️ Не удалось вытянуть карту.")
+            await msg.answer("⚠️ Не удалось вытянуть карту.",
+                             reply_markup=tarot_kb.spread_done_keyboard("tarot_spreads"))
             return
         caption = tarot_render.format_card_of_day(card, is_rev, deck)
         img = tarot_render.resolve_image(deck, card)
-        kb = tarot_kb.back_to_main_keyboard()
+        kb = tarot_kb.spread_done_keyboard("tarot_spreads")
         if img:
             await msg.answer_photo(FSInputFile(img), caption=caption[:1024], reply_markup=kb)
         else:
@@ -788,19 +803,18 @@ async def _run_simple_spread(msg: types.Message, stype: str, deck, user_id: int)
     elif stype == "three":
         drawn = tarot.draw_three_cards(deck.deck_id, user_id)
         if not drawn:
-            await msg.answer("⚠️ Не удалось вытянуть карты.")
+            await msg.answer("⚠️ Не удалось вытянуть карты.",
+                             reply_markup=tarot_kb.spread_done_keyboard("tarot_spreads"))
             return
-        positions = ["Прошлое", "Настоящее", "Будущее"]
-        await send_spread_cards_visual(msg, deck, drawn, positions)
+        await send_spread_cards_visual(msg, deck, drawn, ["Прошлое", "Настоящее", "Будущее"])
         caption = tarot_render.format_three_cards(drawn, deck)
-        kb = tarot_kb.back_to_main_keyboard()
-        for chunk in split_text_for_telegram(caption, 3900):
-            await msg.answer(chunk, reply_markup=kb)
-
+        await send_chunks_with_nav(msg, caption, "tarot_spreads")
 
 # ============================================================
 # ТАРО: ВОПРОС — С ВЫБОРОМ КОЛОДЫ
 # ============================================================
+
+
 @dp.callback_query(F.data == "tarot_question")
 async def tarot_question(callback: types.CallbackQuery, state: FSMContext):
     logger.info("🔘 Callback: tarot_question")
@@ -870,6 +884,7 @@ async def _start_question_fsm(msg: types.Message, spread_type: str, deck, state:
         "plusminus": "Плюс — Минус — Итог",
         "mindheart": "Мысли — Чувства — Действия (для отношений)",
         "triplet": "Динамический триплет (Достоинства стихий)",
+        "yesno": "Да или Нет (одна карта-ответ)",
     }
     name = spread_names.get(spread_type, "Расклад")
     text = (
@@ -887,10 +902,10 @@ async def _run_cod_question(msg: types.Message, deck, user_id: int):
     """«Карта Дня» в разделе Вопрос: тянем карту и отправляем в RAG на интерпретацию."""
     card, is_rev = tarot.card_of_the_day(deck.deck_id, user_id)
     if not card:
-        await msg.answer("⚠️ Не удалось вытянуть карту.")
+        await msg.answer("⚠️ Не удалось вытянуть карту.",
+                         reply_markup=tarot_kb.spread_done_keyboard("tarot_question"))
         return
 
-    # Визуал карты
     caption = tarot_render.format_card_of_day(card, is_rev, deck)
     img = tarot_render.resolve_image(deck, card)
     if img:
@@ -898,7 +913,6 @@ async def _run_cod_question(msg: types.Message, deck, user_id: int):
     else:
         await msg.answer(caption)
 
-    # Интерпретация через RAG (LLM)
     await bot.send_chat_action(chat_id=msg.chat.id, action=ChatAction.TYPING)
     question = (
         "Карта Дня: какая энергия сегодня главная, чего ожидать, "
@@ -906,8 +920,10 @@ async def _run_cod_question(msg: types.Message, deck, user_id: int):
     )
     interpretation = await get_tarot_ai_interpretation(question, [(card, is_rev)], deck.name)
     if interpretation:
-        for chunk in split_text_for_telegram(interpretation, 3900):
-            await msg.answer(chunk)
+        await send_chunks_with_nav(msg, interpretation, "tarot_question")
+    else:
+        await msg.answer("⚠️ Не удалось получить толкование.",
+                         reply_markup=tarot_kb.spread_done_keyboard("tarot_question"))
 
 
 async def _start_choice_fsm(msg: types.Message, deck, state: FSMContext):
@@ -924,7 +940,7 @@ async def _start_choice_fsm(msg: types.Message, deck, state: FSMContext):
 
 
 async def _run_question_spread(msg: types.Message, spread_type: str, deck, user_id: int, question: str):
-    """Расклад на вопрос: альбом карт + текстовая расшифровка + ИИ-интерпретация вопроса."""
+    """Расклад на вопрос: альбом карт + расшифровка + ИИ-ответ + финальная навигация."""
     question_for_llm = question
 
     if spread_type == "three":
@@ -947,29 +963,41 @@ async def _run_question_spread(msg: types.Message, spread_type: str, deck, user_
         drawn = tarot.draw_three_cards(deck.deck_id, user_id)
         positions = tarot_render.TRIPLET_POSITIONS
         caption = tarot_render.format_triplet(drawn, deck)
-        # Достоинства стихий (вычислены программно) — передаём и в LLM
         dignities_text = "\n".join(tarot_render.triplet_dignities(drawn))
         question_for_llm = (
             f"{question}\n\n"
             f"Анализ «Достоинства стихий» (вычислен, следуй ему строго):\n{dignities_text}"
         )
+    elif spread_type == "yesno":
+        # Перетасовка и ОДНА случайная карта
+        card, is_rev = tarot.card_of_the_day(deck.deck_id, user_id)
+        if not card:
+            await msg.answer("⚠️ Не удалось вытянуть карту.",
+                             reply_markup=tarot_kb.spread_done_keyboard("tarot_question"))
+            return
+        drawn = [(card, is_rev)]
+        positions = ["КАРТА ОТВЕТА"]
+        caption = tarot_render.format_yes_no(card, is_rev, deck, question)
+        question_for_llm = f"Вопрос клиента, на который нужно ответить ДА или НЕТ: {question}"
     else:
         return
 
     if not drawn:
-        await msg.answer("⚠️ Не удалось вытянуть карты.")
+        await msg.answer("⚠️ Не удалось вытянуть карты.",
+                         reply_markup=tarot_kb.spread_done_keyboard("tarot_question"))
         return
 
     await send_spread_cards_visual(msg, deck, drawn, positions)
-    for chunk in split_text_for_telegram(caption, 3900):
-        await msg.answer(chunk)
+    await send_chunks(msg, caption)
 
     await bot.send_chat_action(chat_id=msg.chat.id, action=ChatAction.TYPING)
     interpretation = await get_tarot_ai_interpretation(question_for_llm, drawn, deck.name)
     if interpretation:
-        for chunk in split_text_for_telegram(interpretation, 3900):
-            await msg.answer(chunk)
-
+        # Навигация крепится к последнему фрагменту ответа ИИ
+        await send_chunks_with_nav(msg, interpretation, "tarot_question")
+    else:
+        await msg.answer("⚠️ Не удалось получить толкование.",
+                         reply_markup=tarot_kb.spread_done_keyboard("tarot_question"))
 
 # ============================================================
 # ВАРИАНТ ВЫБОРА: FSM
@@ -1003,7 +1031,8 @@ async def choice_option_b(message: types.Message, state: FSMContext):
 
     deck = tarot.get_deck(deck_id) if deck_id else tarot.get_deck()
     if not deck or not deck.cards:
-        await message.answer("⚠️ Колода недоступна.")
+        await message.answer("⚠️ Колода недоступна.",
+                             reply_markup=tarot_kb.spread_done_keyboard("tarot_question"))
         return
 
     await message.answer(f"🔮 Тяну 7 карт из колоды «{deck.name}»...")
@@ -1012,28 +1041,24 @@ async def choice_option_b(message: types.Message, state: FSMContext):
     drawn = tarot.draw_choice_spread(deck.deck_id, user_id)
     if len(drawn) != 7:
         logger.error(f"❌ Вариант выбора: {len(drawn)} карт вместо 7")
-        await message.answer(f"⚠️ Ошибка: {len(drawn)} карт вместо 7. Попробуйте ещё раз.")
+        await message.answer(f"⚠️ Ошибка: {len(drawn)} карт вместо 7. Попробуйте ещё раз.",
+                             reply_markup=tarot_kb.spread_done_keyboard("tarot_question"))
         return
 
-    # 1. Альбом картинок
     positions = tarot_render.choice_positions_list()
     await send_spread_cards_visual(message, deck, drawn, positions)
+    await send_chunks(message, tarot_render.format_choice_spread(drawn, deck, essence, option_a, option_b))
 
-    # 2. Текстовая расшифровка
-    caption = tarot_render.format_choice_spread(
-        drawn, deck, essence, option_a, option_b)
-    for chunk in split_text_for_telegram(caption, 3900):
-        await message.answer(chunk)
-
-    # 3. ИИ-интерпретация
     interpretation = await get_tarot_ai_interpretation(
         f"Вариант выбора: {essence}. Вариант 1: {option_a}. Вариант 2: {option_b}.",
         drawn,
         deck.name
     )
     if interpretation:
-        for chunk in split_text_for_telegram(interpretation, 3900):
-            await message.answer(chunk)
+        await send_chunks_with_nav(message, interpretation, "tarot_question")
+    else:
+        await message.answer("⚠️ Не удалось получить толкование.",
+                             reply_markup=tarot_kb.spread_done_keyboard("tarot_question"))
 
 # ============================================================
 # ВОПРОС ТАРО: текст вопроса → расклад → ИИ-интерпретация
