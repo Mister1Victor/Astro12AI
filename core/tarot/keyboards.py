@@ -191,3 +191,15 @@ def spread_done_keyboard(back_callback: str):
     kb.button(text="🏠 Главное меню", callback_data="back_to_main")
     kb.adjust(1)
     return kb.as_markup()
+
+# ================= КОЛОДЫ-ОРАКУЛЫ (категории по знакам) =================
+
+
+def oracle_categories_keyboard(deck_id: str, groups):
+    """Категории оракульной колоды (знаки зодиака + затмения)."""
+    kb = InlineKeyboardBuilder()
+    for g in groups:
+        kb.button(text=f"✨ {g}", callback_data=f"deck_arcana:{deck_id}:{g}")
+    kb.button(text="🔙 К колодам", callback_data="tarot_decks")
+    kb.adjust(2)
+    return kb.as_markup()

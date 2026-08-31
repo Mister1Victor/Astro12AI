@@ -1,4 +1,4 @@
-"""Отображение Таро: картинки, подписи, астрологический символизм, достоинства стихий."""
+"""Отображение Таро и Оракулов: картинки, подписи, символизм, позиции."""
 import os
 from typing import Optional, Tuple, List
 
@@ -23,7 +23,7 @@ MIND_HEART_POSITIONS = [
     "ДЕЙСТВИЯ — Как он проявит себя в действиях",
 ]
 
-# Позиции «Динамического триплета» (вектор чтения)
+# Позиции «Динамического триплета»
 TRIPLET_POSITIONS = [
     "Карта 1 — ЯДРО (суть)",
     "Карта 2 — МОДИФИКАТОР (катализатор)",
@@ -53,6 +53,43 @@ def triplet_dignities(drawn) -> List[str]:
     return tarot_dignities.triplet_dignities(drawn)
 
 
+# ============================================================
+# ПОЗИЦИОННАЯ ЛОГИКА для Оракула (Значение / Совет / Предупреждение)
+# ============================================================
+def card_context_for_position(card: TarotCard, is_reversed: bool, kind: str = "neutral") -> str:
+    """
+    Текст карты для LLM с учётом позиции в раскладе.
+
+    Для оракульных карт (есть Совет/Предупреждение):
+      'positive' (плюс, достоинство)  -> Значение + Совет (карта советует)
+      'negative' (минус, недостаток)  -> Значение + Предупреждение (карта предупреждает)
+      'day'      (Карта Дня)          -> Значение + Совет + Предупреждение (оба варианта)
+      'neutral'  (прочие позиции)     -> Значение + Совет + Предупреждение (полный контекст)
+
+    Для обычных карт Таро — значение по ориентации, как раньше.
+    """
+    base = card.get_meaning(is_reversed)
+    if not card.is_oracle:
+        return base
+
+    parts = [f"Значение: {base}"] if base else []
+    if kind == "positive":
+        if card.advice:
+            parts.append(f"Совет: {card.advice}")
+    elif kind == "negative":
+        if card.warning:
+            parts.append(f"Предупреждение: {card.warning}")
+    else:  # 'day' и 'neutral' — оба варианта
+        if card.advice:
+            parts.append(f"Совет: {card.advice}")
+        if card.warning:
+            parts.append(f"Предупреждение: {card.warning}")
+    return "\n".join(parts)
+
+
+# ============================================================
+# ВИЗУАЛ РАСКЛАДОВ
+# ============================================================
 def spread_cards_visual(deck: TarotDeck, drawn, positions: List[str]) -> List[dict]:
     """Визуал расклада: для каждой карты {"path", "caption", "name"}."""
     items = []
@@ -70,6 +107,9 @@ def spread_cards_visual(deck: TarotDeck, drawn, positions: List[str]) -> List[di
     return items
 
 
+# ============================================================
+# ФОРМАТЫ ПОДПИСЕЙ
+# ============================================================
 def format_card_of_day(card: TarotCard, is_reversed: bool, deck: TarotDeck) -> str:
     """Подпись для Карты Дня."""
     orient = ORIENT_REV if is_reversed else ORIENT_UP
@@ -84,11 +124,27 @@ def format_card_of_day(card: TarotCard, is_reversed: bool, deck: TarotDeck) -> s
         lines.append("🔑 Ключевые слова: " + ", ".join(card.keywords))
     if card.astrology:
         lines.append("🪐 Астрология: " + card.astrology)
-    meaning = card.get_meaning(is_reversed)
-    if meaning:
-        lines.append("")
-        lines.append("📖 ТОЛКОВАНИЕ:")
-        lines.append(meaning)
+
+    if card.is_oracle:
+        # Оракул: Карта Дня рассматривается в ОБОИХ вариантах — совет и предупреждение
+        if card.upright:
+            lines.append("")
+            lines.append("📖 ЗНАЧЕНИЕ:")
+            lines.append(card.upright)
+        if card.advice:
+            lines.append("")
+            lines.append("💡 СОВЕТ:")
+            lines.append(card.advice)
+        if card.warning:
+            lines.append("")
+            lines.append("⚠️ ПРЕДУПРЕЖДЕНИЕ:")
+            lines.append(card.warning)
+    else:
+        meaning = card.get_meaning(is_reversed)
+        if meaning:
+            lines.append("")
+            lines.append("📖 ТОЛКОВАНИЕ:")
+            lines.append(meaning)
     if card.description:
         lines.append("")
         lines.append("🖼️ " + card.description)
@@ -96,20 +152,36 @@ def format_card_of_day(card: TarotCard, is_reversed: bool, deck: TarotDeck) -> s
 
 
 def format_card_detail(card: TarotCard) -> str:
-    """Подробная карточка (для просмотра в Колодах)."""
+    """Подробная карточка (просмотр в Колодах): весь текст под изображением."""
     lines = [f"🎴 {card.name}"]
     if card.astrology:
         lines.append("🪐 " + card.astrology)
     if card.keywords:
         lines.append("🔑 " + ", ".join(card.keywords))
-    if card.upright:
-        lines.append("")
-        lines.append("✅ ПРЯМОЕ:")
-        lines.append(card.upright)
-    if card.reversed:
-        lines.append("")
-        lines.append("🔻 ПЕРЕВЁРНУТОЕ:")
-        lines.append(card.reversed)
+
+    if card.is_oracle:
+        # Оракул: Значение + Совет + Предупреждение
+        if card.upright:
+            lines.append("")
+            lines.append("📖 ЗНАЧЕНИЕ:")
+            lines.append(card.upright)
+        if card.advice:
+            lines.append("")
+            lines.append("💡 СОВЕТ:")
+            lines.append(card.advice)
+        if card.warning:
+            lines.append("")
+            lines.append("⚠️ ПРЕДУПРЕЖДЕНИЕ:")
+            lines.append(card.warning)
+    else:
+        if card.upright:
+            lines.append("")
+            lines.append("✅ ПРЯМОЕ:")
+            lines.append(card.upright)
+        if card.reversed:
+            lines.append("")
+            lines.append("🔻 ПЕРЕВЁРНУТОЕ:")
+            lines.append(card.reversed)
     if card.description:
         lines.append("")
         lines.append("🖼️ " + card.description)
@@ -117,7 +189,6 @@ def format_card_detail(card: TarotCard) -> str:
 
 
 def format_three_cards(drawn, deck: TarotDeck) -> str:
-    """Расклад «Три карты»."""
     positions = ["ПРОШЛОЕ", "НАСТОЯЩЕЕ", "БУДУЩЕЕ"]
     lines = [f"🔮 Расклад «Три карты» — {deck.name}", ""]
     for i, (card, rev) in enumerate(drawn[:3]):
@@ -134,7 +205,6 @@ def format_three_cards(drawn, deck: TarotDeck) -> str:
 
 
 def format_plus_minus(drawn, deck: TarotDeck) -> str:
-    """Расклад «Плюс — Минус — Итог»."""
     icons = ["➕", "➖", "🎯"]
     lines = [f"➕➖ Расклад «Плюс — Минус — Итог» — {deck.name}", ""]
     for i, (card, rev) in enumerate(drawn[:3]):
@@ -151,7 +221,6 @@ def format_plus_minus(drawn, deck: TarotDeck) -> str:
 
 
 def format_mind_heart(drawn, deck: TarotDeck) -> str:
-    """Расклад «Мысли — Чувства — Действия» (для отношений)."""
     icons = ["💭", "❤️", "🎬"]
     lines = [f"💭 Расклад «Мысли — Чувства — Действия» — {deck.name}", ""]
     for i, (card, rev) in enumerate(drawn[:3]):
@@ -167,34 +236,13 @@ def format_mind_heart(drawn, deck: TarotDeck) -> str:
     return "\n".join(lines)
 
 
-def format_yes_no(card: TarotCard, is_reversed: bool, deck: TarotDeck, question: str) -> str:
-    """Расклад «Да или Нет»: одна карта-ответ."""
-    orient = ORIENT_REV if is_reversed else ORIENT_UP
-    lines = [
-        f"🎯 Расклад «Да или Нет» — {deck.name}",
-        "",
-        f"❓ Вопрос: {question}",
-        "",
-        f"【КАРТА ОТВЕТА】 {card.name}",
-        f"Положение: {orient}",
-        f"Стихия: {tarot_dignities.element_label(card)}",
-    ]
-    if card.astrology:
-        lines.append(f"🪐 {card.astrology}")
-    meaning = card.get_meaning(is_reversed)
-    if meaning:
-        lines.append("")
-        lines.append("📖 " + meaning)
-    return "\n".join(lines)
-
-
 def format_triplet(drawn, deck: TarotDeck) -> str:
-    """Динамический триплет: карты + анализ Достоинств стихий."""
     lines = [f"🌀 Расклад «Динамический триплет» — {deck.name}", ""]
     for i, (card, rev) in enumerate(drawn[:3]):
         orient = "перевёрнуто" if rev else "прямо"
         lines.append(f"【{TRIPLET_POSITIONS[i]}】 {card.name} ({orient})")
-        lines.append(f"Стихия: {tarot_dignities.element_label(card)}")
+        if card.arcana != "oracle":
+            lines.append(f"Стихия: {tarot_dignities.element_label(card)}")
         if card.astrology:
             lines.append(f"🪐 {card.astrology}")
         meaning = card.get_meaning(rev)
@@ -210,7 +258,6 @@ def format_triplet(drawn, deck: TarotDeck) -> str:
 
 
 def format_celtic_cross(drawn, deck: TarotDeck) -> str:
-    """Расклад «Кельтский крест» (10 карт)."""
     lines = [f"✝️ Расклад «Кельтский крест» — {deck.name}", ""]
     for i, (card, rev) in enumerate(drawn[:10]):
         pos = CELTIC_CROSS_POSITIONS[i] if i < len(
@@ -227,7 +274,6 @@ def format_celtic_cross(drawn, deck: TarotDeck) -> str:
 
 
 def format_choice_spread(drawn, deck: TarotDeck, essence: str, option_a: str, option_b: str) -> str:
-    """Расклад «Вариант выбора» (7 карт: 3 + 3 + совет)."""
     lines = [
         f"⚖️ Расклад «Вариант выбора» — {deck.name}",
         "",

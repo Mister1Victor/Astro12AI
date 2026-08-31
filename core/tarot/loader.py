@@ -31,6 +31,9 @@ def _parse_card(card_data: dict) -> Optional[TarotCard]:
         reversed=str(card_data.get("reversed", "")).strip(),
         description=str(card_data.get("description", "")).strip(),
         astrology=str(card_data.get("astrology", "")).strip(),
+        advice=str(card_data.get("advice", "")).strip(),
+        warning=str(card_data.get("warning", "")).strip(),
+        group=str(card_data.get("group", "")).strip(),
     )
 
 
@@ -53,6 +56,7 @@ def load_deck(deck_path: Path) -> Optional[TarotDeck]:
         name=str(data.get("name", deck_id)),
         author=str(data.get("author", "")),
         description=str(data.get("description", "")),
+        deck_type=str(data.get("deck_type", "tarot")),
         images_dir=str(deck_path / "images"),
     )
 
@@ -65,12 +69,11 @@ def load_deck(deck_path: Path) -> Optional[TarotDeck]:
         logger.info(f"🛠️ Колода «{deck.name}» пуста (в разработке)")
     else:
         logger.info(
-            f"🎴 Колода «{deck.name}» загружена: {deck.cards_count} карт")
+            f"🎴 Колода «{deck.name}» ({deck.deck_type}) загружена: {deck.cards_count} карт")
     return deck
 
 
 def load_all_decks() -> Dict[str, TarotDeck]:
-    """Загружает ВСЕ колоды из data/tarot/decks/ (включая пустые заготовки)."""
     decks: Dict[str, TarotDeck] = {}
 
     if not DECKS_ROOT.exists():

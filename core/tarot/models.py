@@ -1,49 +1,52 @@
-"""Модели данных Таро: карта и колода."""
+"""Модели данных Таро и Оракулов: карта и колода."""
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict
 
 
 @dataclass
 class TarotCard:
-    """Одна карта Таро."""
-    card_id: str                                 # уникальный id: "major_00", "wands_2"
-    name: str                                    # родовое имя: "Двойка Жезлов"
-    arcana: str = "major"                        # "major" | "minor"
-    suit: Optional[str] = None                   # wands/cups/swords/pentacles
+    """Одна карта Таро (или Оракула)."""
+    card_id: str                                 # уникальный id: "major_00", "oracle_001"
+    name: str
+    arcana: str = "major"                        # "major" | "minor" | "oracle"
+    suit: Optional[str] = None
     number: Optional[int] = None
-    image: Optional[str] = None                  # имя файла в images/
-    # колодочное название: «Владея миром», «Владычество»
-    title: str = ""
+    image: Optional[str] = None
     keywords: List[str] = field(default_factory=list)
-    upright: str = ""
-    reversed: str = ""
+    upright: str = ""                            # основное значение
+    reversed: str = ""                           # перевёрнутое значение (таро)
     description: str = ""
-    astrology: str = ""                          # «Марс в Овне»
-
-    @property
-    def full_name(self) -> str:
-        """Имя карты с колодочным названием: Двойка Жезлов — «Владея миром»."""
-        if self.title:
-            return f"{self.name} — «{self.title}»"
-        return self.name
+    astrology: str = ""
+    # Дополнительные поля оракульных колод (авторская система 12 планет)
+    advice: str = ""                             # Совет
+    warning: str = ""                            # Предупреждение
+    # группа (у оракула — знак зодиака)
+    group: str = ""
 
     def get_meaning(self, is_reversed: bool = False) -> str:
+        """Значение с учётом ориентации."""
         if is_reversed and self.reversed:
             return self.reversed
         return self.upright
 
     @property
+    def is_oracle(self) -> bool:
+        """Оракульная карта (есть Совет/Предупреждение)."""
+        return bool(self.advice or self.warning)
+
+    @property
     def is_court(self) -> bool:
-        return self.card_id.split("_")[-1] in {"page", "knight", "queen", "king"}
+        return bool(self.card_id.split("_")[-1] in {"page", "knight", "queen", "king"})
 
 
 @dataclass
 class TarotDeck:
-    """Колода Таро."""
+    """Колода Таро или Оракул."""
     deck_id: str
     name: str
     author: str = ""
     description: str = ""
+    deck_type: str = "tarot"                     # "tarot" | "oracle"
     images_dir: str = ""
     cards: Dict[str, TarotCard] = field(default_factory=dict)
 
@@ -59,6 +62,21 @@ class TarotDeck:
     def minor_by_suit(self, suit: str) -> List[TarotCard]:
         return [c for c in self.cards.values() if c.arcana == "minor" and c.suit == suit]
 
+    def groups_ordered(self) -> List[str]:
+        """Упорядоченные группы карт (для оракула — знаки зодиака + затмения)."""
+        seen = []
+        for c in self.cards.values():
+            if c.group and c.group not in seen:
+                seen.append(c.group)
+        return seen
+
+    def cards_by_group(self, group: str) -> List[TarotCard]:
+        return [c for c in self.cards.values() if c.group == group]
+
     @property
     def cards_count(self) -> int:
         return len(self.cards)
+
+    @property
+    def has_images(self) -> bool:
+        return any(c.image for c in self.cards.values())
