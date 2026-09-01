@@ -32,11 +32,21 @@ TRIPLET_POSITIONS = [
 
 
 def resolve_image(deck: TarotDeck, card: TarotCard) -> Optional[str]:
-    """Абсолютный путь к картинке карты или None."""
+    """Абсолютный путь к картинке карты или None.
+    Ищет в <колода>/images/, затем в корне папки колоды."""
     if not card.image:
         return None
+    # 1) Стандартное место: <колода>/images/<имя файла>
     path = os.path.join(deck.images_dir, card.image)
-    return path if os.path.exists(path) else None
+    if os.path.exists(path):
+        return path
+    # 2) Запасной вариант: файл лежит в корне папки колоды
+    #    (оригинальный oracle_generator.py сохраняет PNG именно туда)
+    deck_root = os.path.dirname(deck.images_dir)
+    alt_path = os.path.join(deck_root, card.image)
+    if os.path.exists(alt_path):
+        return alt_path
+    return None
 
 
 def choice_positions_list() -> List[str]:

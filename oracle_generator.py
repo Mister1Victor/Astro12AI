@@ -439,13 +439,13 @@ def generate_all_cards(output_dir="oracle_cards"):
             meaning, advice, warning = card_texts[card_num]
             img = draw_oracle_card(
                 planet, sign, card_num, meaning, advice, warning)
-            fname = f"{card_num:03d}_{planet}_{sign['name']}.png"
+            fname = f"{card_num:03d}_{planet}_{sign['name']}.jpg"
             img.save(os.path.join(output_dir, fname))
             print(f"✓ {fname}")
 
     # Затмения
-    for num, etype, fname in [(145, "sun", "145_eclipse_sun.png"),
-                              (146, "moon", "146_eclipse_moon.png")]:
+    for num, etype, fname in [(145, "sun", "145_eclipse_sun.jpg"),
+                              (146, "moon", "146_eclipse_moon.jpg")]:
         if num in card_texts:
             meaning, advice, warning = card_texts[num]
             img = draw_oracle_card(None, None, num, meaning, advice, warning,
