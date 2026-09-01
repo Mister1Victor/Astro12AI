@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Оракульная система «12 Планет» — генератор авторской колоды.
+Оракул «12 Планет» — генератор авторской колоды (146 карт).
 
-Создаёт 146 карт (12 планет в 12 знаках + Солнечное и Лунное затмения):
-  - изображения 600×900 px  -> data/tarot/decks/author_deck_146/images/
-  - deck.json (формат ядра Таро: Значение/Совет/Предупреждение) ->
-    data/tarot/decks/author_deck_146/deck.json
+Читает авторские тексты карт (Значение/Совет/Предупреждение) из:
+  1. файла core/tarot/card_data.txt  (основной источник),
+  2. переменной RAW_CARD_DATA в oracle_generator.py (если файл с текстом есть).
 
-Авторские тексты карт (Значение/Совет/Предупреждение) импортируются из
-oracle_generator.py (RAW_CARD_DATA) — единый источник истины Школы.
+Генерирует:
+  - изображения 600×900  -> data/tarot/decks/author_deck_146/images/
+  - deck.json (формат ядра Таро) -> data/tarot/decks/author_deck_146/deck.json
 
 Запуск:
     pip install Pillow
-    python init_author_deck_146.py
+    python init_author_deck_146.py [--force]
 """
 import re
 import sys
@@ -31,95 +31,129 @@ except Exception:
 from PIL import Image, ImageDraw, ImageFont
 
 # ============================================================
-# 0. ПУТИ: файл лежит в КОРНЕ проекта
+# 0. ПУТИ (файл лежит в КОРНЕ проекта)
 # ============================================================
 ROOT = Path(__file__).resolve().parent
 DECK_DIR = ROOT / "data" / "tarot" / "decks" / "author_deck_146"
 IMAGES_DIR = DECK_DIR / "images"
+CARD_DATA_FILE = ROOT / "core" / "tarot" / "card_data.txt"
+
 
 # ============================================================
-# 0.1. ИМПОРТ АВТОРСКИХ ТЕКСТОВ из oracle_generator.py
+# 0.1. ЗАГРУЗКА АВТОРСКИХ ТЕКСТОВ
 # ============================================================
-try:
-    from oracle_generator import RAW_CARD_DATA
-except ImportError:
-    print("❌ Файл oracle_generator.py не найден в корне проекта.")
-    print("   Он должен содержать переменную RAW_CARD_DATA с авторскими текстами карт.")
+def _load_raw_texts() -> str:
+    # Приоритет 1: файл с текстами
+    if CARD_DATA_FILE.exists():
+        with open(CARD_DATA_FILE, encoding="utf-8") as f:
+            print(f"📖 Тексты карт взяты из: {CARD_DATA_FILE}")
+            return f.read()
+    # Приоритет 2: переменная в генераторе (первая версия)
+    try:
+        from oracle_generator import RAW_CARD_DATA
+        print("📖 Тексты карт взяты из: oracle_generator.RAW_CARD_DATA")
+        return RAW_CARD_DATA
+    except ImportError:
+        pass
+    print("❌ Не найден источник текстов карт.")
+    print("   Ожидается один из:")
+    print(f"     - {CARD_DATA_FILE}")
+    print("     - переменная RAW_CARD_DATA в oracle_generator.py")
     sys.exit(1)
+
+
+def parse_card_texts(raw: str) -> dict:
+    """
+    Парсит тексты в словарь {номер: (значение, совет, предупреждение)}.
+    Устойчив к ** разметке, переносам строк и служебным заголовкам.
+    """
+    text = raw.replace("**", "")
+    parts = re.split(r"Карта №(\d+):", text)
+    headers_re = re.compile(
+        r"^\s*(?:-{2,}|#+.*|КАРТЫ ДЛЯ ЗНАКА.*|ДОПОЛНИТЕЛЬНЫЕ КАРТЫ.*|"
+        r"144 КАРТЫ.*|146 КАРТЫ.*|Заменить:.*)\s*$",
+        re.MULTILINE)
+
+    cards = {}
+    for i in range(1, len(parts), 2):
+        num = int(parts[i])
+        body = parts[i + 1] if i + 1 < len(parts) else ""
+
+        def section(label, stop_label):
+            stop_pat = f"(?=\\n\\s*{stop_label}:|\\Z)" if stop_label else "(?=\\Z)"
+            m = re.search(rf"{label}:\s*(.*?){stop_pat}", body, re.DOTALL)
+            if not m:
+                return ""
+            cleaned = headers_re.sub(" ", m.group(1))
+            return " ".join(cleaned.split())
+
+        meaning = section("Значение", "Совет")
+        advice = section("Совет", "Предупреждение")
+        warning = section("Предупреждение", "")
+        cards[num] = (meaning, advice, warning)
+    return cards
+
+
+RAW_CARD_DATA = _load_raw_texts()
+CARD_TEXTS = parse_card_texts(RAW_CARD_DATA)
+print(f"📖 Распознано карт: {len(CARD_TEXTS)}")
+if len(CARD_TEXTS) < 146:
+    print("⚠️ Ожидалось 146 карт. Проверьте формат файла с текстами.")
 
 
 # ============================================================
 # 1. ШРИФТЫ
 # ============================================================
 def _find_font(candidates):
-    """Возвращает первый существующий шрифт из списка кандидатов."""
     for path in candidates:
         if os.path.exists(path):
             return path
-    raise FileNotFoundError(
-        f"Не найден ни один подходящий шрифт: {candidates}")
+    raise FileNotFoundError(f"Не найден ни один шрифт: {candidates}")
 
 
 if sys.platform.startswith("win"):
     FONT_TEXT = "C:/Windows/Fonts/arial.ttf"
     FONT_TEXT_BOLD = "C:/Windows/Fonts/arialbd.ttf"
-    FONT_TEXT_MEDIUM = "C:/Windows/Fonts/arial.ttf"
     FONT_SYMBOLS = "C:/Windows/Fonts/seguisym.ttf"
-    FONT_SYMBOLS_BOLD = "C:/Windows/Fonts/seguisym.ttf"
 else:
     FONT_TEXT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
     FONT_TEXT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    FONT_TEXT_MEDIUM = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
     FONT_SYMBOLS = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    FONT_SYMBOLS_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
-FONT_TEXT = _find_font([FONT_TEXT, "C:/Windows/Fonts/arial.ttf",
-                        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"])
-FONT_TEXT_BOLD = _find_font([FONT_TEXT_BOLD, "C:/Windows/Fonts/arialbd.ttf",
-                             "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"])
-FONT_TEXT_MEDIUM = _find_font([FONT_TEXT_MEDIUM, "C:/Windows/Fonts/arial.ttf",
-                               "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"])
-FONT_SYMBOLS = _find_font([FONT_SYMBOLS, "C:/Windows/Fonts/seguisym.ttf",
-                           "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"])
-FONT_SYMBOLS_BOLD = _find_font([FONT_SYMBOLS_BOLD, "C:/Windows/Fonts/seguisym.ttf",
-                                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"])
+FONT_TEXT = _find_font(
+    [FONT_TEXT, "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"])
+FONT_TEXT_BOLD = _find_font(
+    [FONT_TEXT_BOLD, "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"])
+FONT_TEXT_MEDIUM = FONT_TEXT
+FONT_SYMBOLS = _find_font(
+    [FONT_SYMBOLS, "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"])
 
 
 # ============================================================
-# 2. ПАЛИТРА ЦВЕТОВ ПО СТИХИЯМ
+# 2. ПАЛИТРА ПО СТИХИЯМ
 # ============================================================
 PALETTE = {
-    "огонь": {
-        "bg_top": (45, 12, 8), "bg_bottom": (160, 50, 15),
-        "accent": (255, 130, 50), "accent2": (255, 200, 120),
-        "text": (255, 248, 240), "subtext": (230, 180, 140),
-        "border": (220, 90, 30), "panel": (25, 8, 5),
-    },
-    "земля": {
-        "bg_top": (12, 30, 10), "bg_bottom": (50, 90, 35),
-        "accent": (140, 200, 80), "accent2": (200, 230, 150),
-        "text": (245, 255, 235), "subtext": (190, 210, 160),
-        "border": (100, 150, 50), "panel": (8, 20, 6),
-    },
-    "воздух": {
-        "bg_top": (10, 20, 40), "bg_bottom": (45, 80, 120),
-        "accent": (120, 190, 255), "accent2": (180, 220, 255),
-        "text": (235, 245, 255), "subtext": (170, 200, 230),
-        "border": (80, 150, 220), "panel": (8, 15, 30),
-    },
-    "вода": {
-        "bg_top": (8, 12, 35), "bg_bottom": (30, 50, 100),
-        "accent": (100, 150, 255), "accent2": (160, 190, 255),
-        "text": (230, 235, 255), "subtext": (160, 180, 230),
-        "border": (70, 110, 200), "panel": (6, 10, 25),
-    },
+    "огонь": {"bg_top": (45, 12, 8), "bg_bottom": (160, 50, 15),
+              "accent": (255, 130, 50), "accent2": (255, 200, 120),
+              "text": (255, 248, 240), "subtext": (230, 180, 140),
+              "border": (220, 90, 30), "panel": (25, 8, 5)},
+    "земля": {"bg_top": (12, 30, 10), "bg_bottom": (50, 90, 35),
+              "accent": (140, 200, 80), "accent2": (200, 230, 150),
+              "text": (245, 255, 235), "subtext": (190, 210, 160),
+              "border": (100, 150, 50), "panel": (8, 20, 6)},
+    "воздух": {"bg_top": (10, 20, 40), "bg_bottom": (45, 80, 120),
+               "accent": (120, 190, 255), "accent2": (180, 220, 255),
+               "text": (235, 245, 255), "subtext": (170, 200, 230),
+               "border": (80, 150, 220), "panel": (8, 15, 30)},
+    "вода": {"bg_top": (8, 12, 35), "bg_bottom": (30, 50, 100),
+             "accent": (100, 150, 255), "accent2": (160, 190, 255),
+             "text": (230, 235, 255), "subtext": (160, 180, 230),
+             "border": (70, 110, 200), "panel": (6, 10, 25)},
 }
-ECLIPSE_PALETTE = {
-    "bg_top": (3, 3, 3), "bg_bottom": (35, 25, 15),
-    "accent": (255, 190, 60), "accent2": (255, 230, 150),
-    "text": (255, 250, 240), "subtext": (210, 180, 130),
-    "border": (180, 140, 50), "panel": (15, 12, 8),
-}
+ECLIPSE_PALETTE = {"bg_top": (3, 3, 3), "bg_bottom": (35, 25, 15),
+                   "accent": (255, 190, 60), "accent2": (255, 230, 150),
+                   "text": (255, 250, 240), "subtext": (210, 180, 130),
+                   "border": (180, 140, 50), "panel": (15, 12, 8)}
 
 
 # ============================================================
@@ -180,6 +214,7 @@ PLANETS = {
                "keywords": ["помощь", "сострадание", "вера", "жертвенность", "мечта"]},
 }
 
+# Фиксированный порядок планет (одинаков для всех знаков — как в card_data.txt)
 RULERS_ORDER = ["Марс", "Венера", "Меркурий", "Луна", "Солнце",
                 "Эрида", "Плутон", "Нептун", "Уран", "Сатурн", "Юпитер", "Церера"]
 
@@ -195,46 +230,7 @@ ELEMENT_NAMES = {"огонь": "Огонь", "земля": "Земля",
 
 
 # ============================================================
-# 4. ПАРСЕР АВТОРСКИХ ТЕКСТОВ (Значение / Совет / Предупреждение)
-# ============================================================
-def parse_card_texts(raw: str) -> dict:
-    """
-    Парсит RAW_CARD_DATA в словарь {номер: (значение, совет, предупреждение)}.
-    Устойчив к переносам строк и markdown-разметке (**).
-    """
-    text = raw.replace("**", "")
-    parts = re.split(r"Карта №(\d+):", text)
-    headers_re = re.compile(
-        r"^\s*(КАРТЫ ДЛЯ ЗНАКА|ДОПОЛНИТЕЛЬНЫЕ КАРТЫ|144 КАРТЫ)[^\n]*$", re.MULTILINE)
-
-    cards = {}
-    for i in range(1, len(parts), 2):
-        num = int(parts[i])
-        body = parts[i + 1] if i + 1 < len(parts) else ""
-
-        def section(label, stop_label):
-            stop_pat = f"(?=\\n\\s*{stop_label}:|\\Z)" if stop_label else "(?=\\Z)"
-            m = re.search(rf"{label}:\s*(.*?){stop_pat}", body, re.DOTALL)
-            if not m:
-                return ""
-            cleaned = headers_re.sub(" ", m.group(1))
-            return " ".join(cleaned.split())
-
-        meaning = section("Значение", "Совет")
-        advice = section("Совет", "Предупреждение")
-        warning = section("Предупреждение", "")
-        cards[num] = (meaning, advice, warning)
-    return cards
-
-
-CARD_TEXTS = parse_card_texts(RAW_CARD_DATA)
-print(f"📖 Распознано авторских текстов карт: {len(CARD_TEXTS)}")
-if len(CARD_TEXTS) < 146:
-    print(f"⚠️ Ожидалось 146 текстов. Проверьте формат RAW_CARD_DATA в oracle_generator.py")
-
-
-# ============================================================
-# 5. УТИЛИТЫ РИСОВАНИЯ
+# 4. УТИЛИТЫ РИСОВАНИЯ
 # ============================================================
 def draw_gradient(draw, width, height, color_top, color_bottom):
     for y in range(height):
@@ -246,8 +242,7 @@ def draw_gradient(draw, width, height, color_top, color_bottom):
 
 
 def wrap_text(text, font, max_width, draw):
-    words = text.split()
-    lines, current = [], ""
+    words, lines, current = text.split(), [], ""
     for word in words:
         test = current + " " + word if current else word
         bbox = draw.textbbox((0, 0), test, font=font)
@@ -271,19 +266,15 @@ def shorten_text(text, max_chars=280):
 def draw_alchemy_symbol(draw, element, center_x, y_top, size, color):
     half = size / 2
     if element in ("огонь", "воздух"):
-        p1 = (center_x, y_top)
-        p2 = (center_x - half, y_top + size)
-        p3 = (center_x + half, y_top + size)
-        draw.polygon([p1, p2, p3], outline=color, width=2)
+        draw.polygon([(center_x, y_top), (center_x - half, y_top + size),
+                      (center_x + half, y_top + size)], outline=color, width=2)
         if element == "воздух":
             y_line = y_top + size * 0.6
             draw.line([(center_x - half, y_line),
                       (center_x + half, y_line)], fill=color, width=2)
     elif element in ("земля", "вода"):
-        p1 = (center_x, y_top + size)
-        p2 = (center_x - half, y_top)
-        p3 = (center_x + half, y_top)
-        draw.polygon([p1, p2, p3], outline=color, width=2)
+        draw.polygon([(center_x, y_top + size), (center_x - half, y_top),
+                      (center_x + half, y_top)], outline=color, width=2)
         if element == "земля":
             y_line = y_top + size * 0.4
             draw.line([(center_x - half, y_line),
@@ -291,7 +282,7 @@ def draw_alchemy_symbol(draw, element, center_x, y_top, size, color):
 
 
 # ============================================================
-# 6. РИСОВАЛЬЩИК КАРТ (600×900)
+# 5. РИСОВАЛЬЩИК КАРТ
 # ============================================================
 def draw_oracle_card(planet_name, sign, card_num, meaning, advice, warning,
                      is_eclipse=False, eclipse_type=None):
@@ -316,12 +307,11 @@ def draw_oracle_card(planet_name, sign, card_num, meaning, advice, warning,
         is_ruler = sign["ruler"] == planet_name
 
     draw_gradient(draw, W, H, c["bg_top"], c["bg_bottom"])
-
     margin = 18
-    draw.rounded_rectangle([margin, margin, W - margin, H - margin],
-                           radius=16, outline=c["border"], width=2)
-    draw.rounded_rectangle([margin + 6, margin + 6, W - margin - 6, H - margin - 6],
-                           radius=13, outline=c["accent"], width=1)
+    draw.rounded_rectangle([margin, margin, W - margin,
+                           H - margin], radius=16, outline=c["border"], width=2)
+    draw.rounded_rectangle([margin + 6, margin + 6, W - margin - 6,
+                           H - margin - 6], radius=13, outline=c["accent"], width=1)
 
     f_num = ImageFont.truetype(FONT_TEXT_BOLD, 56)
     f_title = ImageFont.truetype(FONT_TEXT_BOLD, 42)
@@ -350,27 +340,7 @@ def draw_oracle_card(planet_name, sign, card_num, meaning, advice, warning,
                                radius=8, fill=c["accent"])
         draw.text((W // 2, 492), "ОСОБАЯ КАРТА",
                   font=f_element, fill=c["bg_top"], anchor="mm")
-
-        draw.rounded_rectangle([40, 520, W - 40, H - 65],
-                               radius=12, fill=c["panel"])
-        y = 540
-        draw.text((55, y), "ЗНАЧЕНИЕ", font=f_header, fill=c["accent"])
-        y += 28
-        for line in wrap_text(shorten_text(meaning, 320), f_body, W - 110, draw)[:4]:
-            draw.text((55, y), line, font=f_body, fill=c["text"])
-            y += 24
-        y += 8
-        draw.text((55, y), "СОВЕТ", font=f_header, fill=c["accent"])
-        y += 28
-        for line in wrap_text(shorten_text(advice, 200), f_body, W - 110, draw)[:2]:
-            draw.text((55, y), line, font=f_body, fill=c["text"])
-            y += 24
-        y += 8
-        draw.text((55, y), "ПРЕДУПРЕЖДЕНИЕ", font=f_header, fill=c["accent"])
-        y += 28
-        for line in wrap_text(shorten_text(warning, 250), f_body, W - 110, draw)[:2]:
-            draw.text((55, y), line, font=f_body, fill=c["text"])
-            y += 24
+        panel_top, y = 520, 540
     else:
         draw.text((W // 2, 150), planet_symbol, font=f_symbol,
                   fill=c["accent"], anchor="mm")
@@ -378,21 +348,17 @@ def draw_oracle_card(planet_name, sign, card_num, meaning, advice, warning,
                   fill=c["subtext"], anchor="mm")
         draw.text((W // 2, 325), title, font=f_title,
                   fill=c["text"], anchor="mm")
-
         planet_element = PLANETS[planet_name]["element"]
         draw_alchemy_symbol(draw, planet_element, W //
                             2 - 80, 365, 22, c["accent2"])
         draw.text((W // 2, 375), ELEMENT_NAMES[planet_element],
                   font=f_element, fill=c["accent2"], anchor="mm")
-
         draw.text((W // 2, 420), subtitle, font=f_subtitle,
                   fill=c["subtext"], anchor="mm")
-
         draw_alchemy_symbol(draw, sign["element"],
                             W // 2 - 80, 460, 22, c["accent2"])
         draw.text((W // 2, 470), ELEMENT_NAMES[sign["element"]],
                   font=f_element, fill=c["accent2"], anchor="mm")
-
         y_offset = 0
         if is_ruler:
             draw.rounded_rectangle(
@@ -400,34 +366,24 @@ def draw_oracle_card(planet_name, sign, card_num, meaning, advice, warning,
             draw.text((W // 2, 527), "УПРАВИТЕЛЬ ЗНАКА",
                       font=f_element, fill=c["bg_top"], anchor="mm")
             y_offset = 30
-
-        motto = PLANETS[planet_name]["motto"]
-        draw.text((W // 2, 555 + y_offset), f"«{motto}»",
+        draw.text((W // 2, 555 + y_offset), f"«{PLANETS[planet_name]['motto']}»",
                   font=f_motto, fill=c["accent2"], anchor="mm")
+        panel_top = 585 + y_offset
+        draw.line([(60, panel_top - 15), (W - 60, panel_top - 15)],
+                  fill=c["border"], width=1)
 
-        y_line = 585 + y_offset
-        draw.line([(60, y_line), (W - 60, y_line)], fill=c["border"], width=1)
-        draw.rounded_rectangle(
-            [35, y_line + 15, W - 35, H - 65], radius=12, fill=c["panel"])
-
-        y = y_line + 30
-        draw.text((50, y), "ЗНАЧЕНИЕ", font=f_header, fill=c["accent"])
+    draw.rounded_rectangle(
+        [35, panel_top + 15, W - 35, H - 65], radius=12, fill=c["panel"])
+    y = panel_top + 30
+    for label, text, max_chars, max_lines in [("ЗНАЧЕНИЕ", meaning, 340, 3),
+                                              ("СОВЕТ", advice, 220, 2),
+                                              ("ПРЕДУПРЕЖДЕНИЕ", warning, 280, 2)]:
+        draw.text((50, y), label, font=f_header, fill=c["accent"])
         y += 28
-        for line in wrap_text(shorten_text(meaning, 340), f_body, W - 100, draw)[:3]:
+        for line in wrap_text(shorten_text(text, max_chars), f_body, W - 100, draw)[:max_lines]:
             draw.text((50, y), line, font=f_body, fill=c["text"])
             y += 24
         y += 6
-        draw.text((50, y), "СОВЕТ", font=f_header, fill=c["accent"])
-        y += 28
-        for line in wrap_text(shorten_text(advice, 220), f_body, W - 100, draw)[:2]:
-            draw.text((50, y), line, font=f_body, fill=c["text"])
-            y += 24
-        y += 6
-        draw.text((50, y), "ПРЕДУПРЕЖДЕНИЕ", font=f_header, fill=c["accent"])
-        y += 28
-        for line in wrap_text(shorten_text(warning, 280), f_body, W - 100, draw)[:2]:
-            draw.text((50, y), line, font=f_body, fill=c["text"])
-            y += 24
 
     draw.line([(60, H - 55), (W - 60, H - 55)], fill=c["border"], width=1)
     draw.text((W // 2, H - 35), "ОРАКУЛ 12 ПЛАНЕТ",
@@ -436,67 +392,57 @@ def draw_oracle_card(planet_name, sign, card_num, meaning, advice, warning,
 
 
 # ============================================================
-# 7. ЭКСПОРТ deck.json (формат ядра Таро)
+# 6. ЭКСПОРТ deck.json
 # ============================================================
 def build_cards_meta():
-    """Собирает метаданные всех 146 карт для deck.json."""
     cards = []
     card_num = 0
     for sign in SIGNS:
-        ruler_idx = RULERS_ORDER.index(sign["ruler"])
-        sign_planets = RULERS_ORDER[ruler_idx:] + RULERS_ORDER[:ruler_idx]
-        for planet in sign_planets:
+        for planet in RULERS_ORDER:
             card_num += 1
             if card_num not in CARD_TEXTS:
-                print(f"⚠️ Пропуск карты №{card_num}: текст не найден")
                 continue
             meaning, advice, warning = CARD_TEXTS[card_num]
             p = PLANETS[planet]
-            is_ruler = sign["ruler"] == planet
-            fname = f"{card_num:03d}_{planet}_{sign['name']}.png"
             cards.append({
                 "id": f"oracle_{card_num:03d}",
                 "name": f"{planet} {PREPOSITIONAL_PHRASE[sign['name']]}",
                 "arcana": "oracle",
                 "group": sign["name"],
                 "number": card_num,
-                "image": fname,
+                "image": f"{card_num:03d}_{planet}_{sign['name']}.png",
                 "astrology": (f"{planet} {p['symbol']} в {sign['name']} {sign['symbol']} · "
                               f"{sign['house']} · {sign['sphere']}"),
                 "keywords": p["keywords"],
                 "upright": meaning,
                 "advice": advice,
                 "warning": warning,
-                "description": (f"Девиз: «{p['motto']}». "
-                                f"Стихия планеты: {ELEMENT_NAMES[p['element']]}, "
-                                f"стихия знака: {ELEMENT_NAMES[sign['element']]}."
-                                + (" Управитель знака." if is_ruler else "")),
+                "description": (f"Девиз: «{p['motto']}». Стихия планеты: "
+                                f"{ELEMENT_NAMES[p['element']]}, стихия знака: "
+                                f"{ELEMENT_NAMES[sign['element']]}."
+                                + (" Управитель знака." if sign["ruler"] == planet else "")),
             })
-
-    # Затмения
     for num, etype, title in [(145, "sun", "Солнечное затмение"),
                               (146, "moon", "Лунное затмение")]:
         if num in CARD_TEXTS:
             meaning, advice, warning = CARD_TEXTS[num]
             cards.append({
-                "id": f"oracle_{num:03d}",
-                "name": title,
-                "arcana": "oracle",
-                "group": "Затмения",
-                "number": num,
-                "image": f"{num}_eclipse_{etype}.png",
+                "id": f"oracle_{num:03d}", "name": title, "arcana": "oracle",
+                "group": "Затмения", "number": num, "image": f"{num}_eclipse_{etype}.png",
                 "astrology": "☉ Новолуние" if etype == "sun" else "☽ Полнолуние",
                 "keywords": ["затмение", "перелом", "кризис", "перезагрузка"],
-                "upright": meaning,
-                "advice": advice,
-                "warning": warning,
+                "upright": meaning, "advice": advice, "warning": warning,
                 "description": "Особая карта Оракула.",
             })
     return cards
 
 
-def export_deck_json(cards_meta):
-    """Записывает deck.json в папку колоды."""
+def export_deck_json(cards_meta, force):
+    json_path = DECK_DIR / "deck.json"
+    if json_path.exists() and not force:
+        print(
+            f"⏭️ deck.json уже существует (пропущено). Используйте --force для перезаписи.")
+        return
     deck = {
         "id": "author_deck_146",
         "name": "Оракул «12 Планет» (авторская колода)",
@@ -506,24 +452,21 @@ def export_deck_json(cards_meta):
         "deck_type": "oracle",
         "cards": cards_meta,
     }
-    json_path = DECK_DIR / "deck.json"
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(deck, f, ensure_ascii=False, indent=2)
     print(f"✅ deck.json записан: {json_path} ({len(cards_meta)} карт)")
 
 
 # ============================================================
-# 8. ГЛАВНЫЙ ЦИКЛ ГЕНЕРАЦИИ
+# 7. ГЛАВНЫЙ ЦИКЛ ГЕНЕРАЦИИ
 # ============================================================
-def generate_all_cards():
+def generate_all_cards(force=False):
     IMAGES_DIR.mkdir(parents=True, exist_ok=True)
     print(f"📂 Папка изображений: {IMAGES_DIR}")
 
     card_num = 0
     for sign in SIGNS:
-        ruler_idx = RULERS_ORDER.index(sign["ruler"])
-        sign_planets = RULERS_ORDER[ruler_idx:] + RULERS_ORDER[:ruler_idx]
-        for planet in sign_planets:
+        for planet in RULERS_ORDER:
             card_num += 1
             if card_num not in CARD_TEXTS:
                 print(f"⚠️ Пропуск карты №{card_num}: текст не найден")
@@ -531,30 +474,21 @@ def generate_all_cards():
             meaning, advice, warning = CARD_TEXTS[card_num]
             img = draw_oracle_card(
                 planet, sign, card_num, meaning, advice, warning)
-            fname = f"{card_num:03d}_{planet}_{sign['name']}.png"
-            img.save(IMAGES_DIR / fname)
-            print(f"✓ {fname}")
+            img.save(IMAGES_DIR /
+                     f"{card_num:03d}_{planet}_{sign['name']}.png")
+    print(f"✓ Сгенерировано {card_num} карт знаков")
 
-    # Затмения
-    if 145 in CARD_TEXTS:
-        meaning, advice, warning = CARD_TEXTS[145]
-        img = draw_oracle_card(None, None, 145, meaning, advice, warning,
-                               is_eclipse=True, eclipse_type="sun")
-        img.save(IMAGES_DIR / "145_eclipse_sun.png")
-        print("✓ 145_eclipse_sun.png")
-    if 146 in CARD_TEXTS:
-        meaning, advice, warning = CARD_TEXTS[146]
-        img = draw_oracle_card(None, None, 146, meaning, advice, warning,
-                               is_eclipse=True, eclipse_type="moon")
-        img.save(IMAGES_DIR / "146_eclipse_moon.png")
-        print("✓ 146_eclipse_moon.png")
+    for num, etype in [(145, "sun"), (146, "moon")]:
+        if num in CARD_TEXTS:
+            meaning, advice, warning = CARD_TEXTS[num]
+            img = draw_oracle_card(None, None, num, meaning, advice, warning,
+                                   is_eclipse=True, eclipse_type=etype)
+            img.save(IMAGES_DIR / f"{num}_eclipse_{etype}.png")
+            print(f"✓ {num}_eclipse_{etype}.png")
 
-    # deck.json
-    cards_meta = build_cards_meta()
-    export_deck_json(cards_meta)
-
-    print(f"\n🎉 Готово! {len(cards_meta)} карт сохранены в: {DECK_DIR}")
+    export_deck_json(build_cards_meta(), force)
+    print(f"\n🎉 Готово! Колода сохранена в: {DECK_DIR}")
 
 
 if __name__ == "__main__":
-    generate_all_cards()
+    generate_all_cards(force="--force" in sys.argv)
