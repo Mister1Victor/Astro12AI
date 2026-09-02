@@ -6,7 +6,7 @@ from typing import Optional, List, Dict
 @dataclass
 class TarotCard:
     """Одна карта Таро (или Оракула)."""
-    card_id: str                                 # "major_00", "oracle_001"
+    card_id: str                                 # уникальный id: "major_00", "oracle_001"
     name: str
     arcana: str = "major"                        # "major" | "minor" | "oracle"
     suit: Optional[str] = None
@@ -17,12 +17,12 @@ class TarotCard:
     reversed: str = ""                           # перевёрнутое значение (таро)
     description: str = ""
     astrology: str = ""
-    # Оракульные поля (авторская система 12 планет)
+    # Дополнительные поля оракульных колод (авторская система 12 планет)
     advice: str = ""                             # Совет
     warning: str = ""                            # Предупреждение
     # группа (у оракула — знак зодиака)
     group: str = ""
-    # НОВЫЕ разделы (для ручного заполнения во всех колодах)
+    # Контекстные поля (заполняются через scripts/fill_*.py)
     business: str = ""                           # В бизнесе и работе
     relationships: str = ""                      # В отношениях
     inspires: str = ""                           # Карта советует (вдохновляет)
@@ -30,23 +30,19 @@ class TarotCard:
     day_meaning: str = ""                        # Карта дня
 
     def get_meaning(self, is_reversed: bool = False) -> str:
+        """Значение с учётом ориентации."""
         if is_reversed and self.reversed:
             return self.reversed
         return self.upright
 
     @property
     def is_oracle(self) -> bool:
+        """Оракульная карта (есть Совет/Предупреждение)."""
         return bool(self.advice or self.warning)
 
     @property
     def is_court(self) -> bool:
         return bool(self.card_id.split("_")[-1] in {"page", "knight", "queen", "king"})
-
-    @property
-    def has_extra_sections(self) -> bool:
-        """Есть ли заполненные доп. разделы."""
-        return bool(self.business or self.relationships or self.inspires
-                    or self.warns or self.day_meaning)
 
 
 @dataclass
@@ -73,6 +69,7 @@ class TarotDeck:
         return [c for c in self.cards.values() if c.arcana == "minor" and c.suit == suit]
 
     def groups_ordered(self) -> List[str]:
+        """Упорядоченные группы карт (для оракула — знаки зодиака + затмения)."""
         seen = []
         for c in self.cards.values():
             if c.group and c.group not in seen:

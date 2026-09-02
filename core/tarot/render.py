@@ -115,6 +115,23 @@ def spread_cards_visual(deck: TarotDeck, drawn, positions: List[str]) -> List[di
 
 
 # ============================================================
+# КОНТЕКСТНЫЕ ПОЛЯ (общий блок вывода)
+# ============================================================
+def _append_context_fields(lines: List[str], card: TarotCard) -> None:
+    """Добавляет 5 контекстных полей, если они заполнены."""
+    if getattr(card, "business", ""):
+        lines += ["", "💼 В БИЗНЕСЕ И РАБОТЕ:", card.business]
+    if getattr(card, "relationships", ""):
+        lines += ["", "❤️ В ОТНОШЕНИЯХ:", card.relationships]
+    if getattr(card, "inspires", ""):
+        lines += ["", "🌟 КАРТА СОВЕТУЕТ:", card.inspires]
+    if getattr(card, "warns", ""):
+        lines += ["", "⚠️ КАРТА ПРЕДУПРЕЖДАЕТ:", card.warns]
+    if getattr(card, "day_meaning", ""):
+        lines += ["", "🃏 КАРТА ДНЯ:", card.day_meaning]
+
+
+# ============================================================
 # ФОРМАТЫ ПОДПИСЕЙ
 # ============================================================
 def format_card_of_day(card: TarotCard, is_reversed: bool, deck: TarotDeck) -> str:
@@ -135,49 +152,6 @@ def format_card_of_day(card: TarotCard, is_reversed: bool, deck: TarotDeck) -> s
     if card.is_oracle:
         # Оракул: Карта Дня рассматривается в ОБОИХ вариантах — совет и предупреждение
         if card.upright:
-            lines.append("")
-            lines.append("📖 ЗНАЧЕНИЕ:")
-            lines.append(card.upright)
-        if card.advice:
-            lines.append("")
-            lines.append("💡 СОВЕТ:")
-            lines.append(card.advice)
-        if card.warning:
-            lines.append("")
-            lines.append("⚠️ ПРЕДУПРЕЖДЕНИЕ:")
-            lines.append(card.warning)
-    else:
-        meaning = card.get_meaning(is_reversed)
-        if meaning:
-            lines.append("")
-            lines.append("📖 ТОЛКОВАНИЕ:")
-            lines.append(meaning)
-
-    if card.description:
-        lines.append("")
-        lines.append("🖼️ " + card.description)
-    return "\n".join(lines)
-
-
-def format_yes_no(card: TarotCard, is_reversed: bool, deck: TarotDeck, question: str) -> str:
-    """Подпись для расклада «Да или Нет» (одна карта-ответ)."""
-    orient = ORIENT_REV if is_reversed else ORIENT_UP
-    lines = [
-        "🎯 ДА ИЛИ НЕТ",
-        f"Вопрос: {question}",
-        "",
-        f"Карта ответа: {card.name}",
-        f"Колода: {deck.name}",
-        f"Положение: {orient}",
-        "",
-    ]
-    if card.keywords:
-        lines.append("🔑 Ключевые слова: " + ", ".join(card.keywords))
-    if card.astrology:
-        lines.append("🪐 Астрология: " + card.astrology)
-
-    if card.is_oracle:
-        if card.upright:
             lines += ["", "📖 ЗНАЧЕНИЕ:", card.upright]
         if card.advice:
             lines += ["", "💡 СОВЕТ:", card.advice]
@@ -187,6 +161,9 @@ def format_yes_no(card: TarotCard, is_reversed: bool, deck: TarotDeck, question:
         meaning = card.get_meaning(is_reversed)
         if meaning:
             lines += ["", "📖 ТОЛКОВАНИЕ:", meaning]
+
+    # Контекстные поля (если заполнены)
+    _append_context_fields(lines, card)
 
     if card.description:
         lines += ["", "🖼️ " + card.description]
@@ -214,6 +191,9 @@ def format_card_detail(card: TarotCard) -> str:
             lines += ["", "✅ ПРЯМОЕ:", card.upright]
         if card.reversed:
             lines += ["", "🔻 ПЕРЕВЁРНУТОЕ:", card.reversed]
+
+    # Контекстные поля (если заполнены)
+    _append_context_fields(lines, card)
 
     if card.description:
         lines += ["", "🖼️ " + card.description]
@@ -285,10 +265,8 @@ def format_triplet(drawn, deck: TarotDeck) -> str:
     lines.append("⚖️ ДОСТОИНСТВА СТИХИЙ:")
     lines.extend(tarot_dignities.triplet_dignities(drawn))
     lines.append("")
-    lines.append(
-        "Карты читаются как одно связное предложение: "
-        "карта 2 влияет на карту 1, карта 3 — на карту 2 и направляет всю связку к финалу."
-    )
+    lines.append("Карты читаются как одно связное предложение: "
+                 "карта 2 влияет на карту 1, карта 3 — на карту 2 и направляет всю связку к финалу.")
     return "\n".join(lines)
 
 

@@ -34,7 +34,6 @@ def _parse_card(card_data: dict) -> Optional[TarotCard]:
         advice=str(card_data.get("advice", "")).strip(),
         warning=str(card_data.get("warning", "")).strip(),
         group=str(card_data.get("group", "")).strip(),
-        # Новые разделы (для ручного заполнения)
         business=str(card_data.get("business", "")).strip(),
         relationships=str(card_data.get("relationships", "")).strip(),
         inspires=str(card_data.get("inspires", "")).strip(),
@@ -82,11 +81,8 @@ def load_all_decks() -> Dict[str, TarotDeck]:
     if not DECKS_ROOT.exists():
         logger.error(f"❌ Папка колод не найдена: {DECKS_ROOT}")
         return decks
-    # Пропускаем служебные папки: скрытые (.) и шаблоны (_) — напр. _template
     all_dirs = [d for d in sorted(DECKS_ROOT.iterdir())
-                if d.is_dir()
-                and not d.name.startswith(".")
-                and not d.name.startswith("_")]
+                if d.is_dir() and not d.name.startswith(".")]
     logger.info(f"📂 Папка колод: {DECKS_ROOT}")
     logger.info(
         f"📂 Найдено подпапок: {len(all_dirs)} → {[d.name for d in all_dirs]}")
