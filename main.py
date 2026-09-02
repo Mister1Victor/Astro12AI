@@ -628,19 +628,26 @@ async def cod_shuffle(callback: types.CallbackQuery):
         return
 
     caption = tarot_render.format_card_of_day(card, is_reversed, deck)
+    short = tarot_render.format_card_caption_short(card, deck, is_reversed)
     kb = tarot_kb.card_result_keyboard(deck_id)
     img = tarot_render.resolve_image(deck, card)
 
     if callback.message.content_type == ContentType.PHOTO and img:
         try:
-            media = InputMediaPhoto(
-                media=FSInputFile(img), caption=caption[:1024])
+            media = InputMediaPhoto(media=FSInputFile(img), caption=short)
             await callback.message.edit_media(media, reply_markup=kb)
+            # полный текст отдельно
+            await send_chunks(callback.message, caption)
             return
         except TelegramBadRequest as e:
             logger.warning(f"⚠️ edit_media не удался: {e}")
 
     if img:
+        await callback.message.answer_photo(FSInputFile(img), caption=short, reply_markup=kb)
+        # полный текст отдельно
+        await send_chunks(callback.message, caption)
+    else:
+        await callback.message.answer(caption, reply_markup=kb)
         await callback.message.answer_photo(FSInputFile(img), caption=caption[:1024], reply_markup=kb)
     else:
         await callback.message.answer(caption, reply_markup=kb)
@@ -752,11 +759,14 @@ async def deck_card(callback: types.CallbackQuery):
         return
 
     caption = tarot_render.format_card_detail(card)
+    short = tarot_render.format_card_caption_short(card, deck, emoji="🎴")
     img = tarot_render.resolve_image(deck, card)
     kb = tarot_kb.back_to_deck_keyboard(deck_id)
 
     if img:
-        await callback.message.answer_photo(FSInputFile(img), caption=caption[:1024], reply_markup=kb)
+        await callback.message.answer_photo(FSInputFile(img), caption=short, reply_markup=kb)
+        # полный текст отдельно
+        await send_chunks(callback.message, caption)
     else:
         if not await safe_edit_text(callback.message, caption, reply_markup=kb):
             await callback.message.answer(caption, reply_markup=kb)
@@ -818,10 +828,13 @@ async def _run_simple_spread(msg: types.Message, stype: str, deck, user_id: int)
                              reply_markup=tarot_kb.spread_done_keyboard("tarot_spreads"))
             return
         caption = tarot_render.format_card_of_day(card, is_rev, deck)
+        short = tarot_render.format_card_caption_short(card, deck, is_rev)
         img = tarot_render.resolve_image(deck, card)
         kb = tarot_kb.spread_done_keyboard("tarot_spreads")
         if img:
-            await msg.answer_photo(FSInputFile(img), caption=caption[:1024], reply_markup=kb)
+            await msg.answer_photo(FSInputFile(img), caption=short, reply_markup=kb)
+            # полный текст отдельно
+            await send_chunks(msg, caption)
         else:
             await msg.answer(caption, reply_markup=kb)
 
@@ -932,9 +945,12 @@ async def _run_cod_question(msg: types.Message, deck, user_id: int):
         return
 
     caption = tarot_render.format_card_of_day(card, is_rev, deck)
+    short = tarot_render.format_card_caption_short(card, deck, is_rev)
     img = tarot_render.resolve_image(deck, card)
     if img:
-        await msg.answer_photo(FSInputFile(img), caption=caption[:1024])
+        await msg.answer_photo(FSInputFile(img), caption=short)
+        # полный текст отдельно
+        await send_chunks(msg, caption)
     else:
         await msg.answer(caption)
 

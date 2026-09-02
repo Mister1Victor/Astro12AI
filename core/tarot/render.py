@@ -170,6 +170,18 @@ def format_card_of_day(card: TarotCard, is_reversed: bool, deck: TarotDeck) -> s
     return "\n".join(lines)
 
 
+def format_card_caption_short(card: TarotCard, deck: TarotDeck,
+                              is_reversed: Optional[bool] = None,
+                              emoji: str = "🃏") -> str:
+    """Короткая подпись под фото (всегда < 1024 символов)."""
+    lines = [f"{emoji} {card.name}", f"Колода: {deck.name}"]
+    if is_reversed is not None:
+        lines.append(f"Положение: {ORIENT_REV if is_reversed else ORIENT_UP}")
+    if card.astrology:
+        lines.append(f"🪐 {card.astrology}")
+    return "\n".join(lines)
+
+
 def format_card_detail(card: TarotCard) -> str:
     """Подробная карточка (просмотр в Колодах): весь текст под изображением."""
     lines = [f"🎴 {card.name}"]
