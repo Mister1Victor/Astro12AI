@@ -82,7 +82,7 @@ def load_all_decks() -> Dict[str, TarotDeck]:
         logger.error(f"❌ Папка колод не найдена: {DECKS_ROOT}")
         return decks
     all_dirs = [d for d in sorted(DECKS_ROOT.iterdir())
-                if d.is_dir() and not d.name.startswith(".")]
+                if d.is_dir() and not d.name.startswith("_")]
     logger.info(f"📂 Папка колод: {DECKS_ROOT}")
     logger.info(
         f"📂 Найдено подпапок: {len(all_dirs)} → {[d.name for d in all_dirs]}")
