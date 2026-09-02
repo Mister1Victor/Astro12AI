@@ -43,3 +43,5 @@ images/
 !data/tarot/decks/thoth/images/*.jpg
 
 
+make_snapshot.py
+project_snapshot.txt

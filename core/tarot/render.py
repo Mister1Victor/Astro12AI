@@ -119,8 +119,7 @@ def spread_cards_visual(deck: TarotDeck, drawn, positions: List[str]) -> List[di
 
 # ============================================================
 # ФОРМАТЫ ПОДПИСЕЙ
-# ============================================================
-def format_card_of_day(card: TarotCard, is_reversed: bool, deck: TarotDeck) -> str:
+# ============================================================def format_card_of_day(card: TarotCard, is_reversed: bool, deck: TarotDeck) -> str:
     """Подпись для Карты Дня."""
     orient = ORIENT_REV if is_reversed else ORIENT_UP
     lines = [
@@ -136,28 +135,27 @@ def format_card_of_day(card: TarotCard, is_reversed: bool, deck: TarotDeck) -> s
         lines.append("🪐 Астрология: " + card.astrology)
 
     if card.is_oracle:
-        # Оракул: Карта Дня рассматривается в ОБОИХ вариантах — совет и предупреждение
         if card.upright:
-            lines.append("")
-            lines.append("📖 ЗНАЧЕНИЕ:")
-            lines.append(card.upright)
+            lines += ["", "📖 ЗНАЧЕНИЕ:", card.upright]
         if card.advice:
-            lines.append("")
-            lines.append("💡 СОВЕТ:")
-            lines.append(card.advice)
+            lines += ["", "💡 СОВЕТ:", card.advice]
         if card.warning:
-            lines.append("")
-            lines.append("⚠️ ПРЕДУПРЕЖДЕНИЕ:")
-            lines.append(card.warning)
+            lines += ["", "⚠️ ПРЕДУПРЕЖДЕНИЕ:", card.warning]
+        if card.day_meaning:
+            lines += ["", "🃏 КАРТА ДНЯ:", card.day_meaning]
     else:
         meaning = card.get_meaning(is_reversed)
         if meaning:
-            lines.append("")
-            lines.append("📖 ТОЛКОВАНИЕ:")
-            lines.append(meaning)
+            lines += ["", "📖 ТОЛКОВАНИЕ:", meaning]
+        if card.day_meaning:
+            lines += ["", "🃏 КАРТА ДНЯ:", card.day_meaning]
+        if card.inspires:
+            lines += ["", "🌟 КАРТА СОВЕТУЕТ:", card.inspires]
+        if card.warns:
+            lines += ["", "⚠️ КАРТА ПРЕДУПРЕЖДАЕТ:", card.warns]
+
     if card.description:
-        lines.append("")
-        lines.append("🖼️ " + card.description)
+        lines += ["", "🖼️ " + card.description]
     return "\n".join(lines)
 
 
@@ -170,31 +168,32 @@ def format_card_detail(card: TarotCard) -> str:
         lines.append("🔑 " + ", ".join(card.keywords))
 
     if card.is_oracle:
-        # Оракул: Значение + Совет + Предупреждение
         if card.upright:
-            lines.append("")
-            lines.append("📖 ЗНАЧЕНИЕ:")
-            lines.append(card.upright)
+            lines += ["", "📖 ЗНАЧЕНИЕ:", card.upright]
         if card.advice:
-            lines.append("")
-            lines.append("💡 СОВЕТ:")
-            lines.append(card.advice)
+            lines += ["", "💡 СОВЕТ:", card.advice]
         if card.warning:
-            lines.append("")
-            lines.append("⚠️ ПРЕДУПРЕЖДЕНИЕ:")
-            lines.append(card.warning)
+            lines += ["", "⚠️ ПРЕДУПРЕЖДЕНИЕ:", card.warning]
     else:
         if card.upright:
-            lines.append("")
-            lines.append("✅ ПРЯМОЕ:")
-            lines.append(card.upright)
+            lines += ["", "✅ ПРЯМОЕ:", card.upright]
         if card.reversed:
-            lines.append("")
-            lines.append("🔻 ПЕРЕВЁРНУТОЕ:")
-            lines.append(card.reversed)
+            lines += ["", "🔻 ПЕРЕВЁРНУТОЕ:", card.reversed]
+
+    # Дополнительные разделы (показываются, только если заполнены)
+    if card.business:
+        lines += ["", "💼 В БИЗНЕСЕ И РАБОТЕ:", card.business]
+    if card.relationships:
+        lines += ["", "❤️ В ОТНОШЕНИЯХ:", card.relationships]
+    if card.inspires:
+        lines += ["", "🌟 КАРТА СОВЕТУЕТ (ВДОХНОВЛЯЕТ):", card.inspires]
+    if card.warns:
+        lines += ["", "⚠️ КАРТА ПРЕДУПРЕЖДАЕТ:", card.warns]
+    if card.day_meaning:
+        lines += ["", "🃏 КАРТА ДНЯ:", card.day_meaning]
+
     if card.description:
-        lines.append("")
-        lines.append("🖼️ " + card.description)
+        lines += ["", "🖼️ " + card.description]
     return "\n".join(lines)
 
 

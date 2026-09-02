@@ -34,6 +34,12 @@ def _parse_card(card_data: dict) -> Optional[TarotCard]:
         advice=str(card_data.get("advice", "")).strip(),
         warning=str(card_data.get("warning", "")).strip(),
         group=str(card_data.get("group", "")).strip(),
+        # Новые разделы (для ручного заполнения)
+        business=str(card_data.get("business", "")).strip(),
+        relationships=str(card_data.get("relationships", "")).strip(),
+        inspires=str(card_data.get("inspires", "")).strip(),
+        warns=str(card_data.get("warns", "")).strip(),
+        day_meaning=str(card_data.get("day_meaning", "")).strip(),
     )
 
 
@@ -42,7 +48,6 @@ def load_deck(deck_path: Path) -> Optional[TarotDeck]:
     if not deck_json.exists():
         logger.warning(f"⚠️ deck.json не найден: {deck_json}")
         return None
-
     try:
         with open(deck_json, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -59,7 +64,6 @@ def load_deck(deck_path: Path) -> Optional[TarotDeck]:
         deck_type=str(data.get("deck_type", "tarot")),
         images_dir=str(deck_path / "images"),
     )
-
     for card_data in data.get("cards", []):
         card = _parse_card(card_data)
         if card:
@@ -75,22 +79,21 @@ def load_deck(deck_path: Path) -> Optional[TarotDeck]:
 
 def load_all_decks() -> Dict[str, TarotDeck]:
     decks: Dict[str, TarotDeck] = {}
-
     if not DECKS_ROOT.exists():
         logger.error(f"❌ Папка колод не найдена: {DECKS_ROOT}")
         return decks
-
-    all_dirs = [d for d in sorted(
-        DECKS_ROOT.iterdir()) if d.is_dir() and not d.name.startswith(".")]
+    # Пропускаем служебные папки: скрытые (.) и шаблоны (_) — напр. _template
+    all_dirs = [d for d in sorted(DECKS_ROOT.iterdir())
+                if d.is_dir()
+                and not d.name.startswith(".")
+                and not d.name.startswith("_")]
     logger.info(f"📂 Папка колод: {DECKS_ROOT}")
     logger.info(
         f"📂 Найдено подпапок: {len(all_dirs)} → {[d.name for d in all_dirs]}")
-
     for entry in all_dirs:
         deck = load_deck(entry)
         if deck:
             decks[deck.deck_id] = deck
-
     logger.info(
         f"🎴 Всего загружено колод: {len(decks)} → {list(decks.keys())}")
     return decks
