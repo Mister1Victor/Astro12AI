@@ -7,8 +7,6 @@
     {
       "id": "major_00",
       "name": "Шут (0)",
-      "arcana": "major",
-      "number": 0,
       "image": "major_00.jpg",
       "astrology": "Овен · управитель Марс",
       "keywords": [
@@ -23,13 +21,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 0
     },
     {
       "id": "major_01",
       "name": "Маг (I)",
-      "arcana": "major",
-      "number": 1,
       "image": "major_01.jpg",
       "astrology": "Телец · управитель Венера",
       "keywords": [
@@ -44,13 +42,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 1
     },
     {
       "id": "major_02",
       "name": "Жрица (II)",
-      "arcana": "major",
-      "number": 2,
       "image": "major_02.jpg",
       "astrology": "Близнецы · управитель Меркурий",
       "keywords": [
@@ -65,13 +63,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 2
     },
     {
       "id": "major_03",
       "name": "Императрица (III)",
-      "arcana": "major",
-      "number": 3,
       "image": "major_03.jpg",
       "astrology": "Рак · управитель Луна",
       "keywords": [
@@ -86,13 +84,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 3
     },
     {
       "id": "major_04",
       "name": "Император (IV)",
-      "arcana": "major",
-      "number": 4,
       "image": "major_04.jpg",
       "astrology": "Лев · управитель Солнце",
       "keywords": [
@@ -107,13 +105,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 4
     },
     {
       "id": "major_05",
       "name": "Иерофант (V)",
-      "arcana": "major",
-      "number": 5,
       "image": "major_05.jpg",
       "astrology": "Дева · управитель Эрида",
       "keywords": [
@@ -128,13 +126,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 5
     },
     {
       "id": "major_06",
       "name": "Влюблённые (VI)",
-      "arcana": "major",
-      "number": 6,
       "image": "major_06.jpg",
       "astrology": "Весы · управитель Плутон",
       "keywords": [
@@ -149,13 +147,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 6
     },
     {
       "id": "major_07",
       "name": "Колесница (VII)",
-      "arcana": "major",
-      "number": 7,
       "image": "major_07.jpg",
       "astrology": "Стрелец · управитель Уран",
       "keywords": [
@@ -170,13 +168,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 7
     },
     {
       "id": "major_08",
       "name": "Вожделение (VIII)",
-      "arcana": "major",
-      "number": 8,
       "image": "major_08.jpg",
       "astrology": "Скорпион · управитель Нептун",
       "keywords": [
@@ -191,13 +189,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 8
     },
     {
       "id": "major_09",
       "name": "Отшельник (IX)",
-      "arcana": "major",
-      "number": 9,
       "image": "major_09.jpg",
       "astrology": "Козерог · управитель Сатурн",
       "keywords": [
@@ -212,13 +210,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 9
     },
     {
       "id": "major_10",
       "name": "Колесо Фортуны (X)",
-      "arcana": "major",
-      "number": 10,
       "image": "major_10.jpg",
       "astrology": "Водолей · управитель Юпитер",
       "keywords": [
@@ -233,13 +231,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 10
     },
     {
       "id": "major_11",
       "name": "Справедливость (XI)",
-      "arcana": "major",
-      "number": 11,
       "image": "major_11.jpg",
       "astrology": "Водолей · управитель Юпитер",
       "keywords": [
@@ -254,13 +252,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 11
     },
     {
       "id": "major_12",
       "name": "Повешенный (XII)",
-      "arcana": "major",
-      "number": 12,
       "image": "major_12.jpg",
       "astrology": "Рыбы · управитель Церера",
       "keywords": [
@@ -275,13 +273,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 12
     },
     {
       "id": "major_13",
       "name": "Смерть (XIII)",
-      "arcana": "major",
-      "number": 13,
       "image": "major_13.jpg",
       "astrology": "Козерог · управитель Сатурн",
       "keywords": [
@@ -296,13 +294,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 13
     },
     {
       "id": "major_14",
       "name": "Умеренность (XIV)",
-      "arcana": "major",
-      "number": 14,
       "image": "major_14.jpg",
       "astrology": "Стрелец · управитель Уран",
       "keywords": [
@@ -317,13 +315,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 14
     },
     {
       "id": "major_15",
       "name": "Дьявол (XV)",
-      "arcana": "major",
-      "number": 15,
       "image": "major_15.jpg",
       "astrology": "Скорпион · управитель Нептун",
       "keywords": [
@@ -338,13 +336,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 15
     },
     {
       "id": "major_16",
       "name": "Башня (XVI)",
-      "arcana": "major",
-      "number": 16,
       "image": "major_16.jpg",
       "astrology": "Весы · управитель Плутон",
       "keywords": [
@@ -359,13 +357,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 16
     },
     {
       "id": "major_17",
       "name": "Звезда (XVII)",
-      "arcana": "major",
-      "number": 17,
       "image": "major_17.jpg",
       "astrology": "Дева · управитель Эрида",
       "keywords": [
@@ -380,13 +378,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 17
     },
     {
       "id": "major_18",
       "name": "Луна (XVIII)",
-      "arcana": "major",
-      "number": 18,
       "image": "major_18.jpg",
       "astrology": "Рак · управитель Луна",
       "keywords": [
@@ -401,13 +399,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 18
     },
     {
       "id": "major_19",
       "name": "Солнце (XIX)",
-      "arcana": "major",
-      "number": 19,
       "image": "major_19.jpg",
       "astrology": "Лев · управитель Солнце",
       "keywords": [
@@ -422,13 +420,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 19
     },
     {
       "id": "major_20",
       "name": "Суд (XX)",
-      "arcana": "major",
-      "number": 20,
       "image": "major_20.jpg",
       "astrology": "Близнецы · управитель Меркурий",
       "keywords": [
@@ -443,13 +441,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 20
     },
     {
       "id": "major_21",
       "name": "Мир (XXI)",
-      "arcana": "major",
-      "number": 21,
       "image": "major_21.jpg",
       "astrology": "Телец · управитель Венера",
       "keywords": [
@@ -464,14 +462,13 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "major",
+      "number": 21
     },
     {
       "id": "wands_ace",
       "name": "Туз Жезлов",
-      "arcana": "minor",
-      "suit": "wands",
-      "number": 1,
       "image": "wands_ace.jpg",
       "astrology": "Корень стихии Огня",
       "keywords": [
@@ -486,14 +483,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "wands",
+      "number": 1
     },
     {
       "id": "cups_ace",
       "name": "Туз Кубков",
-      "arcana": "minor",
-      "suit": "cups",
-      "number": 1,
       "image": "cups_ace.jpg",
       "astrology": "Корень стихии Воды",
       "keywords": [
@@ -508,14 +505,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "cups",
+      "number": 1
     },
     {
       "id": "swords_ace",
       "name": "Туз Мечей",
-      "arcana": "minor",
-      "suit": "swords",
-      "number": 1,
       "image": "swords_ace.jpg",
       "astrology": "Корень стихии Воздуха",
       "keywords": [
@@ -530,14 +527,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "swords",
+      "number": 1
     },
     {
       "id": "pentacles_ace",
       "name": "Туз Пентаклей",
-      "arcana": "minor",
-      "suit": "pentacles",
-      "number": 1,
       "image": "pentacles_ace.jpg",
       "astrology": "Корень стихии Земли",
       "keywords": [
@@ -552,14 +549,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "number": 1
     },
     {
       "id": "wands_2",
       "name": "Власть (2 Жезлов)",
-      "arcana": "minor",
-      "suit": "wands",
-      "number": 2,
       "image": "wands_2.jpg",
       "astrology": "Марс в Овен",
       "keywords": [
@@ -574,14 +571,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "wands",
+      "number": 2
     },
     {
       "id": "wands_3",
       "name": "Добродетель (3 Жезлов)",
-      "arcana": "minor",
-      "suit": "wands",
-      "number": 3,
       "image": "wands_3.jpg",
       "astrology": "Венера в Овен",
       "keywords": [
@@ -596,14 +593,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "wands",
+      "number": 3
     },
     {
       "id": "wands_4",
       "name": "Завершение (4 Жезлов)",
-      "arcana": "minor",
-      "suit": "wands",
-      "number": 4,
       "image": "wands_4.jpg",
       "astrology": "Меркурий в Овен",
       "keywords": [
@@ -618,14 +615,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "wands",
+      "number": 4
     },
     {
       "id": "pentacles_5",
       "name": "Тревога (5 Пентаклей)",
-      "arcana": "minor",
-      "suit": "pentacles",
-      "number": 5,
       "image": "pentacles_5.jpg",
       "astrology": "Луна в Телец",
       "keywords": [
@@ -640,14 +637,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "number": 5
     },
     {
       "id": "pentacles_6",
       "name": "Успех (6 Пентаклей)",
-      "arcana": "minor",
-      "suit": "pentacles",
-      "number": 6,
       "image": "pentacles_6.jpg",
       "astrology": "Солнце в Телец",
       "keywords": [
@@ -662,14 +659,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "number": 6
     },
     {
       "id": "pentacles_7",
       "name": "Неудача (7 Пентаклей)",
-      "arcana": "minor",
-      "suit": "pentacles",
-      "number": 7,
       "image": "pentacles_7.jpg",
       "astrology": "Эрида в Телец",
       "keywords": [
@@ -684,14 +681,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "number": 7
     },
     {
       "id": "swords_8",
       "name": "Вмешательство (8 Мечей)",
-      "arcana": "minor",
-      "suit": "swords",
-      "number": 8,
       "image": "swords_8.jpg",
       "astrology": "Плутон в Близнецы",
       "keywords": [
@@ -706,14 +703,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "swords",
+      "number": 8
     },
     {
       "id": "swords_9",
       "name": "Жестокость (9 Мечей)",
-      "arcana": "minor",
-      "suit": "swords",
-      "number": 9,
       "image": "swords_9.jpg",
       "astrology": "Нептун в Близнецы",
       "keywords": [
@@ -728,14 +725,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "swords",
+      "number": 9
     },
     {
       "id": "swords_10",
       "name": "Крах (10 Мечей)",
-      "arcana": "minor",
-      "suit": "swords",
-      "number": 10,
       "image": "swords_10.jpg",
       "astrology": "Уран в Близнецы",
       "keywords": [
@@ -750,14 +747,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "swords",
+      "number": 10
     },
     {
       "id": "cups_2",
       "name": "Любовь (2 Кубков)",
-      "arcana": "minor",
-      "suit": "cups",
-      "number": 2,
       "image": "cups_2.jpg",
       "astrology": "Сатурн в Рак",
       "keywords": [
@@ -772,14 +769,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "cups",
+      "number": 2
     },
     {
       "id": "cups_3",
       "name": "Изобилие (3 Кубков)",
-      "arcana": "minor",
-      "suit": "cups",
-      "number": 3,
       "image": "cups_3.jpg",
       "astrology": "Юпитер в Рак",
       "keywords": [
@@ -794,14 +791,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "cups",
+      "number": 3
     },
     {
       "id": "cups_4",
       "name": "Роскошь (4 Кубков)",
-      "arcana": "minor",
-      "suit": "cups",
-      "number": 4,
       "image": "cups_4.jpg",
       "astrology": "Церера в Рак",
       "keywords": [
@@ -816,14 +813,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "cups",
+      "number": 4
     },
     {
       "id": "wands_5",
       "name": "Борьба (5 Жезлов)",
-      "arcana": "minor",
-      "suit": "wands",
-      "number": 5,
       "image": "wands_5.jpg",
       "astrology": "Марс в Лев",
       "keywords": [
@@ -838,14 +835,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "wands",
+      "number": 5
     },
     {
       "id": "wands_6",
       "name": "Победа (6 Жезлов)",
-      "arcana": "minor",
-      "suit": "wands",
-      "number": 6,
       "image": "wands_6.jpg",
       "astrology": "Венера в Лев",
       "keywords": [
@@ -861,14 +858,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "wands",
+      "number": 6
     },
     {
       "id": "wands_7",
       "name": "Доблесть (7 Жезлов)",
-      "arcana": "minor",
-      "suit": "wands",
-      "number": 7,
       "image": "wands_7.jpg",
       "astrology": "Меркурий в Лев",
       "keywords": [
@@ -883,14 +880,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "wands",
+      "number": 7
     },
     {
       "id": "pentacles_8",
       "name": "Благоразумие (8 Пентаклей)",
-      "arcana": "minor",
-      "suit": "pentacles",
-      "number": 8,
       "image": "pentacles_8.jpg",
       "astrology": "Луна в Дева",
       "keywords": [
@@ -905,14 +902,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "number": 8
     },
     {
       "id": "pentacles_9",
       "name": "Прибыль (9 Пентаклей)",
-      "arcana": "minor",
-      "suit": "pentacles",
-      "number": 9,
       "image": "pentacles_9.jpg",
       "astrology": "Солнце в Дева",
       "keywords": [
@@ -927,14 +924,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "number": 9
     },
     {
       "id": "pentacles_10",
       "name": "Богатство (10 Пентаклей)",
-      "arcana": "minor",
-      "suit": "pentacles",
-      "number": 10,
       "image": "pentacles_10.jpg",
       "astrology": "Эрида в Дева",
       "keywords": [
@@ -949,14 +946,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "number": 10
     },
     {
       "id": "swords_2",
       "name": "Покой (2 Мечей)",
-      "arcana": "minor",
-      "suit": "swords",
-      "number": 2,
       "image": "swords_2.jpg",
       "astrology": "Плутон в Весы",
       "keywords": [
@@ -971,14 +968,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "swords",
+      "number": 2
     },
     {
       "id": "swords_3",
       "name": "Скорбь (3 Мечей)",
-      "arcana": "minor",
-      "suit": "swords",
-      "number": 3,
       "image": "swords_3.jpg",
       "astrology": "Нептун в Весы",
       "keywords": [
@@ -993,14 +990,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "swords",
+      "number": 3
     },
     {
       "id": "swords_4",
       "name": "Перемирие (4 Мечей)",
-      "arcana": "minor",
-      "suit": "swords",
-      "number": 4,
       "image": "swords_4.jpg",
       "astrology": "Уран в Весы",
       "keywords": [
@@ -1015,14 +1012,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "swords",
+      "number": 4
     },
     {
       "id": "cups_5",
       "name": "Разочарование (5 Кубков)",
-      "arcana": "minor",
-      "suit": "cups",
-      "number": 5,
       "image": "cups_5.jpg",
       "astrology": "Сатурн в Скорпион",
       "keywords": [
@@ -1037,14 +1034,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "cups",
+      "number": 5
     },
     {
       "id": "cups_6",
       "name": "Удовольствие (6 Кубков)",
-      "arcana": "minor",
-      "suit": "cups",
-      "number": 6,
       "image": "cups_6.jpg",
       "astrology": "Юпитер в Скорпион",
       "keywords": [
@@ -1059,14 +1056,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "cups",
+      "number": 6
     },
     {
       "id": "cups_7",
       "name": "Разврат (7 Кубков)",
-      "arcana": "minor",
-      "suit": "cups",
-      "number": 7,
       "image": "cups_7.jpg",
       "astrology": "Церера в Скорпион",
       "keywords": [
@@ -1081,14 +1078,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "cups",
+      "number": 7
     },
     {
       "id": "wands_8",
       "name": "Скорость (8 Жезлов)",
-      "arcana": "minor",
-      "suit": "wands",
-      "number": 8,
       "image": "wands_8.jpg",
       "astrology": "Марс в Стрелец",
       "keywords": [
@@ -1103,14 +1100,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "wands",
+      "number": 8
     },
     {
       "id": "wands_9",
       "name": "Сила (9 Жезлов)",
-      "arcana": "minor",
-      "suit": "wands",
-      "number": 9,
       "image": "wands_9.jpg",
       "astrology": "Венера в Стрелец",
       "keywords": [
@@ -1125,14 +1122,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "wands",
+      "number": 9
     },
     {
       "id": "wands_10",
       "name": "Угнетение (10 Жезлов)",
-      "arcana": "minor",
-      "suit": "wands",
-      "number": 10,
       "image": "wands_10.jpg",
       "astrology": "Меркурий в Стрелец",
       "keywords": [
@@ -1147,14 +1144,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "wands",
+      "number": 10
     },
     {
       "id": "pentacles_2",
       "name": "Изменение (2 Пентаклей)",
-      "arcana": "minor",
-      "suit": "pentacles",
-      "number": 2,
       "image": "pentacles_2.jpg",
       "astrology": "Луна в Козерог",
       "keywords": [
@@ -1169,14 +1166,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "number": 2
     },
     {
       "id": "pentacles_3",
       "name": "Труды (3 Пентаклей)",
-      "arcana": "minor",
-      "suit": "pentacles",
-      "number": 3,
       "image": "pentacles_3.jpg",
       "astrology": "Солнце в Козерог",
       "keywords": [
@@ -1191,14 +1188,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "number": 3
     },
     {
       "id": "pentacles_4",
       "name": "Власть (4 Пентаклей)",
-      "arcana": "minor",
-      "suit": "pentacles",
-      "number": 4,
       "image": "pentacles_4.jpg",
       "astrology": "Эрида в Козерог",
       "keywords": [
@@ -1213,14 +1210,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "number": 4
     },
     {
       "id": "swords_5",
       "name": "Поражение (5 Мечей)",
-      "arcana": "minor",
-      "suit": "swords",
-      "number": 5,
       "image": "swords_5.jpg",
       "astrology": "Плутон в Водолей",
       "keywords": [
@@ -1235,14 +1232,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "swords",
+      "number": 5
     },
     {
       "id": "swords_6",
       "name": "Наука (6 Мечей)",
-      "arcana": "minor",
-      "suit": "swords",
-      "number": 6,
       "image": "swords_6.jpg",
       "astrology": "Нептун в Водолей",
       "keywords": [
@@ -1257,14 +1254,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "swords",
+      "number": 6
     },
     {
       "id": "swords_7",
       "name": "Тщеславие (7 Мечей)",
-      "arcana": "minor",
-      "suit": "swords",
-      "number": 7,
       "image": "swords_7.jpg",
       "astrology": "Уран в Водолей",
       "keywords": [
@@ -1279,14 +1276,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "swords",
+      "number": 7
     },
     {
       "id": "cups_8",
       "name": "Вялость (8 Кубков)",
-      "arcana": "minor",
-      "suit": "cups",
-      "number": 8,
       "image": "cups_8.jpg",
       "astrology": "Сатурн в Рыбы",
       "keywords": [
@@ -1301,14 +1298,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "cups",
+      "number": 8
     },
     {
       "id": "cups_9",
       "name": "Счастье (9 Кубков)",
-      "arcana": "minor",
-      "suit": "cups",
-      "number": 9,
       "image": "cups_9.jpg",
       "astrology": "Юпитер в Рыбы",
       "keywords": [
@@ -1323,14 +1320,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "cups",
+      "number": 9
     },
     {
       "id": "cups_10",
       "name": "Пресыщение (10 Кубков)",
-      "arcana": "minor",
-      "suit": "cups",
-      "number": 10,
       "image": "cups_10.jpg",
       "astrology": "Церера в Рыбы",
       "keywords": [
@@ -1344,14 +1341,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "cups",
+      "number": 10
     },
     {
       "id": "swords_king",
       "name": "Рыцарь Мечей",
-      "arcana": "minor",
-      "suit": "swords",
-      "number": 14,
       "image": "swords_king.jpg",
       "astrology": "Венера и Меркурий (20° Тельца — 10° Близнецов)",
       "keywords": [
@@ -1366,14 +1363,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "swords",
+      "number": 14
     },
     {
       "id": "swords_queen",
       "name": "Королева Мечей",
-      "arcana": "minor",
-      "suit": "swords",
-      "number": 13,
       "image": "swords_queen.jpg",
       "astrology": "Эрида и Плутон (20° Девы — 10° Весов)",
       "keywords": [
@@ -1388,14 +1385,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "swords",
+      "number": 13
     },
     {
       "id": "swords_knight",
       "name": "Принц Мечей",
-      "arcana": "minor",
-      "suit": "swords",
-      "number": 12,
       "image": "swords_knight.jpg",
       "astrology": "Сатурн и Юпитер (20° Козерога — 10° Водолея)",
       "keywords": [
@@ -1410,14 +1407,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "swords",
+      "number": 12
     },
     {
       "id": "cups_king",
       "name": "Рыцарь Кубков",
-      "arcana": "minor",
-      "suit": "cups",
-      "number": 14,
       "image": "cups_king.jpg",
       "astrology": "Юпитер и Церера (20° Водолея — 10° Рыб)",
       "keywords": [
@@ -1432,14 +1429,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "cups",
+      "number": 14
     },
     {
       "id": "cups_queen",
       "name": "Королева Кубков",
-      "arcana": "minor",
-      "suit": "cups",
-      "number": 13,
       "image": "cups_queen.jpg",
       "astrology": "Меркурий и Луна (20° Близнецов — 10° Рака)",
       "keywords": [
@@ -1454,14 +1451,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "cups",
+      "number": 13
     },
     {
       "id": "cups_knight",
       "name": "Принц Кубков",
-      "arcana": "minor",
-      "suit": "cups",
-      "number": 12,
       "image": "cups_knight.jpg",
       "astrology": "Плутон и Нептун (20° Весов — 10° Скорпиона)",
       "keywords": [
@@ -1476,14 +1473,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "cups",
+      "number": 12
     },
     {
       "id": "wands_king",
       "name": "Рыцарь Жезлов",
-      "arcana": "minor",
-      "suit": "wands",
-      "number": 14,
       "image": "wands_king.jpg",
       "astrology": "Нептун и Уран (20° Скорпиона — 10° Стрельца)",
       "keywords": [
@@ -1498,14 +1495,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "wands",
+      "number": 14
     },
     {
       "id": "wands_queen",
       "name": "Королева Жезлов",
-      "arcana": "minor",
-      "suit": "wands",
-      "number": 13,
       "image": "wands_queen.jpg",
       "astrology": "Церера и Марс (20° Рыб — 10° Овна)",
       "keywords": [
@@ -1520,14 +1517,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "wands",
+      "number": 13
     },
     {
       "id": "wands_knight",
       "name": "Принц Жезлов",
-      "arcana": "minor",
-      "suit": "wands",
-      "number": 12,
       "image": "wands_knight.jpg",
       "astrology": "Луна и Солнце (20° Рака — 10° Льва)",
       "keywords": [
@@ -1542,14 +1539,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "wands",
+      "number": 12
     },
     {
       "id": "pentacles_king",
       "name": "Рыцарь Пентаклей",
-      "arcana": "minor",
-      "suit": "pentacles",
-      "number": 14,
       "image": "pentacles_king.jpg",
       "astrology": "Солнце и Эрида (20° Льва — 10° Девы)",
       "keywords": [
@@ -1564,14 +1561,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "number": 14
     },
     {
       "id": "pentacles_queen",
       "name": "Королева Пентаклей",
-      "arcana": "minor",
-      "suit": "pentacles",
-      "number": 13,
       "image": "pentacles_queen.jpg",
       "astrology": "Уран и Сатурн (20° Стрельца — 10° Козерога)",
       "keywords": [
@@ -1586,14 +1583,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "number": 13
     },
     {
       "id": "pentacles_knight",
       "name": "Принц Пентаклей",
-      "arcana": "minor",
-      "suit": "pentacles",
-      "number": 12,
       "image": "pentacles_knight.jpg",
       "astrology": "Марс и Венера (20° Овна — 10° Тельца)",
       "keywords": [
@@ -1608,14 +1605,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "number": 12
     },
     {
       "id": "wands_page",
       "name": "Принцесса Жезлов",
-      "arcana": "minor",
-      "suit": "wands",
-      "number": 11,
       "image": "wands_page.jpg",
       "astrology": "Земной престол стихии Огня (без зодиакальной привязки)",
       "keywords": [
@@ -1630,14 +1627,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "wands",
+      "number": 11
     },
     {
       "id": "cups_page",
       "name": "Принцесса Кубков",
-      "arcana": "minor",
-      "suit": "cups",
-      "number": 11,
       "image": "cups_page.jpg",
       "astrology": "Земной престол стихии Воды (без зодиакальной привязки)",
       "keywords": [
@@ -1652,14 +1649,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "cups",
+      "number": 11
     },
     {
       "id": "swords_page",
       "name": "Принцесса Мечей",
-      "arcana": "minor",
-      "suit": "swords",
-      "number": 11,
       "image": "swords_page.jpg",
       "astrology": "Земной престол стихии Воздуха (без зодиакальной привязки)",
       "keywords": [
@@ -1674,14 +1671,14 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "swords",
+      "number": 11
     },
     {
       "id": "pentacles_page",
       "name": "Принцесса Пентаклей",
-      "arcana": "minor",
-      "suit": "pentacles",
-      "number": 11,
       "image": "pentacles_page.jpg",
       "astrology": "Земной престол стихии Земли (без зодиакальной привязки)",
       "keywords": [
@@ -1696,7 +1693,10 @@
       "relationships": "",
       "inspires": "",
       "warns": "",
-      "day_meaning": ""
+      "day_meaning": "",
+      "arcana": "minor",
+      "suit": "pentacles",
+      "number": 11
     }
   ]
 }
