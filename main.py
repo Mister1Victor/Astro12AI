@@ -384,6 +384,13 @@ async def send_chunks(msg: types.Message, text: str):
         await msg.answer(chunk)
 
 
+async def send_chunks_with_kb(msg: types.Message, text: str, kb):
+    """Отправка текста по фрагментам; клавиатура kb крепится к ПОСЛЕДНЕМУ фрагменту."""
+    chunks = split_text_for_telegram(text, 3900)
+    for i, chunk in enumerate(chunks):
+        await msg.answer(chunk, reply_markup=(kb if i == len(chunks) - 1 else None))
+
+
 async def send_chunks_with_nav(msg: types.Message, text: str, back_callback: str):
     """Отправка текста по фрагментам; к ПОСЛЕДНЕМУ фрагменту крепит клавиатуру Назад/Главное меню."""
     chunks = split_text_for_telegram(text, 3900)
@@ -628,32 +635,30 @@ async def cod_shuffle(callback: types.CallbackQuery):
         return
 
     caption = tarot_render.format_card_of_day(card, is_reversed, deck)
-    short = tarot_render.format_card_caption_short(card, deck, is_reversed)
+    short = f"🃏 {card.name} — {deck.name}"
     kb = tarot_kb.card_result_keyboard(deck_id)
     img = tarot_render.resolve_image(deck, card)
 
     if callback.message.content_type == ContentType.PHOTO and img:
         try:
             media = InputMediaPhoto(media=FSInputFile(img), caption=short)
-            await callback.message.edit_media(media, reply_markup=kb)
-            # полный текст отдельно
-            await send_chunks(callback.message, caption)
+            await callback.message.edit_media(media)
+            await send_chunks_with_kb(callback.message, caption, kb)
             return
         except TelegramBadRequest as e:
             logger.warning(f"⚠️ edit_media не удался: {e}")
 
     if img:
-        await callback.message.answer_photo(FSInputFile(img), caption=short, reply_markup=kb)
-        # полный текст отдельно
-        await send_chunks(callback.message, caption)
+        await callback.message.answer_photo(FSInputFile(img), caption=short)
+        await send_chunks_with_kb(callback.message, caption, kb)
     else:
-        await callback.message.answer(caption, reply_markup=kb)
-        await callback.message.answer_photo(FSInputFile(img), caption=caption[:1024], reply_markup=kb)
-
+        await send_chunks_with_kb(callback.message, caption, kb)
 
 # ============================================================
 # ТАРО: КОЛОДЫ (просмотр)
 # ============================================================
+
+
 @dp.callback_query(F.data == "tarot_decks")
 async def tarot_decks_cb(callback: types.CallbackQuery):
     logger.info("🔘 Callback: tarot_decks")
@@ -842,16 +847,16 @@ async def _run_simple_spread(msg: types.Message, stype: str, deck, user_id: int)
             await msg.answer("⚠️ Не удалось вытянуть карту.",
                              reply_markup=tarot_kb.spread_done_keyboard("tarot_spreads"))
             return
+
         caption = tarot_render.format_card_of_day(card, is_rev, deck)
-        short = tarot_render.format_card_caption_short(card, deck, is_rev)
+        short = f"🃏 {card.name} — {deck.name}"
         img = tarot_render.resolve_image(deck, card)
         kb = tarot_kb.spread_done_keyboard("tarot_spreads")
         if img:
-            await msg.answer_photo(FSInputFile(img), caption=short, reply_markup=kb)
-            # полный текст отдельно
-            await send_chunks(msg, caption)
+            await msg.answer_photo(FSInputFile(img), caption=short)
+            await send_chunks_with_kb(msg, caption, kb)
         else:
-            await msg.answer(caption, reply_markup=kb)
+            await send_chunks_with_kb(msg, caption, kb)
 
     elif stype == "three":
         drawn = tarot.draw_three_cards(deck.deck_id, user_id)
@@ -960,14 +965,13 @@ async def _run_cod_question(msg: types.Message, deck, user_id: int):
         return
 
     caption = tarot_render.format_card_of_day(card, is_rev, deck)
-    short = tarot_render.format_card_caption_short(card, deck, is_rev)
+    short = f"🃏 {card.name} — {deck.name}"
     img = tarot_render.resolve_image(deck, card)
     if img:
         await msg.answer_photo(FSInputFile(img), caption=short)
-        # полный текст отдельно
         await send_chunks(msg, caption)
     else:
-        await msg.answer(caption)
+        await send_chunks(msg, caption)
 
     await bot.send_chat_action(chat_id=msg.chat.id, action=ChatAction.TYPING)
     question = (
