@@ -649,8 +649,6 @@ async def cod_shuffle(callback: types.CallbackQuery):
     else:
         await callback.message.answer(caption, reply_markup=kb)
         await callback.message.answer_photo(FSInputFile(img), caption=caption[:1024], reply_markup=kb)
-    else:
-        await callback.message.answer(caption, reply_markup=kb)
 
 
 # ============================================================
