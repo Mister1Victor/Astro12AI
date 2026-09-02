@@ -757,22 +757,39 @@ async def deck_card(callback: types.CallbackQuery):
         return
 
     caption = tarot_render.format_card_detail(card)
-    short = tarot_render.format_card_caption_short(card, deck, emoji="🎴")
     img = tarot_render.resolve_image(deck, card)
+    # «К списку карт» + «Главное меню»
     kb = tarot_kb.back_to_deck_keyboard(deck_id)
 
     if img:
-        await callback.message.answer_photo(FSInputFile(img), caption=short, reply_markup=kb)
-        # полный текст отдельно
-        await send_chunks(callback.message, caption)
+        # Фото с короткой подписью (без кнопок)
+        await callback.message.answer_photo(
+            FSInputFile(img), caption=f"🎴 {card.name} — {deck.name}")
+        # Полное описание; кнопки — на ПОСЛЕДНЕМ сообщении
+        chunks = split_text_for_telegram(caption, 3900)
+        for i, chunk in enumerate(chunks):
+            last = (i == len(chunks) - 1)
+            await callback.message.answer(
+                chunk, reply_markup=(kb if last else None))
     else:
-        if not await safe_edit_text(callback.message, caption, reply_markup=kb):
-            await callback.message.answer(caption, reply_markup=kb)
-
+        # Без картинки: редактируем/шлём текст, кнопки — на последнем сообщении
+        chunks = split_text_for_telegram(caption, 3900)
+        for i, chunk in enumerate(chunks):
+            last = (i == len(chunks) - 1)
+            if i == 0:
+                if not await safe_edit_text(callback.message, chunk,
+                                            reply_markup=(kb if last else None)):
+                    await callback.message.answer(
+                        chunk, reply_markup=(kb if last else None))
+            else:
+                await callback.message.answer(
+                    chunk, reply_markup=(kb if last else None))
 
 # ============================================================
 # ТАРО: РАСКЛАДЫ (простые) — С ВЫБОРОМ КОЛОДЫ
 # ============================================================
+
+
 @dp.callback_query(F.data == "tarot_spreads")
 async def tarot_spreads(callback: types.CallbackQuery):
     logger.info("🔘 Callback: tarot_spreads")
