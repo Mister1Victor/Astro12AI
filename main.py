@@ -91,6 +91,9 @@ class AppStates(StatesGroup):
     waiting_choice_essence = State()
     waiting_choice_option_a = State()
     waiting_choice_option_b = State()
+# 🆕 Состояния ожидания повтора после ошибки ИИ
+    waiting_tarot_retry = State()
+    waiting_tarot_retry_choice = State()
 
 
 # ============================================================
@@ -240,12 +243,22 @@ async def get_ai_interpretation(query: str) -> str:
             return answer_text
 
         except Exception as e:
+            error_msg = str(e).lower()
+            # Обработка rate limit (429) от Groq free tier
+            if "429" in error_msg or "rate_limit" in error_msg or "too many requests" in error_msg:
+                logger.warning(f"⚠️ Groq rate limit (429): {e}")
+                return ("⏳ **Сервис ИИ временно перегружен**\n\n"
+                        "Бесплатный лимит Groq исчерпан. Попробуйте ещё раз через 1-2 минуты, "
+                        "когда счётчик токенов обновится.")
+
             logger.warning(
                 f"⚠️ Ошибка вызова ИИ (попытка {attempt + 1}/3): {e}")
             if attempt < 2:
+                logger.info(f"⏳ Повторная попытка через 3 секунды...")
                 await asyncio.sleep(3 * (attempt + 1))
             else:
-                logger.error(f"❌ Все попытки исчерпаны: {e}")
+                logger.error(
+                    f"❌ Все 3 попытки исчерпаны. Последняя ошибка: {e}")
 
     return "❌ Извините, шлюз ИИ-интерпретации перегружен. Повторите запрос через 5–10 минут."
 
@@ -334,10 +347,18 @@ async def get_tarot_ai_interpretation(question: str, drawn, deck_name: str,
             logger.info(f"🎴 ТАРО ответ: {len(text)} символов")
             return text
         except Exception as e:
+            error_msg = str(e).lower()
+            # Обработка rate limit (429) от Groq free tier
+            if "429" in error_msg or "rate_limit" in error_msg or "too many requests" in error_msg:
+                logger.warning(f"⚠️ Groq rate limit (429): {e}")
+                return ("⏳ **Сервис ИИ временно перегружен**\n\n"
+                        "Бесплатный лимит Groq исчерпан. Попробуйте ещё раз через 1-2 минуты, "
+                        "когда счётчик токенов обновится.")
+
             logger.warning(f"⚠️ Ошибка ТАРО-ИИ (попытка {attempt + 1}/3): {e}")
             if attempt < 2:
                 await asyncio.sleep(3 * (attempt + 1))
-    return "❌ Не удалось получить толкование Таро. Попробуйте ещё раз."
+    return None  # ошибка — обработчики покажут кнопку повтора
 # ============================================================
 # УТИЛИТЫ
 # ============================================================
@@ -940,7 +961,7 @@ async def question_spread(callback: types.CallbackQuery, state: FSMContext):
         if spread_type == "choice":
             await _start_choice_fsm(callback.message, deck, state)
         elif spread_type == "cod":
-            await _run_cod_question(callback.message, deck, callback.from_user.id)
+            await _run_cod_question(callback.message, deck, callback.from_user.id, state)
         else:
             await _start_question_fsm(callback.message, spread_type, deck, state)
     else:
@@ -965,7 +986,7 @@ async def question_deck_pick(callback: types.CallbackQuery, state: FSMContext):
     if spread_type == "choice":
         await _start_choice_fsm(callback.message, deck, state)
     elif spread_type == "cod":
-        await _run_cod_question(callback.message, deck, callback.from_user.id)
+        await _run_cod_question(callback.message, deck, callback.from_user.id, state)
     else:
         await _start_question_fsm(callback.message, spread_type, deck, state)
 
@@ -995,7 +1016,7 @@ async def _start_question_fsm(msg: types.Message, spread_type: str, deck, state:
         await msg.answer(text, parse_mode="HTML", reply_markup=tarot_kb.back_to_main_keyboard())
 
 
-async def _run_cod_question(msg: types.Message, deck, user_id: int):
+async def _run_cod_question(msg: types.Message, deck, user_id: int, state: FSMContext = None):
     """«Карта Дня» в разделе Вопрос: тянем карту и отправляем в RAG на интерпретацию."""
     card, is_rev = tarot.card_of_the_day(deck.deck_id, user_id)
     if not card:
@@ -1017,13 +1038,24 @@ async def _run_cod_question(msg: types.Message, deck, user_id: int):
         "Карта Дня: какая энергия сегодня главная, чего ожидать, "
         "на что обратить внимание и каков совет дня."
     )
-    interpretation = await get_tarot_ai_interpretation(
-        question, [(card, is_rev)], deck.name, deck_id=deck.deck_id)
+    interpretation = await get_tarot_ai_interpretation(question, [(card, is_rev)], deck.name)
     if interpretation:
         await send_chunks_with_nav(msg, interpretation, "tarot_question")
     else:
-        await msg.answer("⚠️ Не удалось получить толкование.",
-                         reply_markup=tarot_kb.spread_done_keyboard("tarot_question"))
+        if state:
+            await state.set_state(AppStates.waiting_tarot_retry)
+            await state.update_data(
+                drawn_ids=[(card.card_id, is_rev)],
+                deck_id=deck.deck_id,
+                question=question,
+                position_kinds=None,
+                is_choice=False,
+            )
+        await msg.answer(
+            "⚠️ Сервис ИИ временно недоступен. Нажмите кнопку ниже, чтобы повторить "
+            "запрос с той же картой.",
+            reply_markup=tarot_kb.retry_tarot_keyboard()
+        )
 
 
 async def _start_choice_fsm(msg: types.Message, deck, state: FSMContext):
@@ -1039,7 +1071,7 @@ async def _start_choice_fsm(msg: types.Message, deck, state: FSMContext):
         await msg.answer(text, parse_mode="HTML", reply_markup=tarot_kb.back_to_main_keyboard())
 
 
-async def _run_question_spread(msg: types.Message, spread_type: str, deck, user_id: int, question: str):
+async def _run_question_spread(msg: types.Message, spread_type: str, deck, user_id: int, question: str, state: FSMContext = None):
     """Расклад на вопрос: альбом карт + расшифровка + ИИ-ответ + финальная навигация."""
     question_for_llm = question
     position_kinds = None
@@ -1103,13 +1135,24 @@ async def _run_question_spread(msg: types.Message, spread_type: str, deck, user_
     await send_chunks(msg, caption)
 
     await bot.send_chat_action(chat_id=msg.chat.id, action=ChatAction.TYPING)
-    interpretation = await get_tarot_ai_interpretation(
-        question_for_llm, drawn, deck.name, position_kinds, deck_id=deck.deck_id)
+    interpretation = await get_tarot_ai_interpretation(question_for_llm, drawn, deck.name, position_kinds)
     if interpretation:
         await send_chunks_with_nav(msg, interpretation, "tarot_question")
     else:
-        await msg.answer("⚠️ Не удалось получить толкование.",
-                         reply_markup=tarot_kb.spread_done_keyboard("tarot_question"))
+        if state:
+            await state.set_state(AppStates.waiting_tarot_retry)
+            await state.update_data(
+                drawn_ids=[(c.card_id, rev) for c, rev in drawn],
+                deck_id=deck.deck_id,
+                question=question_for_llm,
+                position_kinds=position_kinds,
+                is_choice=False,
+            )
+        await msg.answer(
+            "⚠️ Сервис ИИ временно недоступен. Нажмите кнопку ниже, чтобы повторить "
+            "запрос с теми же вытянутыми картами.",
+            reply_markup=tarot_kb.retry_tarot_keyboard()
+        )
 
 # ============================================================
 # ВАРИАНТ ВЫБОРА: FSM
@@ -1164,19 +1207,31 @@ async def choice_option_b(message: types.Message, state: FSMContext):
     # Позиции: достоинство(+) / недостаток(-) / исход — для обоих вариантов; совет — как Карта Дня
     choice_kinds = ["positive", "negative", "neutral",
                     "positive", "negative", "neutral", "day"]
+
     interpretation = await get_tarot_ai_interpretation(
         f"Вариант выбора: {essence}. Вариант 1: {option_a}. Вариант 2: {option_b}.",
         drawn,
         deck.name,
-        choice_kinds,
-        deck_id=deck.deck_id
+        choice_kinds
     )
-
     if interpretation:
         await send_chunks_with_nav(message, interpretation, "tarot_question")
     else:
-        await message.answer("⚠️ Не удалось получить толкование.",
-                             reply_markup=tarot_kb.spread_done_keyboard("tarot_question"))
+        await state.set_state(AppStates.waiting_tarot_retry_choice)
+        await state.update_data(
+            drawn_ids=[(c.card_id, rev) for c, rev in drawn],
+            deck_id=deck.deck_id,
+            question=f"Вариант выбора: {essence}. Вариант 1: {option_a}. Вариант 2: {option_b}.",
+            position_kinds=choice_kinds,
+            essence=essence,
+            option_a=option_a,
+            option_b=option_b,
+        )
+        await message.answer(
+            "⚠️ Сервис ИИ временно недоступен. Нажмите кнопку ниже, чтобы повторить "
+            "запрос с теми же вытянутыми картами.",
+            reply_markup=tarot_kb.retry_tarot_keyboard()
+        )
 
 # ============================================================
 # ВОПРОС ТАРО: текст вопроса → расклад → ИИ-интерпретация
@@ -1204,7 +1259,7 @@ async def handle_question_text(message: types.Message, state: FSMContext):
         return
 
     await message.answer(f"🔮 Тяну карты из колоды «{deck.name}»...")
-    await _run_question_spread(message, spread_type, deck, user_id, question)
+    await _run_question_spread(message, spread_type, deck, user_id, question, state)
 
 # ============================================================
 # АСТРОЛОГИЯ: текст
@@ -1224,10 +1279,61 @@ async def handle_default_text(message: types.Message, state: FSMContext):
         return
     await process_astro_request(message, message.text)
 
+# ============================================================
+# ПОВТОР ТОЛКОВАНИЯ (после ошибки ИИ)
+# ============================================================
+
+
+@dp.callback_query(F.data == "retry_tarot",
+                   StateFilter(AppStates.waiting_tarot_retry,
+                               AppStates.waiting_tarot_retry_choice))
+async def retry_tarot(callback: types.CallbackQuery, state: FSMContext):
+    """Повторяет запрос к LLM с теми же картами, что и в прошлый раз."""
+    logger.info("🔘 Callback: retry_tarot")
+    await callback.answer("🔄 Повторяю запрос к ИИ с теми же картами...")
+    data = await state.get_data()
+    current_state = await state.get_state()
+
+    deck = tarot.get_deck(data["deck_id"])
+    if not deck:
+        await state.clear()
+        await callback.message.answer("⚠️ Колода недоступна.",
+                                      reply_markup=tarot_kb.main_menu_keyboard())
+        return
+
+    # Восстанавливаем список вытянутых карт по сохранённым card_id
+    drawn = []
+    for cid, rev in data["drawn_ids"]:
+        card = deck.get_card(cid)
+        if card:
+            drawn.append((card, rev))
+    if len(drawn) != len(data["drawn_ids"]):
+        await state.clear()
+        await callback.message.answer("⚠️ Не удалось восстановить карты. Начните расклад заново.",
+                                      reply_markup=tarot_kb.main_menu_keyboard())
+        return
+
+    await bot.send_chat_action(chat_id=callback.message.chat.id, action=ChatAction.TYPING)
+    interpretation = await get_tarot_ai_interpretation(
+        data["question"], drawn, deck.name, data.get("position_kinds")
+    )
+
+    if interpretation:
+        await state.clear()
+        await send_chunks_with_nav(callback.message, interpretation, "tarot_question")
+    else:
+        # Снова неудача — оставляем состояние, показываем кнопку повтора
+        await callback.message.answer(
+            "⚠️ Снова не удалось получить толкование. Сервис ИИ перегружен. "
+            "Попробуйте ещё раз через 1–2 минуты.",
+            reply_markup=tarot_kb.retry_tarot_keyboard()
+        )
 
 # ============================================================
 # ПЕРЕФРАЗИРОВАНИЕ
 # ============================================================
+
+
 @dp.callback_query(F.data == "rephrase")
 async def handle_rephrase(callback: types.CallbackQuery):
     logger.info("🔘 Callback: rephrase")

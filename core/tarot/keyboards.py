@@ -203,3 +203,14 @@ def oracle_categories_keyboard(deck_id: str, groups):
     kb.button(text="🔙 К колодам", callback_data="tarot_decks")
     kb.adjust(2)
     return kb.as_markup()
+
+# ================= ПОВТОР ТОЛКОВАНИЯ (после ошибки ИИ) =================
+
+
+def retry_tarot_keyboard():
+    """Клавиатура после неудачной попытки получить толкование."""
+    kb = InlineKeyboardBuilder()
+    kb.button(text="🔄 Попробовать ещё раз", callback_data="retry_tarot")
+    kb.button(text="🏠 Главное меню", callback_data="back_to_main")
+    kb.adjust(1)
+    return kb.as_markup()
