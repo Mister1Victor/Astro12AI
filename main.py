@@ -75,10 +75,14 @@ ZODIAC_MAP = {
     "Sgr": "Стрелец", "Cap": "Козерог", "Aqr": "Водолей", "Psc": "Рыбы"
 }
 
+# Авторские колоды Школы: для них в таро-промпт подкладываем материалы Школы астрологии
+SCHOOL_DECK_IDS = {"author_deck_146", "author_deck"}
 
 # ============================================================
 # FSM СОСТОЯНИЯ
 # ============================================================
+
+
 class AppStates(StatesGroup):
     waiting_astro_question = State()
     waiting_tarot_reversed_setting = State()
@@ -249,11 +253,13 @@ async def get_ai_interpretation(query: str) -> str:
 # ============================================================
 # ТАРО: вызов ИИ (без астро-контекста)
 # ============================================================
-async def get_tarot_ai_interpretation(question: str, drawn, deck_name: str, position_kinds=None) -> str:
+async def get_tarot_ai_interpretation(question: str, drawn, deck_name: str,
+                                      position_kinds=None, deck_id=None) -> str:
     """
     Интерпретация расклада через LLM.
-    position_kinds: список видов позиций ('positive'/'negative'/'day'/'neutral') —
-    для оракульных карт определяет, какие разделы (Совет/Предупреждение) уходят в LLM.
+    position_kinds: список видов позиций ('positive'/'negative'/'day'/'neutral').
+    deck_id: если колода авторская (Школа) — в промпт добавляются материалы Школы
+    (ключевые слова планет и знаков), как в астрологических вопросах.
     """
     logger.info("=" * 60)
     logger.info(f"🎴 ТАРО ЗАПРОС: {question[:200]}...")
@@ -269,12 +275,25 @@ async def get_tarot_ai_interpretation(question: str, drawn, deck_name: str, posi
         meaning = tarot_render.card_context_for_position(card, rev, kind)
         cards_desc.append(
             f"Позиция {i + 1}: {card.name} ({orient}{astro}) —\n{meaning}")
-    cards_text = "\n\n".join(cards_desc)
+    cards_text = "\n".join(cards_desc)
+
+    # 🏫 Материалы Школы астрологии — только для авторских колод
+    school_block = ""
+    if deck_id in SCHOOL_DECK_IDS:
+        entities_src = " ".join(
+            f"{card.name} {card.astrology or ''}" for card, _ in drawn)
+        school_block = astro_retriever.build_authority_context(entities_src)
+        if school_block:
+            logger.info(
+                "🏫 Таро(авторская колода): приложен контекст Школы (планеты/знаки)")
 
     human = (
-        f"Вопрос клиента: {question}\n\n"
-        f"Вытянутые карты (колода «{deck_name}»):\n{cards_text}\n\n"
+        f"Вопрос клиента: {question}\n"
+        + (school_block + "\n" if school_block else "")
+        + f"Вытянутые карты (колода «{deck_name}»):\n{cards_text}\n"
         f"Дай связную, глубокую интерпретацию этого расклада в контексте вопроса."
+        + (" Для карт авторской колоды обязательно опирайся на ключевые слова "
+           "планет и знаков Школы из блока выше." if school_block else "")
     )
 
     for attempt in range(3):
@@ -287,7 +306,6 @@ async def get_tarot_ai_interpretation(question: str, drawn, deck_name: str, posi
             )
             elapsed = round(time.time() - start_time, 2)
             logger.info(f"⏱️ ТАРО время выполнения: {elapsed} сек")
-
             text = getattr(resp, "content", "") or str(resp)
             if isinstance(text, dict):
                 text = text.get("text") or str(text)
@@ -298,7 +316,6 @@ async def get_tarot_ai_interpretation(question: str, drawn, deck_name: str, posi
             if attempt < 2:
                 await asyncio.sleep(3 * (attempt + 1))
     return "❌ Не удалось получить толкование Таро. Попробуйте ещё раз."
-
 # ============================================================
 # УТИЛИТЫ
 # ============================================================
@@ -978,7 +995,8 @@ async def _run_cod_question(msg: types.Message, deck, user_id: int):
         "Карта Дня: какая энергия сегодня главная, чего ожидать, "
         "на что обратить внимание и каков совет дня."
     )
-    interpretation = await get_tarot_ai_interpretation(question, [(card, is_rev)], deck.name)
+    interpretation = await get_tarot_ai_interpretation(
+        question, [(card, is_rev)], deck.name, deck_id=deck.deck_id)
     if interpretation:
         await send_chunks_with_nav(msg, interpretation, "tarot_question")
     else:
@@ -1063,7 +1081,8 @@ async def _run_question_spread(msg: types.Message, spread_type: str, deck, user_
     await send_chunks(msg, caption)
 
     await bot.send_chat_action(chat_id=msg.chat.id, action=ChatAction.TYPING)
-    interpretation = await get_tarot_ai_interpretation(question_for_llm, drawn, deck.name, position_kinds)
+    interpretation = await get_tarot_ai_interpretation(
+        question_for_llm, drawn, deck.name, position_kinds, deck_id=deck.deck_id)
     if interpretation:
         await send_chunks_with_nav(msg, interpretation, "tarot_question")
     else:
@@ -1127,7 +1146,8 @@ async def choice_option_b(message: types.Message, state: FSMContext):
         f"Вариант выбора: {essence}. Вариант 1: {option_a}. Вариант 2: {option_b}.",
         drawn,
         deck.name,
-        choice_kinds
+        choice_kinds,
+        deck_id=deck.deck_id
     )
 
     if interpretation:
