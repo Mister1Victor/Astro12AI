@@ -78,6 +78,15 @@ ZODIAC_MAP = {
 # Авторские колоды Школы: для них в таро-промпт подкладываем материалы Школы астрологии
 SCHOOL_DECK_IDS = {"author_deck_146", "author_deck"}
 
+
+def _is_school_deck(deck_id=None, deck_name=None) -> bool:
+    """Определяет авторскую колоду Школы по id ИЛИ по названию (надёжно)."""
+    if deck_id and deck_id in SCHOOL_DECK_IDS:
+        return True
+    if deck_name and "12 Планет" in deck_name:
+        return True
+    return False
+
 # ============================================================
 # FSM СОСТОЯНИЯ
 # ============================================================
@@ -123,11 +132,14 @@ bot = Bot(token=settings.TELEGRAM_TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
 user_last_queries: Dict[int, str] = {}
-
+# 🆕 Последний таро-запрос пользователя для повтора с теми же картами
+user_last_tarot: Dict[int, dict] = {}
 
 # ============================================================
 # ПАРСИНГ АСТРОЛОГИЧЕСКИХ ЗАПРОСОВ (ZET)
 # ============================================================
+
+
 def parse_astrological_input(text: str) -> str:
     parsed_parts = []
 
@@ -285,8 +297,9 @@ async def get_tarot_ai_interpretation(question: str, drawn, deck_name: str,
     """
     Интерпретация расклада через LLM.
     position_kinds: список видов позиций ('positive'/'negative'/'day'/'neutral').
-    Для авторских колод Школы дополнительно подкладывается контекст Школы
-    (ключевые слова планет и знаков) — как в астрологических вопросах.
+    deck_id: если колода авторская (Школа) — в промпт добавляются материалы Школы
+    (ключевые слова планет и знаков), как в астрологических вопросах.
+    Возвращает None при ошибке 429 (для кнопки повтора).
     """
     logger.info("=" * 60)
     logger.info(f"🎴 ТАРО ЗАПРОС: {question[:200]}...")
@@ -351,9 +364,7 @@ async def get_tarot_ai_interpretation(question: str, drawn, deck_name: str,
             # Обработка rate limit (429) от Groq free tier
             if "429" in error_msg or "rate_limit" in error_msg or "too many requests" in error_msg:
                 logger.warning(f"⚠️ Groq rate limit (429): {e}")
-                return ("⏳ **Сервис ИИ временно перегружен**\n\n"
-                        "Бесплатный лимит Groq исчерпан. Попробуйте ещё раз через 1-2 минуты, "
-                        "когда счётчик токенов обновится.")
+                return None  # обработчик покажет кнопку «Попробовать ещё раз»
 
             logger.warning(f"⚠️ Ошибка ТАРО-ИИ (попытка {attempt + 1}/3): {e}")
             if attempt < 2:
@@ -1038,7 +1049,12 @@ async def _run_cod_question(msg: types.Message, deck, user_id: int, state: FSMCo
         "Карта Дня: какая энергия сегодня главная, чего ожидать, "
         "на что обратить внимание и каков совет дня."
     )
-    interpretation = await get_tarot_ai_interpretation(question, [(card, is_rev)], deck.name)
+    user_last_tarot[user_id] = {
+        "question": question, "deck_id": deck.deck_id,
+        "drawn_ids": [(card.card_id, is_rev)], "position_kinds": None,
+    }
+    interpretation = await get_tarot_ai_interpretation(
+        question, [(card, is_rev)], deck.name, deck_id=deck.deck_id)
     if interpretation:
         await send_chunks_with_nav(msg, interpretation, "tarot_question")
     else:
@@ -1135,7 +1151,13 @@ async def _run_question_spread(msg: types.Message, spread_type: str, deck, user_
     await send_chunks(msg, caption)
 
     await bot.send_chat_action(chat_id=msg.chat.id, action=ChatAction.TYPING)
-    interpretation = await get_tarot_ai_interpretation(question_for_llm, drawn, deck.name, position_kinds)
+    user_last_tarot[user_id] = {
+        "question": question_for_llm, "deck_id": deck.deck_id,
+        "drawn_ids": [(c.card_id, rev) for c, rev in drawn],
+        "position_kinds": position_kinds,
+    }
+    interpretation = await get_tarot_ai_interpretation(
+        question_for_llm, drawn, deck.name, position_kinds, deck_id=deck.deck_id)
     if interpretation:
         await send_chunks_with_nav(msg, interpretation, "tarot_question")
     else:
@@ -1208,11 +1230,18 @@ async def choice_option_b(message: types.Message, state: FSMContext):
     choice_kinds = ["positive", "negative", "neutral",
                     "positive", "negative", "neutral", "day"]
 
+    user_last_tarot[user_id] = {
+        "question": f"Вариант выбора: {essence}. Вариант 1: {option_a}. Вариант 2: {option_b}.",
+        "deck_id": deck.deck_id,
+        "drawn_ids": [(c.card_id, rev) for c, rev in drawn],
+        "position_kinds": choice_kinds,
+    }
     interpretation = await get_tarot_ai_interpretation(
         f"Вариант выбора: {essence}. Вариант 1: {option_a}. Вариант 2: {option_b}.",
         drawn,
         deck.name,
-        choice_kinds
+        choice_kinds,
+        deck_id=deck.deck_id
     )
     if interpretation:
         await send_chunks_with_nav(message, interpretation, "tarot_question")
