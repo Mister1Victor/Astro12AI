@@ -253,13 +253,27 @@ async def get_ai_interpretation(query: str) -> str:
 # ============================================================
 # ТАРО: вызов ИИ (без астро-контекста)
 # ============================================================
+# Авторские колоды Школы: для них в таро-промпт подкладываем материалы Школы.
+# (Если константа уже есть выше — не дублируйте, оставьте одну.)
+SCHOOL_DECK_IDS = {"author_deck_146", "author_deck"}
+
+
+def _is_school_deck(deck_id=None, deck_name=None) -> bool:
+    """Определяет авторскую колоду Школы по id ИЛИ по названию (надёжно)."""
+    if deck_id and deck_id in SCHOOL_DECK_IDS:
+        return True
+    if deck_name and "12 Планет" in deck_name:
+        return True
+    return False
+
+
 async def get_tarot_ai_interpretation(question: str, drawn, deck_name: str,
                                       position_kinds=None, deck_id=None) -> str:
     """
     Интерпретация расклада через LLM.
     position_kinds: список видов позиций ('positive'/'negative'/'day'/'neutral').
-    deck_id: если колода авторская (Школа) — в промпт добавляются материалы Школы
-    (ключевые слова планет и знаков), как в астрологических вопросах.
+    Для авторских колод Школы дополнительно подкладывается контекст Школы
+    (ключевые слова планет и знаков) — как в астрологических вопросах.
     """
     logger.info("=" * 60)
     logger.info(f"🎴 ТАРО ЗАПРОС: {question[:200]}...")
@@ -279,13 +293,21 @@ async def get_tarot_ai_interpretation(question: str, drawn, deck_name: str,
 
     # 🏫 Материалы Школы астрологии — только для авторских колод
     school_block = ""
-    if deck_id in SCHOOL_DECK_IDS:
+    if _is_school_deck(deck_id, deck_name):
         entities_src = " ".join(
             f"{card.name} {card.astrology or ''}" for card, _ in drawn)
         school_block = astro_retriever.build_authority_context(entities_src)
+        logger.info(
+            f"🏫 Авторская колода «{deck_name}»: извлечено из карт: {entities_src[:120]}...")
         if school_block:
             logger.info(
                 "🏫 Таро(авторская колода): приложен контекст Школы (планеты/знаки)")
+        else:
+            logger.warning(
+                "⚠️ Авторская колода, но контекст Школы пуст (не извлечены сущности)")
+    else:
+        logger.info(
+            f"ℹ️ Колода «{deck_name}» не авторская — контекст Школы не прикладывается")
 
     human = (
         f"Вопрос клиента: {question}\n"
