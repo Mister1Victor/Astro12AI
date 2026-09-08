@@ -1,47 +1,44 @@
-# Python
-__pycache__/
+# Compiled and build artifacts
 *.pyc
+__pycache__/
+*.o
+*.obj
+*.so
+*.dll
+*.exe
+*.class
+*.out
 
-# Virtual Environment
+# Dependencies
 .venv/
 venv/
-
-# VS Code
-.vscode/
-
-# Secrets
 .env
 .env.local
-.env.*.local
+*.env.*
 
-# SQLite
-*.db
-
-# macOS
-.DS_Store
-
-# Logs
+# Logs and temp files
 *.log
+*.tmp
+*.swp
+*.swo
 
-# Build
-build/
+# Editors
+.vscode/
+.idea/
+
+# Coverage and testing
+.coverage
+coverage/
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Build directories
 dist/
-
-# Generated artifacts (matplotlib Таро-карта и т.п.)
-output/
-images/
-
-# Android
+build/
+target/
 .gradle/
-local.properties
 
-output/
-images/
-!data/tarot/decks/*/images/
-# Таро: картинки колод
-!data/tarot/decks/rider_waite/images/*.jpg
-!data/tarot/decks/thoth/images/*.jpg
-
-
-make_snapshot.py
-project_snapshot.txt
+# System files
+.DS_Store
+Thumbs.db

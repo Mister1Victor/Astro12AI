@@ -323,8 +323,8 @@ class AstroRetriever(BaseRetriever):
         if topic != "general":
             expanded.extend(ASTRO_TOPICS.get(topic, []))
 
-        print("QUERY:", query)
-        print("EXPANDED QUERY:", " | ".join(expanded))
+        logger.info(f"QUERY: {query}")
+        logger.info(f"EXPANDED QUERY: {' | '.join(expanded)}")
 
         return " ".join(expanded)
 
