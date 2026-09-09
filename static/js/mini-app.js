@@ -18,11 +18,17 @@ const AppState = {
 };
 
 // Конфигурация раскладов
+// Позиции Кельтского креста (локальная константа)
+const CELTIC_CROSS_POSITIONS = [
+  'Суть', 'Препятствие', 'Цель', 'Корни', 'Прошлое',
+  'Ближайшее будущее', 'Я', 'Окружение', 'Надежды/Страхи', 'Итог'
+];
+
 const SPREAD_CONFIGS = {
-    one: { name: 'Одна карта', count: 1, positions: ['day'] },
-    three: { name: 'Три карты', count: 3, positions: ['past', 'present', 'future'] },
-    choice: { name: 'Выбор пути', count: 5, positions: ['essence', 'optionA', 'optionB', 'adviceA', 'adviceB'] },
-    celtic: { name: 'Кельтский крест', count: 10, positions: CELTIC_CROSS_POSITIONS }
+  one:    { name: 'Одна карта',      count: 1,  positions: ['Карта дня'] },
+  three:  { name: 'Три карты',       count: 3,  positions: ['Прошлое', 'Настоящее', 'Будущее'] },
+  choice: { name: 'Выбор пути',      count: 7,  positions: ['В1—Достоинство', 'В1—Недостаток', 'В1—Исход', 'В2—Достоинство', 'В2—Недостаток', 'В2—Исход', 'Совет'] },
+  celtic: { name: 'Кельтский крест', count: 10, positions: CELTIC_CROSS_POSITIONS }
 };
 
 // DOM элементы

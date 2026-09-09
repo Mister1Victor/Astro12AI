@@ -50,6 +50,10 @@ from core.rag.context import context_statistics
 from core.llm.model import create_llm
 from core.knowledge.loader import load_knowledge_base
 
+import json
+from aiogram.types import BotCommand, MenuButtonCommands, FSInputFile, InputMediaPhoto, WebAppInfo
+from services.web_server import setup_web_server_routes
+
 # ===== ТАРО =====
 from core.tarot.loader import load_all_decks
 from core.tarot.service import TarotService, CELTIC_CROSS_POSITIONS, CHOICE_POSITIONS
@@ -410,12 +414,15 @@ def get_rephrase_keyboard():
 
 
 def main_menu_keyboard():
+    """Главное меню: все разделы + Mini App + пробуждение сервера."""
     kb = InlineKeyboardBuilder()
     kb.button(text="🎴 Таро", callback_data="menu_tarot")
     kb.button(text="🪐 Астрология 12", callback_data="menu_astro")
     kb.button(text="🃏 Карта Дня", callback_data="menu_card_of_day")
+    kb.button(text="✨ Интерактивный расклад",
+              web_app=WebAppInfo(url=f"{SELF_URL}/webapp"))
     kb.button(text="🌙 Разбудить сервер", url=SELF_URL)
-    kb.adjust(2, 1, 1)
+    kb.adjust(2, 2, 1)
     return kb.as_markup()
 
 
@@ -1358,6 +1365,90 @@ async def retry_tarot(callback: types.CallbackQuery, state: FSMContext):
         )
 
 # ============================================================
+# MINI APP: приём данных из WebView
+# ============================================================
+
+
+@dp.message(F.web_app_data)
+async def handle_webapp_data(message: types.Message, state: FSMContext):
+    """Mini App прислал данные через tg.sendData: расклад или астро-вопрос."""
+    logger.info(f"📲 Mini App data: {message.web_app_data.data[:200]}")
+    try:
+        data = json.loads(message.web_app_data.data)
+    except Exception:
+        await message.answer("⚠️ Не удалось разобрать данные Mini App.")
+        return
+
+    action = data.get("action")
+
+    if action == "astrology_aspect":
+        query = (data.get("query") or "").strip()
+        if not query:
+            await message.answer("⚠️ Пустой запрос из Mini App.")
+            return
+        await process_astro_request(message, query)
+        return
+
+    if action != "tarot_spread":
+        await message.answer(f"⚠️ Неизвестное действие Mini App: {action}")
+        return
+
+    deck_id = data.get("deck_id")
+    spread_type = data.get("spread_type", "three")
+    deck = tarot.get_deck(deck_id)
+    if not deck or not deck.cards:
+        await message.answer("⚠️ Колода недоступна.")
+        return
+
+    drawn = []
+    for c in data.get("cards", []):
+        card = deck.get_card(c.get("card_id"))
+        if card:
+            drawn.append((card, bool(c.get("reversed", False))))
+    if not drawn:
+        await message.answer("⚠️ Не удалось восстановить карты из Mini App.")
+        return
+
+    if spread_type == "one":
+        positions = ["Карта дня"]
+    elif spread_type == "three":
+        positions = ["Прошлое", "Настоящее", "Будущее"]
+    elif spread_type == "celtic":
+        positions = CELTIC_CROSS_POSITIONS
+    elif spread_type == "choice":
+        positions = tarot_render.choice_positions_list()
+    else:
+        positions = [f"Карта {i + 1}" for i in range(len(drawn))]
+
+    await message.answer(f"📲 Расклад из Mini App: «{deck.name}», карт: {len(drawn)}")
+    await send_spread_cards_visual(message, deck, drawn, positions)
+
+    if spread_type == "three":
+        caption = tarot_render.format_three_cards(drawn, deck)
+    elif spread_type == "celtic":
+        caption = tarot_render.format_celtic_cross(drawn, deck)
+    elif spread_type == "choice" and len(drawn) >= 7:
+        caption = tarot_render.format_choice_spread(
+            drawn, deck,
+            data.get("essence", "Выбор из Mini App"),
+            data.get("option_a", "Вариант 1"),
+            data.get("option_b", "Вариант 2"))
+    else:
+        caption = tarot_render.format_card_of_day(
+            drawn[0][0], drawn[0][1], deck)
+    await send_chunks(message, caption)
+
+    await bot.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
+    interpretation = await get_tarot_ai_interpretation(
+        "Интерпретируй расклад, полученный из Mini App, в контексте вопроса пользователя.",
+        drawn, deck.name, deck_id=deck.deck_id)
+    if interpretation:
+        await send_chunks_with_nav(message, interpretation, "tarot_question")
+    else:
+        await message.answer("⚠️ ИИ временно недоступен. Попробуйте позже.",
+                             reply_markup=tarot_kb.retry_tarot_keyboard())
+
+# ============================================================
 # ПЕРЕФРАЗИРОВАНИЕ
 # ============================================================
 
@@ -1428,11 +1519,15 @@ async def keep_alive_pinger():
 async def start_web_server():
     app = web.Application()
     app.router.add_get("/", handle_health_check)
+    setup_web_server_routes(app, tarot_service=tarot,
+                            astro_retriever=astro_retriever)
     runner = web.AppRunner(app)
     await runner.setup()
     port = int(os.getenv("PORT", 8080))
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
+    logger.info(
+        f"🌐 Веб-сервер запущен: порт {port} (/ — health, /webapp — Mini App)")
 
 
 async def setup_bot_ui():
