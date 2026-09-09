@@ -29,9 +29,7 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command, StateFilter
 from aiogram.enums import ChatAction, ContentType
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import (
-    BotCommand, MenuButtonCommands, FSInputFile, InputMediaPhoto
-)
+from aiogram.types import BotCommand, MenuButtonCommands, FSInputFile, InputMediaPhoto, WebAppInfo
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -59,6 +57,8 @@ from core.tarot.loader import load_all_decks
 from core.tarot.service import TarotService, CELTIC_CROSS_POSITIONS, CHOICE_POSITIONS
 from core.tarot import keyboards as tarot_kb
 from core.tarot import render as tarot_render
+
+from services.web_server import setup_web_server_routes
 
 
 # ============================================================
@@ -399,8 +399,10 @@ def main_menu_keyboard():
     kb.button(text="🎴 Таро", callback_data="menu_tarot")
     kb.button(text="🪐 Астрология 12", callback_data="menu_astro")
     kb.button(text="🃏 Карта Дня", callback_data="menu_card_of_day")
+    kb.button(text="✨ Интерактивный расклад",
+              web_app=WebAppInfo(url=f"{SELF_URL}/webapp"))
     kb.button(text="🌙 Разбудить сервер", url=SELF_URL)
-    kb.adjust(2, 1, 1)
+    kb.adjust(2, 2, 1)
     return kb.as_markup()
 
 
@@ -1286,10 +1288,78 @@ async def handle_rephrase(callback: types.CallbackQuery):
     for chunk in split_text_for_telegram(new_interpretation):
         await safe_answer(callback.message, chunk, reply_markup=get_rephrase_keyboard())
 
+# ============================================================
+# MINI APP: приём данных из WebView (tg.sendData)
+# ============================================================
+
+
+@dp.message(F.web_app_data)
+async def handle_webapp_data(message: types.Message, state: FSMContext):
+    """Обрабатывает данные Mini App: расклад или аспект."""
+    import json as _json
+    logger.info(f"📲 Mini App: получены данные от {message.from_user.id}")
+    try:
+        data = _json.loads(message.web_app_data.data)
+    except Exception:
+        await message.answer("⚠️ Не удалось разобрать данные Mini App.")
+        return
+
+    action = data.get("action")
+
+    if action == "astrology_aspect":
+        query = (data.get("query") or "").strip()
+        if not query:
+            await message.answer("⚠️ Пустой запрос из Mini App.")
+            return
+        await process_astro_request(message, query)
+        return
+
+    if action != "tarot_spread":
+        await message.answer(f"⚠️ Неизвестное действие Mini App: {action}")
+        return
+
+    deck_id = data.get("deck_id")
+    spread_type = data.get("spread_type", "three")
+    deck = tarot.get_deck(deck_id) if deck_id else tarot.get_deck()
+    if not deck or not deck.cards:
+        await message.answer("⚠️ Колода недоступна.")
+        return
+
+    drawn = []
+    for c in data.get("cards", []):
+        card = deck.get_card(c.get("card_id"))
+        if card:
+            drawn.append((card, bool(c.get("reversed", False))))
+    if not drawn:
+        await message.answer("⚠️ Не удалось восстановить карты из данных Mini App.")
+        return
+
+    positions = {
+        "one": ["Карта дня"],
+        "three": ["Прошлое", "Настоящее", "Будущее"],
+        "celtic": CELTIC_CROSS_POSITIONS,
+    }.get(spread_type, [f"Карта {i + 1}" for i in range(len(drawn))])
+
+    await message.answer(f"📲 Расклад из Mini App: «{deck.name}» ({spread_type})")
+    await send_spread_cards_visual(message, deck, drawn, positions)
+
+    question = data.get("question") or \
+        "Интерпретируй расклад из Mini App в контексте вопроса пользователя."
+    await bot.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
+    interpretation = await get_tarot_ai_interpretation(
+        question, drawn, deck.name, deck_id=deck.deck_id)
+    if interpretation:
+        await send_chunks_with_nav(message, interpretation, "tarot_question")
+    else:
+        await message.answer(
+            "⚠️ Сервис ИИ временно недоступен. Попробуйте через 1–2 минуты.",
+            reply_markup=tarot_kb.retry_tarot_keyboard())
 
 # ============================================================
 # НЕ-ТЕКСТ
 # ============================================================
+
+
 @dp.message()
 async def handle_non_text_input(message: types.Message):
     await message.answer(

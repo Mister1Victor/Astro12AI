@@ -5,6 +5,6 @@ from core.tarot.service import TarotService
 
 tarot = TarotService(load_all_decks())
 app = web.Application()
-app.router.add_get('/', lambda r: web.Response(text='health ok'))
+app.router.add_get("/", lambda r: web.Response(text="ok"))
 setup_web_server_routes(app, tarot_service=tarot)
 web.run_app(app, port=8080)
