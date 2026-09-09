@@ -1,144 +1,69 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Astro12AI - Таро Расклад</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link rel="stylesheet" href="/static/css/mini-app.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Astro12AI — Mini App</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="/static/css/mini-app.css">
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <h1>🔮 Таро Школы 12 Планет</h1>
-            <p class="subtitle">Выберите расклад и вытяните карты</p>
-        </header>
+<div class="container">
+  <header class="header">
+    <h1>🔮 Таро Школы «12 Планет»</h1>
+    <p class="subtitle" id="subtitle">Выберите расклад</p>
+  </header>
 
-        <!-- Выбор расклада -->
-        <section id="spread-selection" class="section">
-            <h2>Выберите тип расклада</h2>
-            <div class="button-grid">
-                <button class="btn-primary" data-spread="one">🃏 Одна карта</button>
-                <button class="btn-primary" data-spread="three">🔮 Три карты</button>
-                <button class="btn-primary" data-spread="choice">⚖️ Выбор пути</button>
-                <button class="btn-primary" data-spread="celtic">✝️ Кельтский крест</button>
-            </div>
-        </section>
-
-        <!-- Выбор колоды -->
-        <section id="deck-selection" class="section hidden">
-            <h2>Выберите колоду</h2>
-            <div id="decks-list" class="deck-list">
-                <!-- Заполняется JavaScript -->
-            </div>
-            <button class="btn-secondary" id="back-to-spread">← Назад к раскладам</button>
-        </section>
-
-        <!-- Экран перемешивания и вытягивания карт -->
-        <section id="shuffle-screen" class="section hidden">
-            <h2 id="shuffle-title">Перемешайте колоду</h2>
-            <div class="card-deck-visual">
-                <div class="card-back" id="deck-visual"></div>
-            </div>
-            <button class="btn-primary btn-large" id="shuffle-btn">🔀 Перемешать</button>
-            <button class="btn-primary btn-large hidden" id="draw-cards-btn">✨ Вытянуть карты</button>
-        </section>
-
-        <!-- Экран результата -->
-        <section id="result-screen" class="section hidden">
-            <h2>Ваши карты</h2>
-            <div id="cards-result" class="cards-result">
-                <!-- Карты отображаются здесь -->
-            </div>
-            <div class="result-actions">
-                <button class="btn-success" id="send-to-bot">✅ Отправить в бот</button>
-                <button class="btn-secondary" id="retry-spread">🔄 Повторить расклад</button>
-            </div>
-        </section>
-
-        <!-- Астрология: ввод параметров -->
-        <section id="astrology-input" class="section hidden">
-            <h2>🪐 Параметры аспекта</h2>
-            <form id="astrology-form">
-                <div class="form-group">
-                    <label for="planet1">Первая планета:</label>
-                    <select id="planet1" required>
-                        <option value="">Выберите планету</option>
-                        <option value="Sun">Солнце</option>
-                        <option value="Moon">Луна</option>
-                        <option value="Mercury">Меркурий</option>
-                        <option value="Venus">Венера</option>
-                        <option value="Mars">Марс</option>
-                        <option value="Jupiter">Юпитер</option>
-                        <option value="Saturn">Сатурн</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="sign1">Знак первой планеты:</label>
-                    <select id="sign1" required>
-                        <option value="">Выберите знак</option>
-                        <option value="Ari">Овен</option>
-                        <option value="Tau">Телец</option>
-                        <option value="Gem">Близнецы</option>
-                        <option value="Can">Рак</option>
-                        <option value="Leo">Лев</option>
-                        <option value="Vir">Дева</option>
-                        <option value="Lib">Весы</option>
-                        <option value="Sco">Скорпион</option>
-                        <option value="Sgr">Стрелец</option>
-                        <option value="Cap">Козерог</option>
-                        <option value="Aqr">Водолей</option>
-                        <option value="Psc">Рыбы</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="aspect-type">Тип аспекта:</label>
-                    <select id="aspect-type" required>
-                        <option value="">Выберите аспект</option>
-                        <option value="conjunction">Соединение (0°)</option>
-                        <option value="sextile">Секстиль (60°)</option>
-                        <option value="square">Квадрат (90°)</option>
-                        <option value="trine">Трин (120°)</option>
-                        <option value="opposition">Оппозиция (180°)</option>
-                        <option value="quincunx">Квиконс (150°)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="planet2">Вторая планета:</label>
-                    <select id="planet2" required>
-                        <option value="">Выберите планету</option>
-                        <option value="Sun">Солнце</option>
-                        <option value="Moon">Луна</option>
-                        <option value="Mercury">Меркурий</option>
-                        <option value="Venus">Венера</option>
-                        <option value="Mars">Марс</option>
-                        <option value="Jupiter">Юпитер</option>
-                        <option value="Saturn">Сатурн</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="sign2">Знак второй планеты:</label>
-                    <select id="sign2" required>
-                        <option value="">Выберите знак</option>
-                        <option value="Ari">Овен</option>
-                        <option value="Tau">Телец</option>
-                        <option value="Gem">Близнецы</option>
-                        <option value="Can">Рак</option>
-                        <option value="Leo">Лев</option>
-                        <option value="Vir">Дева</option>
-                        <option value="Lib">Весы</option>
-                        <option value="Sco">Скорпион</option>
-                        <option value="Sgr">Стрелец</option>
-                        <option value="Cap">Козерог</option>
-                        <option value="Aqr">Водолей</option>
-                        <option value="Psc">Рыбы</option>
-                    </select>
-                </div>
-                <button type="submit" class="btn-success">✅ Отправить в бот</button>
-            </form>
-        </section>
+  <!-- ЭКРАН 1: расклад (кнопки «назад» НЕТ) -->
+  <section id="screen-spread" class="section">
+    <h2>Выберите тип расклада</h2>
+    <div class="button-grid">
+      <button class="btn-primary" data-spread="one">🃏 Одна карта</button>
+      <button class="btn-primary" data-spread="three">🔮 Три карты</button>
+      <button class="btn-primary" data-spread="choice">⚖️ Выбор пути</button>
+      <button class="btn-primary" data-spread="celtic">✝️ Кельтский крест</button>
     </div>
+    <button class="btn-secondary" id="btn-astro">🪐 Астрология: параметр аспекта</button>
+  </section>
 
-    <script src="/static/js/mini-app.js"></script>
+  <!-- ЭКРАН 2: колода -->
+  <section id="screen-deck" class="section hidden">
+    <h2>Выберите колоду</h2>
+    <div id="deck-list" class="deck-list"></div>
+    <button class="btn-secondary" data-back="spread">← Назад к раскладам</button>
+  </section>
+
+  <!-- ЭКРАН 3: перемешать / вытянуть -->
+  <section id="screen-shuffle" class="section hidden">
+    <h2 id="shuffle-title">Перемешайте колоду</h2>
+    <div class="card-deck-visual"><div class="card-back" id="deck-visual"></div></div>
+    <button class="btn-primary btn-large" id="btn-shuffle">🔀 Перемешать</button>
+    <button class="btn-primary btn-large hidden" id="btn-draw">✨ Вытянуть карты</button>
+    <button class="btn-secondary" data-back="deck">← Назад к колодам</button>
+  </section>
+
+  <!-- ЭКРАН 4: результат -->
+  <section id="screen-result" class="section hidden">
+    <h2>Ваши карты</h2>
+    <div id="cards-result" class="cards-result"></div>
+    <button class="btn-success btn-large" id="btn-send">✅ Отправить в бот</button>
+    <button class="btn-secondary" data-back="shuffle">🔄 Повторить расклад</button>
+  </section>
+
+  <!-- ЭКРАН 5: астрология -->
+  <section id="screen-astro" class="section hidden">
+    <h2>🪐 Параметр аспекта</h2>
+    <form id="astro-form" class="deck-list">
+      <select id="planet1" required></select>
+      <select id="sign1" required></select>
+      <select id="aspect" required></select>
+      <select id="planet2" required></select>
+      <select id="sign2" required></select>
+      <button class="btn-success" type="submit">✅ Отправить в бот</button>
+      <button class="btn-secondary" type="button" data-back="spread">← Назад</button>
+    </form>
+  </section>
+</div>
+<script src="/static/js/mini-app.js"></script>
 </body>
 </html>

@@ -180,3 +180,7 @@ h2 { font-size: 18px; margin-bottom: 16px; text-align: center; }
   .card-result { width: 88px; }
   .card-result img, .card-placeholder { height: 120px; }
 }
+
+.card-pos { font-size: 11px; opacity: .8; margin-top: 4px; }
+.card-orient { font-size: 10px; opacity: .7; margin-top: 2px; }
+button.deck-item { width: 100%; text-align: left; cursor: pointer; font-size: 15px; }
