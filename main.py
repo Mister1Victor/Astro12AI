@@ -53,6 +53,7 @@ from core.knowledge.loader import load_knowledge_base
 import json
 from aiogram.types import BotCommand, MenuButtonCommands, FSInputFile, InputMediaPhoto, WebAppInfo
 from services.web_server import setup_web_server_routes
+from services.web_server import setup_web_server_routes, handle_health_check
 
 # ===== ТАРО =====
 from core.tarot.loader import load_all_decks
@@ -1519,15 +1520,16 @@ async def keep_alive_pinger():
 async def start_web_server():
     app = web.Application()
     app.router.add_get("/", handle_health_check)
+
+    # 🆕 РЕГИСТРИРУЕМ МАРШРУТЫ MINI APP И API
     setup_web_server_routes(app, tarot_service=tarot,
                             astro_retriever=astro_retriever)
+
     runner = web.AppRunner(app)
     await runner.setup()
     port = int(os.getenv("PORT", 8080))
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
-    logger.info(
-        f"🌐 Веб-сервер запущен: порт {port} (/ — health, /webapp — Mini App)")
 
 
 async def setup_bot_ui():
