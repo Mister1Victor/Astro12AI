@@ -380,46 +380,20 @@ async def api_get_pending_data(request: web.Request) -> web.Response:
 # ═══════════════════════════════════════════════════════════════
 # РЕГИСТРАЦИЯ МАРШРУТОВ
 # ═══════════════════════════════════════════════════════════════
-def setup_web_server_routes(
-    app: web.Application,
-    tarot_service=None,
-    astro_retriever=None,
-):
-    """
-    Регистрация всех маршрутов веб-сервера.
+def setup_web_server_routes(app: web.Application, tarot_service=None, astro_retriever=None):
+    """Регистрация маршрутов веб-сервера."""
 
-    Args:
-        app: aiohttp Application
-        tarot_service: экземпляр TarotService (опционально)
-        astro_retriever: экземпляр AstroRetriever (опционально)
-    """
-    # Сохраняем сервисы в app для доступа из хендлеров
-    app["tarot_service"] = tarot_service
-    app["astro_retriever"] = astro_retriever
+    # 1. Health check для Render (выносим на отдельный путь /health)
+    app.router.add_get('/health', handle_health_check)
 
-    # ── Health check ──
-    app.router.add_get("/",       handle_health_check)
-    app.router.add_get("/health", handle_health_check)
+    # 2. Mini App и статика (корень остается за Mini App)
+    app.router.add_get('/', handle_mini_app_index)
+    app.router.add_get('/webapp', handle_mini_app_index)
+    app.router.add_get('/static/{filepath:.*}', handle_static_file)
 
-    # ── Mini App ──
-    app.router.add_get("/webapp",      handle_index)
-    app.router.add_get("/tarot",       handle_index)
-    app.router.add_get("/astrology",   handle_index)
-
-    # ── Статика ──
-    app.router.add_get("/static/{filepath:.*}", handle_static)
-
-    # ── API: Таро ──
-    app.router.add_get("/api/tarot/decks",  api_get_decks)
-    app.router.add_post("/api/tarot/draw",   api_draw_cards)
-
-    # ── API: WebApp данные ──
-    app.router.add_post("/api/webapp/data",    api_receive_webapp_data)
-    app.router.add_get("/api/webapp/pending", api_get_pending_data)
+    # 3. API endpoints
+    app.router.add_get('/api/tarot/decks', api_get_decks)
+    app.router.add_post('/api/tarot/draw', api_draw_cards)
+    app.router.add_post('/api/webapp/data', handle_webapp_data)
 
     logger.info("✅ Маршруты веб-сервера зарегистрированы")
-    logger.info(f"   Статика: {STATIC_DIR}")
-    logger.info(
-        f"   TarotService: {'✅ подключён' if tarot_service else '⚠️ не подключён'}")
-    logger.info(
-        f"   AstroRetriever: {'✅ подключён' if astro_retriever else '⚠️ не подключён'}")
