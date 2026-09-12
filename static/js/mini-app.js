@@ -57,20 +57,28 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function loadDecks() {
+    const container = $('decks-list');
+    
+    // Демо-колоды (гарантированно работают)
+    const demoDecks = [
+        { deck_id: 'author_deck_146', name: 'Авторская колода 12 Планет', cards_count: 146 },
+        { deck_id: 'rider_waite', name: 'Райдер-Уэйт', cards_count: 78 }
+    ];
+    
     try {
         const response = await fetch('/api/tarot/decks');
         if (!response.ok) throw new Error('Failed to load decks');
         const decks = await response.json();
-        renderDecksList(decks);
+        if (decks && decks.length > 0) {
+            renderDecksList(decks);
+            return;
+        }
     } catch (error) {
-        console.error('Ошибка загрузки колод:', error);
-        // Демо-данные для разработки
-        const demoDecks = [
-            { deck_id: 'author_deck_146', name: 'Авторская колода 12 Планет', cards_count: 146 },
-            { deck_id: 'rider_waite', name: 'Райдер-Уэйт', cards_count: 78 }
-        ];
-        renderDecksList(demoDecks);
+        console.log('Используем демо-колоды:', error.message);
     }
+    
+    // Если API не доступен, используем демо-данные
+    renderDecksList(demoDecks);
 }
 
 function renderDecksList(decks) {
@@ -79,8 +87,8 @@ function renderDecksList(decks) {
         .filter(deck => deck.cards_count > 0)
         .map(deck => `
             <div class="deck-item" data-deck-id="${deck.deck_id}">
-                <strong>${deck.name}</strong>
-                <span style="float: right; opacity: 0.7;">${deck.cards_count} карт</span>
+                <strong class="deck-name">${deck.name}</strong>
+                <span class="deck-count">${deck.cards_count} карт</span>
             </div>
         `).join('');
 

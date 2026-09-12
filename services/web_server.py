@@ -193,22 +193,102 @@ async def api_draw_cards(request: web.Request) -> web.Response:
         data = await request.json()
         deck_id = data.get('deck_id')
         count = data.get('count', 1)
+        allow_reversed = data.get('allow_reversed', False)
         
-        # В продакшене вызывать реальный сервис TarotService
-        # Здесь демо-ответ
+        # Демо-колода карт для примера
+        demo_cards_list = [
+            {"card_id": "0", "name": "Шут", "reversed": False},
+            {"card_id": "1", "name": "Маг", "reversed": False},
+            {"card_id": "2", "name": "Жрица", "reversed": False},
+            {"card_id": "3", "name": "Императрица", "reversed": False},
+            {"card_id": "4", "name": "Император", "reversed": False},
+            {"card_id": "5", "name": "Иерофант", "reversed": False},
+            {"card_id": "6", "name": "Влюблённые", "reversed": False},
+            {"card_id": "7", "name": "Колесница", "reversed": False},
+            {"card_id": "8", "name": "Сила", "reversed": False},
+            {"card_id": "9", "name": "Отшельник", "reversed": False},
+            {"card_id": "10", "name": "Колесо Фортуны", "reversed": False},
+            {"card_id": "11", "name": "Справедливость", "reversed": False},
+            {"card_id": "12", "name": "Повешенный", "reversed": False},
+            {"card_id": "13", "name": "Смерть", "reversed": False},
+            {"card_id": "14", "name": "Умеренность", "reversed": False},
+            {"card_id": "15", "name": "Дьявол", "reversed": False},
+            {"card_id": "16", "name": "Башня", "reversed": False},
+            {"card_id": "17", "name": "Звезда", "reversed": False},
+            {"card_id": "18", "name": "Луна", "reversed": False},
+            {"card_id": "19", "name": "Солнце", "reversed": False},
+            {"card_id": "20", "name": "Суд", "reversed": False},
+            {"card_id": "21", "name": "Мир", "reversed": False}
+        ]
+        
+        import random
         cards = []
+        used_indices = set()
+        
         for i in range(count):
+            # Выбираем случайную карту без повторений
+            while True:
+                idx = random.randint(0, len(demo_cards_list) - 1)
+                if idx not in used_indices:
+                    used_indices.add(idx)
+                    break
+            
+            card_template = demo_cards_list[idx]
+            is_reversed = allow_reversed and random.random() < 0.3
+            
             cards.append({
-                "card_id": f"card_{i}",
-                "name": f"Карта {i+1}",
-                "reversed": False,
-                "image_url": f"/static/cards/card_{i}.jpg"
+                "card_id": card_template["card_id"],
+                "name": card_template["name"],
+                "reversed": is_reversed,
+                "image_url": ""
             })
         
-        return web.json_response({"cards": cards})
+        # Генерируем демо-толкование
+        interpretation = generate_demo_interpretation(cards, allow_reversed)
+        
+        return web.json_response({"cards": cards, "interpretation": interpretation})
     except Exception as e:
         logger.error(f"Ошибка API draw_cards: {e}")
-        return web.json_response({"error": str(e)}, status=500)
+        return web.json_response({"error": str(e), "cards": [], "interpretation": ""}, status=500)
+
+
+def generate_demo_interpretation(cards, allow_reversed):
+    """Генерация демо-толкования внутри приложения."""
+    base_meanings = {
+        "Шут": "Новые начинания, спонтанность, вера в будущее",
+        "Маг": "Сила воли, мастерство, проявление желаемого",
+        "Жрица": "Интуиция, тайные знания, внутренний голос",
+        "Императрица": "Изобилие, творчество, материнская энергия",
+        "Император": "Структура, власть, стабильность",
+        "Иерофант": "Традиции, обучение, духовное руководство",
+        "Влюблённые": "Выбор, гармония, отношения",
+        "Колесница": "Движение вперёд, победа, контроль",
+        "Сила": "Внутренняя сила, терпение, сострадание",
+        "Отшельник": "Самоанализ, мудрость, уединение",
+        "Колесо Фортуны": "Перемены, циклы, судьба",
+        "Справедливость": "Честность, правда, закон",
+        "Повешенный": "Пауза, новый взгляд, жертва",
+        "Смерть": "Трансформация, окончание, начало нового",
+        "Умеренность": "Баланс, гармония, терпение",
+        "Дьявол": "Искушение, зависимость, материализм",
+        "Башня": "Внезапные перемены, разрушение иллюзий",
+        "Звезда": "Надежда, вдохновение, духовность",
+        "Луна": "Иллюзии, страхи, подсознание",
+        "Солнце": "Радость, успех, жизненная энергия",
+        "Суд": "Возрождение, призыв, прощение",
+        "Мир": "Завершение, целостность, путешествие"
+    }
+    
+    reversed_prefix = "↔️ В перевёрнутом положении: "
+    
+    interpretations = []
+    for card in cards:
+        meaning = base_meanings.get(card["name"], "Энергия трансформации")
+        if card["reversed"]:
+            meaning = reversed_prefix + meaning.lower()
+        interpretations.append(f"**{card['name']}**: {meaning}")
+    
+    return "\n\n".join(interpretations)
 
 
 async def handle_webapp_data(request: web.Request) -> web.Response:
