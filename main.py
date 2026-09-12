@@ -1314,6 +1314,10 @@ async def handle_webapp_data(message: types.Message, state: FSMContext):
         await process_astro_request(message, query)
         return
 
+    if action == "main_menu":
+        await message.answer("🏠 Главное меню:", reply_markup=main_menu_keyboard())
+        return
+
     if action != "tarot_spread":
         await message.answer(f"⚠️ Неизвестное действие Mini App: {action}")
         return
