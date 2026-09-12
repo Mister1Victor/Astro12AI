@@ -6,202 +6,194 @@
     <title>Таро «12 Планет»</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="/static/css/mini-app.css">
+    <!-- Шрифт для премиум вида -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <h1>🔮 Таро «12 Планет»</h1>
-            <p class="subtitle">Выберите расклад и вытяните карты</p>
+
+    <div class="app-container">
+        <!-- Заголовок приложения (всегда виден) -->
+        <header class="app-header">
+            <h1>Таро «12 Планет»</h1>
+            <p class="subtitle">Мудрость звезд в ваших руках</p>
         </header>
 
-        <!-- Выбор расклада -->
-        <section id="spread-selection" class="section">
-            <h2>Выберите тип расклада</h2>
-            <div class="button-grid">
-                <button class="btn-primary" data-spread="one">🃏 Одна карта</button>
-                <button class="btn-primary" data-spread="three">🔮 Три карты</button>
-                <button class="btn-primary" data-spread="choice">⚖️ Выбор пути</button>
-                <button class="btn-primary" data-spread="celtic">✝️ Кельтский крест</button>
-            </div>
-            <div class="nav-buttons">
-                <button class="btn-secondary" id="main-menu-from-spread">🏠 Основное меню</button>
-            </div>
-        </section>
-
-        <!-- Выбор типа трёхкарточного расклада -->
-        <section id="three-card-type-selection" class="section hidden">
-            <h2>Выберите тип расклада «Три карты»</h2>
-            <div class="button-grid">
-                <button class="btn-primary" data-three-type="past-present-future">🕐 Прошлое — Настоящее — Будущее</button>
-                <button class="btn-primary" data-three-type="thoughts-feelings-actions">💭 Мысли — Чувства — Действия</button>
-                <button class="btn-primary" data-three-type="plus-minus-result">➕➖ Плюс — Минус — Итог</button>
-            </div>
-            <div class="nav-buttons">
-                <button class="btn-secondary" id="back-to-spread-from-three">🔙 Назад</button>
-                <button class="btn-secondary" id="main-menu-from-three">🏠 Основное меню</button>
-            </div>
-        </section>
-
-        <!-- Выбор колоды -->
-        <section id="deck-selection" class="section hidden">
-            <h2>Выберите колоду</h2>
-            <div id="decks-list" class="deck-list"></div>
-            <div class="nav-buttons">
-                <button class="btn-secondary" id="back-to-spread">🔙 Назад</button>
-                <button class="btn-secondary" id="main-menu-from-deck">🏠 Основное меню</button>
-            </div>
-        </section>
-
-        <!-- Настройка перевёрнутых карт -->
-        <section id="reversed-setting" class="section hidden">
-            <h2>Настройка карт</h2>
-            <p class="setting-description">Использовать ли перевёрнутые карты в раскладах?</p>
-            <div class="button-grid">
-                <button class="btn-primary" data-reversed="yes">✅ Да, использовать перевёрнутые</button>
-                <button class="btn-primary" data-reversed="no">❌ Нет, только прямые</button>
-            </div>
-            <div class="nav-buttons">
-                <button class="btn-secondary" id="back-to-deck-from-reversed">🔙 Назад</button>
-                <button class="btn-secondary" id="main-menu-from-reversed">🏠 Основное меню</button>
-            </div>
-        </section>
-
-        <!-- Ввод вопроса -->
-        <section id="question-input" class="section hidden">
-            <h2>Ваш вопрос</h2>
-            <p class="setting-description">Напишите вопрос, на который должен ответить расклад:</p>
-            <textarea id="question-text" class="question-textarea" placeholder="Например: Что меня ждёт в отношениях в ближайший месяц?" rows="4"></textarea>
-            <button class="btn-primary btn-large" id="continue-to-shuffle">Продолжить →</button>
-            <div class="nav-buttons">
-                <button class="btn-secondary" id="back-to-reversed-from-question">🔙 Назад</button>
-                <button class="btn-secondary" id="main-menu-from-question">🏠 Основное меню</button>
-            </div>
-        </section>
-
-        <!-- Экран перемешивания -->
-        <section id="shuffle-screen" class="section hidden">
-            <h2 id="shuffle-title">Перемешайте колоду</h2>
-            <div class="card-deck-visual">
-                <div class="card-back" id="deck-visual"></div>
-            </div>
-            <button class="btn-primary btn-large" id="shuffle-btn">🔀 Перемешать</button>
-            <button class="btn-primary btn-large hidden" id="draw-cards-btn">✨ Вытянуть карты</button>
-            <div class="nav-buttons">
-                <button class="btn-secondary" id="back-to-question-from-shuffle">🔙 Назад</button>
-                <button class="btn-secondary" id="main-menu-from-shuffle">🏠 Основное меню</button>
-            </div>
-        </section>
-
-        <!-- Результат -->
-        <section id="result-screen" class="section hidden">
-            <h2>Ваши карты</h2>
-            <div id="cards-result" class="cards-result"></div>
-            <div class="result-actions">
-                <button class="btn-success" id="get-interpretation">🔮 Получить толкование</button>
-                <button class="btn-secondary" id="retry-spread">🔄 Повторить расклад</button>
-            </div>
-            <div class="nav-buttons">
-                <button class="btn-secondary" id="back-to-shuffle-from-result">🔙 Назад</button>
-                <button class="btn-secondary" id="main-menu-from-result">🏠 Основное меню</button>
-            </div>
-        </section>
-
-        <!-- Ответ от LLM -->
-        <section id="interpretation-screen" class="section hidden">
-            <h2>🔮 Толкование расклада</h2>
-            <div id="interpretation-content" class="interpretation-content"></div>
-            <div class="nav-buttons">
-                <button class="btn-secondary" id="back-to-result-from-interp">🔙 К картам</button>
-                <button class="btn-secondary" id="new-spread-from-interp">🔄 Новый расклад</button>
-                <button class="btn-secondary" id="main-menu-from-interp">🏠 Основное меню</button>
-            </div>
-        </section>
-
-        <!-- Астрология -->
-        <section id="astrology-input" class="section hidden">
-            <h2>🪐 Параметры аспекта</h2>
-            <form id="astrology-form">
-                <div class="form-group">
-                    <label for="planet1">Первая планета:</label>
-                    <select id="planet1" required>
-                        <option value="">Выберите планету</option>
-                        <option value="Sun">Солнце</option>
-                        <option value="Moon">Луна</option>
-                        <option value="Mercury">Меркурий</option>
-                        <option value="Venus">Венера</option>
-                        <option value="Mars">Марс</option>
-                        <option value="Jupiter">Юпитер</option>
-                        <option value="Saturn">Сатурн</option>
-                    </select>
+        <main class="content-area">
+            
+            <!-- Экран 1: Выбор расклада -->
+            <section id="screen-spread-type" class="screen active">
+                <h2 class="screen-title">Выберите тип расклада</h2>
+                <div class="options-grid">
+                    <button class="option-card spread-option" data-type="one">
+                        <span class="icon">🃏</span>
+                        <span class="label">Одна карта</span>
+                    </button>
+                    <button class="option-card spread-option" data-type="three">
+                        <span class="icon">🔮</span>
+                        <span class="label">Три карты</span>
+                    </button>
+                    <button class="option-card spread-option" data-type="choice" disabled style="opacity: 0.5;">
+                        <span class="icon">⚖️</span>
+                        <span class="label">Выбор пути</span>
+                        <span class="soon">Скоро</span>
+                    </button>
+                    <button class="option-card spread-option" data-type="celtic" disabled style="opacity: 0.5;">
+                        <span class="icon">✝️</span>
+                        <span class="label">Кельтский крест</span>
+                        <span class="soon">Скоро</span>
+                    </button>
                 </div>
-                <div class="form-group">
-                    <label for="sign1">Знак первой планеты:</label>
-                    <select id="sign1" required>
-                        <option value="">Выберите знак</option>
-                        <option value="Ari">Овен</option>
-                        <option value="Tau">Телец</option>
-                        <option value="Gem">Близнецы</option>
-                        <option value="Can">Рак</option>
-                        <option value="Leo">Лев</option>
-                        <option value="Vir">Дева</option>
-                        <option value="Lib">Весы</option>
-                        <option value="Sco">Скорпион</option>
-                        <option value="Sgr">Стрелец</option>
-                        <option value="Cap">Козерог</option>
-                        <option value="Aqr">Водолей</option>
-                        <option value="Psc">Рыбы</option>
-                    </select>
+                <div class="nav-buttons">
+                    <button class="btn-secondary btn-home">🏠 Основное меню</button>
                 </div>
-                <div class="form-group">
-                    <label for="aspect-type">Тип аспекта:</label>
-                    <select id="aspect-type" required>
-                        <option value="">Выберите аспект</option>
-                        <option value="conjunction">Соединение (0°)</option>
-                        <option value="sextile">Секстиль (60°)</option>
-                        <option value="square">Квадрат (90°)</option>
-                        <option value="trine">Трин (120°)</option>
-                        <option value="opposition">Оппозиция (180°)</option>
-                        <option value="quincunx">Квиконс (150°)</option>
-                    </select>
+            </section>
+
+            <!-- Экран 2: Тип трех карт (только для расклада "Три карты") -->
+            <section id="screen-three-type" class="screen">
+                <h2 class="screen-title">Выберите тип расклада «Три карты»</h2>
+                <div class="options-list">
+                    <button class="option-row three-type-option" data-type="past-present-future">
+                        <span class="icon">🕐</span>
+                        <span class="text">Прошлое — Настоящее — Будущее</span>
+                    </button>
+                    <button class="option-row three-type-option" data-type="thoughts-feelings-actions">
+                        <span class="icon">💭</span>
+                        <span class="text">Мысли — Чувства — Действия</span>
+                    </button>
+                    <button class="option-row three-type-option" data-type="plus-minus-result">
+                        <span class="icon">➕➖</span>
+                        <span class="text">Плюс — Минус — Итог</span>
+                    </button>
                 </div>
-                <div class="form-group">
-                    <label for="planet2">Вторая планета:</label>
-                    <select id="planet2" required>
-                        <option value="">Выберите планету</option>
-                        <option value="Sun">Солнце</option>
-                        <option value="Moon">Луна</option>
-                        <option value="Mercury">Меркурий</option>
-                        <option value="Venus">Венера</option>
-                        <option value="Mars">Марс</option>
-                        <option value="Jupiter">Юпитер</option>
-                        <option value="Saturn">Сатурн</option>
-                    </select>
+                <div class="nav-buttons">
+                    <button class="btn-text btn-back">🔙 Назад</button>
+                    <button class="btn-secondary btn-home">🏠 Основное меню</button>
                 </div>
-                <div class="form-group">
-                    <label for="sign2">Знак второй планеты:</label>
-                    <select id="sign2" required>
-                        <option value="">Выберите знак</option>
-                        <option value="Ari">Овен</option>
-                        <option value="Tau">Телец</option>
-                        <option value="Gem">Близнецы</option>
-                        <option value="Can">Рак</option>
-                        <option value="Leo">Лев</option>
-                        <option value="Vir">Дева</option>
-                        <option value="Lib">Весы</option>
-                        <option value="Sco">Скорпион</option>
-                        <option value="Sgr">Стрелец</option>
-                        <option value="Cap">Козерог</option>
-                        <option value="Aqr">Водолей</option>
-                        <option value="Psc">Рыбы</option>
-                    </select>
+            </section>
+
+            <!-- Экран 3: Выбор колоды -->
+            <section id="screen-deck" class="screen">
+                <h2 class="screen-title">Выберите колоду</h2>
+                <div class="options-list">
+                    <button class="option-row deck-option" data-deck-id="school_12planets">
+                        <span class="icon">🎨</span>
+                        <span class="text deck-name-highlight">Авторская колода Школы «12 Планет»</span>
+                        <span class="subtext">78 карт</span>
+                    </button>
+                    <button class="option-row deck-option" data-deck-id="oracle_12planets">
+                        <span class="icon">🌌</span>
+                        <span class="text deck-name-highlight">Оракул «12 Планет»</span>
+                        <span class="subtext">146 карт (авторская)</span>
+                    </button>
+                    <button class="option-row deck-option" data-deck-id="rider_waite">
+                        <span class="icon">📜</span>
+                        <span class="text deck-name-highlight">Таро Райдера-Уэйта</span>
+                        <span class="subtext">78 карт</span>
+                    </button>
+                    <button class="option-row deck-option" data-deck-id="thoth_crowley">
+                        <span class="icon">🦅</span>
+                        <span class="text deck-name-highlight">Таро Тота (Алистер Кроули)</span>
+                        <span class="subtext">78 карт</span>
+                    </button>
                 </div>
-                <button type="submit" class="btn-success">✅ Отправить в бот</button>
-            </form>
-            <div class="nav-buttons">
-                <button class="btn-secondary" id="main-menu-from-astro">🏠 Основное меню</button>
-            </div>
-        </section>
+                <div class="nav-buttons">
+                    <button class="btn-text btn-back">🔙 Назад</button>
+                    <button class="btn-secondary btn-home">🏠 Основное меню</button>
+                </div>
+            </section>
+
+            <!-- Экран 4: Настройка переворотов -->
+            <section id="screen-reverse" class="screen">
+                <h2 class="screen-title">Настройка карт</h2>
+                <p class="description">Использовать ли перевёрнутые карты в раскладах?</p>
+                <div class="options-grid">
+                    <button class="option-card reverse-option" id="reverse-yes">
+                        <span class="icon">✅</span>
+                        <span class="label">Да, использовать</span>
+                    </button>
+                    <button class="option-card reverse-option" id="reverse-no">
+                        <span class="icon">❌</span>
+                        <span class="label">Нет, только прямые</span>
+                    </button>
+                </div>
+                <div class="nav-buttons">
+                    <button class="btn-text btn-back">🔙 Назад</button>
+                    <button class="btn-secondary btn-home">🏠 Основное меню</button>
+                </div>
+            </section>
+
+            <!-- Экран 5: Ввод вопроса -->
+            <section id="screen-question" class="screen">
+                <h2 class="screen-title">Ваш вопрос</h2>
+                <p class="description">Напишите вопрос, на который должен ответить расклад:</p>
+                <div class="input-group">
+                    <textarea id="question-input" placeholder="Например: Что меня ждёт в отношениях в ближайший месяц?" rows="4"></textarea>
+                </div>
+                <div class="nav-buttons">
+                    <button class="btn-text btn-back">🔙 Назад</button>
+                    <button class="btn-primary" id="submit-question-btn">Продолжить →</button>
+                </div>
+                <div class="nav-bottom">
+                     <button class="btn-secondary-small btn-home">🏠 Основное меню</button>
+                </div>
+            </section>
+
+            <!-- Экран 6: Перемешивание -->
+            <section id="screen-shuffle" class="screen">
+                <h2 class="screen-title">Перемешайте колоду</h2>
+                <div class="shuffle-visual">
+                    <div class="card-stack">
+                        <div class="card-back"></div>
+                        <div class="card-back offset-1"></div>
+                        <div class="card-back offset-2"></div>
+                    </div>
+                </div>
+                <p class="description">Сосредоточьтесь на вопросе и перемешайте карты</p>
+                <div class="nav-buttons">
+                    <button class="btn-secondary" id="shuffle-btn">🔀 Перемешать</button>
+                    <button class="btn-primary" id="draw-btn">✨ Вытянуть карты</button>
+                </div>
+                <div class="nav-bottom">
+                    <button class="btn-text btn-back">🔙 Назад</button>
+                    <button class="btn-secondary-small btn-home">🏠 Основное меню</button>
+                </div>
+            </section>
+
+            <!-- Экран 7: Результат (Карты) -->
+            <section id="screen-result" class="screen">
+                <h2 class="screen-title">Ваши карты</h2>
+                <div id="result-cards-container" class="cards-display">
+                    <!-- Карты будут вставлены сюда через JS -->
+                </div>
+                <div class="nav-buttons">
+                    <button class="btn-primary" id="get-interpretation-btn">🔮 Получить толкование</button>
+                    <button class="btn-secondary" id="retry-spread-btn">🔄 Повторить расклад</button>
+                </div>
+                <div class="nav-bottom">
+                    <button class="btn-text btn-back" onclick="app.showScreen('shuffle')">🔙 К картам</button>
+                    <button class="btn-secondary-small btn-home">🏠 Основное меню</button>
+                </div>
+            </section>
+
+            <!-- Экран 8: Толкование (ИИ) -->
+            <section id="screen-interpretation" class="screen">
+                <h2 class="screen-title">🔮 Толкование расклада</h2>
+                <div class="interpretation-box">
+                    <div id="interpretation-text" class="loading-text">Загрузка мудрости...</div>
+                </div>
+                <div class="nav-buttons">
+                    <button class="btn-secondary" onclick="app.showScreen('result')">🔙 К картам</button>
+                    <button class="btn-primary" id="new-reading-btn">🔄 Новый расклад</button>
+                </div>
+                <div class="nav-bottom">
+                    <button class="btn-secondary-small btn-home">🏠 Основное меню</button>
+                </div>
+            </section>
+
+        </main>
     </div>
+
+    <!-- Подключаем наш production JS -->
     <script src="/static/js/mini-app.js"></script>
 </body>
 </html>
