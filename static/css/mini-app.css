@@ -14,7 +14,10 @@
     --warning-color: #fdcb6e;
     --danger-color: #d63031;
     --card-bg: #0f3460;
+    
     --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
@@ -87,6 +90,13 @@ h2 {
     color: var(--tg-theme-text-color);
 }
 
+.setting-description {
+    text-align: center;
+    margin-bottom: 20px;
+    opacity: 0.9;
+    font-size: 14px;
+}
+
 .button-grid {
     display: flex;
     flex-direction: column;
@@ -123,6 +133,7 @@ h2 {
 .btn-secondary {
     background: rgba(255, 255, 255, 0.1);
     color: var(--tg-theme-text-color);
+    margin-top: 10px;
 }
 
 .btn-secondary:hover {
@@ -170,6 +181,13 @@ h2 {
     margin-top: 20px;
 }
 
+.nav-buttons {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
 .deck-list {
     display: flex;
     flex-direction: column;
@@ -183,11 +201,39 @@ h2 {
     cursor: pointer;
     transition: all 0.3s ease;
     border: 2px solid transparent;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .deck-item:hover {
     border-color: var(--primary-color);
     transform: translateX(5px);
+}
+
+.deck-count {
+    opacity: 0.7;
+    font-size: 14px;
+}
+
+.question-textarea {
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: var(--card-bg);
+    color: var(--tg-theme-text-color);
+    font-size: 16px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 100px;
+    margin-bottom: 20px;
+    transition: border-color 0.3s ease;
+}
+
+.question-textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
 }
 
 .card-deck-visual {
@@ -230,8 +276,7 @@ h2 {
 }
 
 .card-result {
-    width: 90px;
-    height: 130px;
+    width: 100px;
     background: var(--card-bg);
     border-radius: 10px;
     padding: 8px;
@@ -259,31 +304,71 @@ h2 {
 
 .card-result img {
     width: 100%;
-    height: 70px;
+    height: 140px;
     object-fit: cover;
     border-radius: 8px;
     margin-bottom: 6px;
 }
 
+.card-placeholder {
+    width: 100%;
+    height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
 .card-result .card-name {
     font-size: 11px;
     font-weight: 600;
-    line-height: 1.2;
+    line-height: 1.3;
+    margin-bottom: 4px;
+}
+
+.card-result .card-pos {
+    font-size: 10px;
+    opacity: 0.8;
+    color: var(--tg-theme-hint-color);
 }
 
 .card-result.reversed {
     border: 2px solid var(--warning-color);
 }
 
-.interpretation {
+.card-result.reversed img {
+    transform: rotate(180deg);
+}
+
+.result-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     margin-top: 20px;
 }
 
-.interpretation-box {
+.interpretation-content {
     background: var(--card-bg);
     padding: 20px;
     border-radius: 12px;
-    border-left: 4px solid var(--primary-color);
+    margin-bottom: 20px;
+    line-height: 1.6;
+    font-size: 15px;
+}
+
+.interpretation-content p {
+    margin-bottom: 12px;
+}
+
+.interpretation-content p:last-child {
+    margin-bottom: 0;
+}
+
+.form-group {
+    margin-bottom: 20px;
 }
 
 .interpretation-box h3 {
@@ -336,11 +421,29 @@ textarea::placeholder {
         height: 110px;
     }
     
-    .card-result .card-name {
-        font-size: 10px;
+    .card-result {
+        width: 80px;
+    }
+    
+    .card-result img,
+    .card-placeholder {
+        height: 120px;
     }
 }
 
-.hidden {
-    display: none !important;
+/* Индикатор загрузки */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }

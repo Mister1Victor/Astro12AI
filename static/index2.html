@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Таро «12 Планет»</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="/static/css/mini-app.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🔮 Таро «12 Планет»</h1>
+            <p class="subtitle">Выберите расклад и вытяните карты</p>
+        </header>
+
+        <!-- Экран 1: Выбор расклада -->
+        <section id="screen-spread" class="section">
+            <h2>Выберите тип расклада</h2>
+            <div class="button-grid">
+                <button class="btn-primary" data-spread="one">🃏 Одна карта</button>
+                <button class="btn-primary" data-spread="three">🔮 Три карты</button>
+                <button class="btn-primary" data-spread="choice">⚖️ Выбор пути</button>
+                <button class="btn-primary" data-spread="celtic">✝️ Кельтский крест</button>
+                <button class="btn-secondary" id="btn-astro">🪐 Астрология: аспект</button>
+            </div>
+        </section>
+
+        <!-- Экран 2: Выбор колоды -->
+        <section id="screen-deck" class="section hidden">
+            <h2>Выберите колоду</h2>
+            <div id="deck-list" class="deck-list"></div>
+            <button class="btn-secondary" data-back="spread">🔙 Назад</button>
+        </section>
+
+        <!-- Экран 3: Перемешивание -->
+        <section id="screen-shuffle" class="section hidden">
+            <h2 id="shuffle-title">Перемешайте колоду</h2>
+            <div class="card-deck-visual">
+                <div class="card-back" id="deck-visual"></div>
+            </div>
+            <button class="btn-primary btn-large" id="btn-shuffle">🔀 Перемешать</button>
+            <button class="btn-primary btn-large hidden" id="btn-draw">✨ Вытянуть карты</button>
+            <button class="btn-secondary" data-back="deck">🔙 Назад</button>
+        </section>
+
+        <!-- Экран 4: Результат -->
+        <section id="screen-result" class="section hidden">
+            <h2>Ваши карты</h2>
+            <div id="cards-result" class="cards-result"></div>
+            <div class="result-actions">
+                <button class="btn-success" id="btn-send">✅ Отправить в бот</button>
+                <button class="btn-secondary" id="btn-retry">🔄 Повторить расклад</button>
+                <button class="btn-secondary" data-back="shuffle">🔙 Назад</button>
+            </div>
+        </section>
+
+        <!-- Экран 5: Астрология -->
+        <section id="screen-astro" class="section hidden">
+            <h2>🪐 Параметры аспекта</h2>
+            <form id="astro-form">
+                <div class="form-group">
+                    <label for="planet1">Первая планета:</label>
+                    <select id="planet1" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="sign1">Знак первой планеты:</label>
+                    <select id="sign1" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="aspect">Тип аспекта:</label>
+                    <select id="aspect" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="planet2">Вторая планета:</label>
+                    <select id="planet2" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="sign2">Знак второй планеты:</label>
+                    <select id="sign2" required></select>
+                </div>
+                <button type="submit" class="btn-success">✅ Отправить в бот</button>
+                <button type="button" class="btn-secondary" data-back="spread">🔙 Назад</button>
+            </form>
+        </section>
+    </div>
+    <script src="/static/js/mini-app.js"></script>
+</body>
+</html>
