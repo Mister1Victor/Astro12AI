@@ -468,7 +468,7 @@
     },
     {
       "id": "wands_ace",
-      "name": "Корень Сил Огня (Туз Жезлов)",
+      "name": "Корень Сил Огня (Туз Жезлов ♣️ Трефы)",
       "image": "wands_ace.jpg",
       "astrology": "Стихия Огня (корень масти)",
       "keywords": [
@@ -490,7 +490,7 @@
     },
     {
       "id": "wands_2",
-      "name": "Владение (2 Жезлов)",
+      "name": "Владение (2 Жезлов ♣️ Трефы)",
       "image": "wands_2.jpg",
       "astrology": "Марс в Овне",
       "keywords": [
@@ -512,7 +512,7 @@
     },
     {
       "id": "wands_3",
-      "name": "Доблесть (3 Жезлов)",
+      "name": "Доблесть (3 Жезлов ♣️ Трефы)",
       "image": "wands_3.jpg",
       "astrology": "Солнце в Овне",
       "keywords": [
@@ -534,7 +534,7 @@
     },
     {
       "id": "wands_4",
-      "name": "Завершение (4 Жезлов)",
+      "name": "Завершение (4 Жезлов ♣️ Трефы)",
       "image": "wands_4.jpg",
       "astrology": "Венера в Овне",
       "keywords": [
@@ -556,7 +556,7 @@
     },
     {
       "id": "wands_5",
-      "name": "Борьба (5 Жезлов)",
+      "name": "Борьба (5 Жезлов ♣️ Трефы)",
       "image": "wands_5.jpg",
       "astrology": "Сатурн во Льве",
       "keywords": [
@@ -578,7 +578,7 @@
     },
     {
       "id": "wands_6",
-      "name": "Признание (6 Жезлов)",
+      "name": "Признание (6 Жезлов ♣️ Трефы)",
       "image": "wands_6.jpg",
       "astrology": "Юпитер во Льве",
       "keywords": [
@@ -601,7 +601,7 @@
     },
     {
       "id": "wands_7",
-      "name": "Отвага (7 Жезлов)",
+      "name": "Отвага (7 Жезлов ♣️ Трефы)",
       "image": "wands_7.jpg",
       "astrology": "Марс во Льве",
       "keywords": [
@@ -623,7 +623,7 @@
     },
     {
       "id": "wands_8",
-      "name": "Быстрота (8 Жезлов)",
+      "name": "Быстрота (8 Жезлов ♣️ Трефы)",
       "image": "wands_8.jpg",
       "astrology": "Меркурий в Стрельце",
       "keywords": [
@@ -645,7 +645,7 @@
     },
     {
       "id": "wands_9",
-      "name": "Сила (9 Жезлов)",
+      "name": "Сила (9 Жезлов ♣️ Трефы)",
       "image": "wands_9.jpg",
       "astrology": "Луна в Стрельце",
       "keywords": [
@@ -667,7 +667,7 @@
     },
     {
       "id": "wands_10",
-      "name": "Подавление (10 Жезлов)",
+      "name": "Подавление (10 Жезлов ♣️ Трефы)",
       "image": "wands_10.jpg",
       "astrology": "Солнце в Стрельце",
       "keywords": [
@@ -689,7 +689,7 @@
     },
     {
       "id": "wands_page",
-      "name": "Принцесса Жезлов",
+      "name": "Принцесса Жезлов ♣️ Трефы",
       "image": "wands_page.jpg",
       "astrology": "",
       "keywords": [
@@ -711,7 +711,7 @@
     },
     {
       "id": "wands_knight",
-      "name": "Принц Жезлов",
+      "name": "Принц Жезлов ♣️ Трефы",
       "image": "wands_knight.jpg",
       "astrology": "",
       "keywords": [
@@ -733,7 +733,7 @@
     },
     {
       "id": "wands_queen",
-      "name": "Королева Жезлов",
+      "name": "Королева Жезлов ♣️ Трефы",
       "image": "wands_queen.jpg",
       "astrology": "",
       "keywords": [
@@ -755,7 +755,7 @@
     },
     {
       "id": "wands_king",
-      "name": "Рыцарь Жезлов",
+      "name": "Рыцарь Жезлов ♣️ Трефы",
       "image": "wands_king.jpg",
       "astrology": "",
       "keywords": [
@@ -777,7 +777,7 @@
     },
     {
       "id": "cups_ace",
-      "name": "Корень Сил Воды (Туз Кубков)",
+      "name": "Корень Сил Воды (Туз Кубков  Черви ♥️)",
       "image": "cups_ace.jpg",
       "astrology": "Стихия Воды (корень масти)",
       "keywords": [
@@ -799,7 +799,7 @@
     },
     {
       "id": "cups_2",
-      "name": "Любовь (2 Кубков)",
+      "name": "Любовь (2 Кубков  Черви ♥️)",
       "image": "cups_2.jpg",
       "astrology": "Венера в Раке",
       "keywords": [
@@ -821,7 +821,7 @@
     },
     {
       "id": "cups_3",
-      "name": "Изобилие (3 Кубков)",
+      "name": "Изобилие (3 Кубков  Черви ♥️)",
       "image": "cups_3.jpg",
       "astrology": "Меркурий в Раке",
       "keywords": [
@@ -843,7 +843,7 @@
     },
     {
       "id": "cups_4",
-      "name": "Роскошь (4 Кубков)",
+      "name": "Роскошь (4 Кубков  Черви ♥️)",
       "image": "cups_4.jpg",
       "astrology": "Луна в Раке",
       "keywords": [
@@ -865,7 +865,7 @@
     },
     {
       "id": "cups_5",
-      "name": "Разочарование (5 Кубков)",
+      "name": "Разочарование (5 Кубков  Черви ♥️)",
       "image": "cups_5.jpg",
       "astrology": "Марс в Скорпионе",
       "keywords": [
@@ -887,7 +887,7 @@
     },
     {
       "id": "cups_6",
-      "name": "Удовольствие (6 Кубков)",
+      "name": "Удовольствие (6 Кубков  Черви ♥️)",
       "image": "cups_6.jpg",
       "astrology": "Солнце в Скорпионе",
       "keywords": [
@@ -909,7 +909,7 @@
     },
     {
       "id": "cups_7",
-      "name": "Разгул (7 Кубков)",
+      "name": "Разгул (7 Кубков  Черви ♥️)",
       "image": "cups_7.jpg",
       "astrology": "Венера в Скорпионе",
       "keywords": [
@@ -931,7 +931,7 @@
     },
     {
       "id": "cups_8",
-      "name": "Лень (8 Кубков)",
+      "name": "Лень (8 Кубков  Черви ♥️)",
       "image": "cups_8.jpg",
       "astrology": "Сатурн в Рыбах",
       "keywords": [
@@ -953,7 +953,7 @@
     },
     {
       "id": "cups_9",
-      "name": "Счастье (9 Кубков)",
+      "name": "Счастье (9 Кубков  Черви ♥️)",
       "image": "cups_9.jpg",
       "astrology": "Юпитер в Рыбах",
       "keywords": [
@@ -975,7 +975,7 @@
     },
     {
       "id": "cups_10",
-      "name": "Пресыщение (10 Кубков)",
+      "name": "Пресыщение (10 Кубков  Черви ♥️)",
       "image": "cups_10.jpg",
       "astrology": "Марс в Рыбах",
       "keywords": [
@@ -996,7 +996,7 @@
     },
     {
       "id": "cups_page",
-      "name": "Принцесса Кубков",
+      "name": "Принцесса Кубков  Черви ♥️",
       "image": "cups_page.jpg",
       "astrology": "",
       "keywords": [
@@ -1018,7 +1018,7 @@
     },
     {
       "id": "cups_knight",
-      "name": "Принц Кубков",
+      "name": "Принц Кубков  Черви ♥️",
       "image": "cups_knight.jpg",
       "astrology": "",
       "keywords": [
@@ -1040,7 +1040,7 @@
     },
     {
       "id": "cups_queen",
-      "name": "Королева Кубков",
+      "name": "Королева Кубков  Черви ♥️",
       "image": "cups_queen.jpg",
       "astrology": "",
       "keywords": [
@@ -1062,7 +1062,7 @@
     },
     {
       "id": "cups_king",
-      "name": "Рыцарь Кубков",
+      "name": "Рыцарь Кубков_Король Черви ♥️ ",
       "image": "cups_king.jpg",
       "astrology": "",
       "keywords": [
@@ -1326,7 +1326,7 @@
     },
     {
       "id": "swords_knight",
-      "name": "Принц Мечей",
+      "name": "Принц Мечей ⚔️_Валет Пик ♠️",
       "image": "swords_knight.jpg",
       "astrology": "",
       "keywords": [
@@ -1348,7 +1348,7 @@
     },
     {
       "id": "swords_queen",
-      "name": "Королева Мечей_Пиковая Дама",
+      "name": "Королева Мечей_Пиковая Дама ♠️",
       "image": "swords_queen.jpg",
       "astrology": "",
       "keywords": [
@@ -1371,7 +1371,7 @@
     },
     {
       "id": "swords_king",
-      "name": "Рыцарь Мечей",
+      "name": "Рыцарь Мечей ⚔️_Валет Пик ♠️",
       "image": "swords_king.jpg",
       "astrology": "",
       "keywords": [
@@ -1393,7 +1393,7 @@
     },
     {
       "id": "pentacles_ace",
-      "name": "Корень Сил Земли (Туз Дисков)",
+      "name": "Корень Сил Земли (Туз Дисков / Бубен ♦️)",
       "image": "pentacles_ace.jpg",
       "astrology": "Стихия Земли (корень масти)",
       "keywords": [
@@ -1415,7 +1415,7 @@
     },
     {
       "id": "pentacles_2",
-      "name": "Перемена (2 Дисков)",
+      "name": "Перемена (2 Дисков / Бубен ♦️)",
       "image": "pentacles_2.jpg",
       "astrology": "Юпитер в Козероге",
       "keywords": [
@@ -1437,7 +1437,7 @@
     },
     {
       "id": "pentacles_3",
-      "name": "Деяния (3 Дисков)",
+      "name": "Деяния (3 Дисков / Бубен ♦️)",
       "image": "pentacles_3.jpg",
       "astrology": "Марс в Козероге",
       "keywords": [
@@ -1459,7 +1459,7 @@
     },
     {
       "id": "pentacles_4",
-      "name": "Власть (4 Дисков)",
+      "name": "Власть (4 Дисков / Бубен ♦️)",
       "image": "pentacles_4.jpg",
       "astrology": "Солнце в Козероге",
       "keywords": [
@@ -1481,7 +1481,7 @@
     },
     {
       "id": "pentacles_5",
-      "name": "Беспокойство (5 Дисков)",
+      "name": "Беспокойство (5 Дисков / Бубен ♦️)",
       "image": "pentacles_5.jpg",
       "astrology": "Меркурий в Тельце",
       "keywords": [
@@ -1503,7 +1503,7 @@
     },
     {
       "id": "pentacles_6",
-      "name": "Успех (6 Дисков)",
+      "name": "Успех (6 Дисков / Бубен ♦️)",
       "image": "pentacles_6.jpg",
       "astrology": "Луна в Тельце",
       "keywords": [
@@ -1525,7 +1525,7 @@
     },
     {
       "id": "pentacles_7",
-      "name": "Неудача (7 Дисков)",
+      "name": "Неудача (7 Дисков / Бубен ♦️)",
       "image": "pentacles_7.jpg",
       "astrology": "Сатурн в Тельце",
       "keywords": [
@@ -1547,7 +1547,7 @@
     },
     {
       "id": "pentacles_8",
-      "name": "Благоразумие (8 Дисков)",
+      "name": "Благоразумие (8 Дисков / Бубен ♦️)",
       "image": "pentacles_8.jpg",
       "astrology": "Солнце в Деве",
       "keywords": [
@@ -1569,7 +1569,7 @@
     },
     {
       "id": "pentacles_9",
-      "name": "Прибыль (9 Дисков)",
+      "name": "Прибыль (9 Дисков / Бубен ♦️)",
       "image": "pentacles_9.jpg",
       "astrology": "Венера в Деве",
       "keywords": [
@@ -1591,7 +1591,7 @@
     },
     {
       "id": "pentacles_10",
-      "name": "Богатство (10 Дисков)",
+      "name": "Богатство (10 Дисков / Бубен ♦️)",
       "image": "pentacles_10.jpg",
       "astrology": "Меркурий в Деве",
       "keywords": [

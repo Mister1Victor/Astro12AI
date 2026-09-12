@@ -1405,20 +1405,29 @@ async def keep_alive_pinger():
 
 
 async def start_web_server():
-    from services.web_server import setup_web_server_routes
-
     app = web.Application()
-    # app.router.add_get('/', handle_health_check)
+    app.router.add_get("/", handle_health_check)  # Health check для Render
 
-    # Регистрация маршрутов Mini App с передачей сервисов
-    setup_web_server_routes(app, tarot_service=tarot,
-                            astro_retriever=astro_retriever, llm=llm)
+    try:
+        from services.web_server import setup_web_server_routes
+        setup_web_server_routes(
+            app,
+            tarot_service=tarot,
+            astro_retriever=astro_retriever,
+            llm=llm  # Передаем LLM для API интерпретации
+        )
+    except Exception as e:
+        # Заменили warning на error, чтобы сразу видеть проблему в логах
+        logger.error(
+            f"❌ КРИТИЧЕСКАЯ ОШИБКА: Маршруты Mini App не подключены: {e}")
 
     runner = web.AppRunner(app)
     await runner.setup()
     port = int(os.getenv("PORT", 8080))
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
+    logger.info(
+        f"🌐 Веб-сервер запущен: порт {port} (/ — health, /webapp — Mini App)")
 
 
 async def setup_bot_ui():
@@ -1433,11 +1442,14 @@ async def setup_bot_ui():
 # ============================================================
 async def main():
     validate_settings()
-    if not settings.IS_DEVELOPMENT:
-        await start_web_server()
+
+    # УБРАЛИ if not settings.IS_DEVELOPMENT:
+    await start_web_server()
+
     asyncio.create_task(keep_alive_pinger())
     await bot.delete_webhook(drop_pending_updates=True)
     await setup_bot_ui()
+    # ... далее запуск polling
 
     drawable = len(_drawable_decks())
     logger.info(f"🚀 Режим: {settings.ENV}")
