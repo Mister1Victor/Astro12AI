@@ -122,31 +122,34 @@ async def api_draw_cards(request: web.Request) -> web.Response:
         deck_id = data.get('deck_id')
         count = data.get('count', 1)
         allow_reversed = data.get('allow_reversed', False)
+        spread_type = data.get('spread_type', 'one')
         
-        # Демо-колода карт для примера
+        svc = request.app.get("tarot_service")
+        
+        # Демо-список карт для fallback
         demo_cards_list = [
-            {"card_id": "0", "name": "Шут", "reversed": False},
-            {"card_id": "1", "name": "Маг", "reversed": False},
-            {"card_id": "2", "name": "Жрица", "reversed": False},
-            {"card_id": "3", "name": "Императрица", "reversed": False},
-            {"card_id": "4", "name": "Император", "reversed": False},
-            {"card_id": "5", "name": "Иерофант", "reversed": False},
-            {"card_id": "6", "name": "Влюблённые", "reversed": False},
-            {"card_id": "7", "name": "Колесница", "reversed": False},
-            {"card_id": "8", "name": "Сила", "reversed": False},
-            {"card_id": "9", "name": "Отшельник", "reversed": False},
-            {"card_id": "10", "name": "Колесо Фортуны", "reversed": False},
-            {"card_id": "11", "name": "Справедливость", "reversed": False},
-            {"card_id": "12", "name": "Повешенный", "reversed": False},
-            {"card_id": "13", "name": "Смерть", "reversed": False},
-            {"card_id": "14", "name": "Умеренность", "reversed": False},
-            {"card_id": "15", "name": "Дьявол", "reversed": False},
-            {"card_id": "16", "name": "Башня", "reversed": False},
-            {"card_id": "17", "name": "Звезда", "reversed": False},
-            {"card_id": "18", "name": "Луна", "reversed": False},
-            {"card_id": "19", "name": "Солнце", "reversed": False},
-            {"card_id": "20", "name": "Суд", "reversed": False},
-            {"card_id": "21", "name": "Мир", "reversed": False}
+            {"card_id": "0", "name": "Шут"},
+            {"card_id": "1", "name": "Маг"},
+            {"card_id": "2", "name": "Жрица"},
+            {"card_id": "3", "name": "Императрица"},
+            {"card_id": "4", "name": "Император"},
+            {"card_id": "5", "name": "Иерофант"},
+            {"card_id": "6", "name": "Влюблённые"},
+            {"card_id": "7", "name": "Колесница"},
+            {"card_id": "8", "name": "Сила"},
+            {"card_id": "9", "name": "Отшельник"},
+            {"card_id": "10", "name": "Колесо Фортуны"},
+            {"card_id": "11", "name": "Справедливость"},
+            {"card_id": "12", "name": "Повешенный"},
+            {"card_id": "13", "name": "Смерть"},
+            {"card_id": "14", "name": "Умеренность"},
+            {"card_id": "15", "name": "Дьявол"},
+            {"card_id": "16", "name": "Башня"},
+            {"card_id": "17", "name": "Звезда"},
+            {"card_id": "18", "name": "Луна"},
+            {"card_id": "19", "name": "Солнце"},
+            {"card_id": "20", "name": "Суд"},
+            {"card_id": "21", "name": "Мир"}
         ]
         
         import random
@@ -154,7 +157,6 @@ async def api_draw_cards(request: web.Request) -> web.Response:
         used_indices = set()
         
         for i in range(count):
-            # Выбираем случайную карту без повторений
             while True:
                 idx = random.randint(0, len(demo_cards_list) - 1)
                 if idx not in used_indices:
@@ -164,11 +166,14 @@ async def api_draw_cards(request: web.Request) -> web.Response:
             card_template = demo_cards_list[idx]
             is_reversed = allow_reversed and random.random() < 0.3
             
+            # Формируем правильный ID для изображения (00, 01, ..., 21)
+            card_img_id = card_template["card_id"].zfill(2)
+            
             cards.append({
                 "card_id": card_template["card_id"],
                 "name": card_template["name"],
                 "reversed": is_reversed,
-                "image_url": ""
+                "image_url": f"/api/tarot/image/{deck_id or 'rider_waite'}/{card_img_id}.jpg"
             })
         
         # Генерируем демо-толкование

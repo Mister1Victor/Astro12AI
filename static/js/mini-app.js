@@ -60,12 +60,14 @@ function goBack() {
         showSection('result');
     } else if (!sections.result.classList.contains('hidden')) {
         showSection('shuffle');
+    } else if (!sections.shuffle.classList.contains('hidden')) {
+        showSection('question');
     } else if (!sections.question.classList.contains('hidden')) {
         showSection('reversed');
     } else if (!sections.reversed.classList.contains('hidden')) {
         showSection('deck');
     } else if (!sections.deck.classList.contains('hidden')) {
-        if (state.spreadType === 'three') {
+        if (state.spreadType === 'three' && !state.threeCardType) {
             showSection('threeType');
         } else {
             showSection('spread');
@@ -98,10 +100,11 @@ function selectSpread(type) {
     state.spreadType = type;
     if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
     
+    // Для одиночной карты сразу переходим к колоде
+    // Для трёх карт и других — сначала выбор типа (для трёх) или сразу колода
     if (type === 'three') {
         showSection('threeType');
     } else {
-        // Для одиночной карты сразу переходим к колоде
         showSection('deck');
     }
 }
@@ -110,14 +113,22 @@ function selectSpread(type) {
 function selectThreeType(type) {
     state.threeCardType = type;
     if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-    showSection('deck');
+    showSection('reversed');
 }
 
 // Логика выбора колоды
 function selectDeck(deckId) {
     state.deckId = deckId;
     if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-    showSection('reversed');
+    
+    // Проверяем, есть ли выбранный тип расклада для трёх карт
+    if (state.spreadType === 'three' && !state.threeCardType) {
+        // Если трёхкарточный расклад выбран, но тип ещё нет — показываем выбор типа
+        showSection('threeType');
+    } else {
+        // Иначе переходим к настройке перевёрнутых карт
+        showSection('reversed');
+    }
 }
 
 // Логика переворотов
@@ -168,25 +179,51 @@ function shuffleDeck() {
 function drawCards() {
     if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
     
-    // Генерация случайных карт (заглушка, потом будет API)
+    // Отправляем запрос к API для получения карт
     const count = state.spreadType === 'one' ? 1 : 3;
-    const deckInfo = decks.find(d => d.id === state.deckId);
-    const maxCard = deckInfo ? deckInfo.count : 78;
     
-    state.cards = [];
-    for (let i = 0; i < count; i++) {
-        const cardNum = Math.floor(Math.random() * maxCard) + 1;
-        const isReversed = state.useReversed && Math.random() > 0.5;
-        state.cards.push({
-            id: cardNum,
-            reversed: isReversed,
-            name: `Карта ${cardNum}`, // Временное имя
-            image: `/static/images/cards/${state.deckId}/${cardNum}.jpg` // Путь к изображению
-        });
-    }
-    
-    showSection('result');
-    renderCards();
+    fetch('/api/tarot/draw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            deck_id: state.deckId,
+            count: count,
+            allow_reversed: state.useReversed,
+            spread_type: state.spreadType
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Ошибка сети');
+        return response.json();
+    })
+    .then(data => {
+        state.cards = data.cards || [];
+        
+        showSection('result');
+        renderCards();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // Fallback: генерируем карты локально
+        const deckInfo = decks.find(d => d.id === state.deckId);
+        const maxCard = deckInfo ? deckInfo.count : 78;
+        
+        state.cards = [];
+        for (let i = 0; i < count; i++) {
+            const cardNum = Math.floor(Math.random() * 22); // Старшие арканы 0-21
+            const isReversed = state.useReversed && Math.random() > 0.5;
+            const cardId = cardNum.toString().padStart(2, '0');
+            state.cards.push({
+                card_id: cardNum.toString(),
+                name: `Карта ${cardNum}`,
+                reversed: isReversed,
+                image_url: `/api/tarot/image/${state.deckId || 'rider_waite'}/${cardId}.jpg`
+            });
+        }
+        
+        showSection('result');
+        renderCards();
+    });
 }
 
 function renderCards() {
@@ -200,12 +237,13 @@ function renderCards() {
         cardEl.className = 'tarot-card';
         if (card.reversed) cardEl.classList.add('reversed');
         
-        // Заглушка изображения, если нет реального файла
-        const imgSrc = card.image; 
+        // Используем image_url из API или формируем fallback
+        const imgSrc = card.image_url || `/api/tarot/image/${state.deckId || 'rider_waite'}/${card.card_id.toString().padStart(2, '0')}.jpg`;
+        
         // Для демонстрации используем плейсхолдер, если картинка не загрузится
         cardEl.innerHTML = `
             <div class="card-image">
-                <img src="${imgSrc}" alt="Card ${card.id}" onerror="this.src='https://placehold.co/200x350/2a1b3d/FFF?text=Card+${card.id}'">
+                <img src="${imgSrc}" alt="${card.name}" onerror="this.src='https://placehold.co/200x350/2a1b3d/FFF?text=${encodeURIComponent(card.name)}'">
             </div>
             <div class="card-name">${card.name} ${card.reversed ? '(перевёрнутая)' : ''}</div>
         `;
@@ -334,7 +372,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Обработчики навигации "Назад"
     const backButtons = {
         'back-to-spread-from-three': () => showSection('spread'),
-        'back-to-spread': () => showSection('spread'),
+        'back-to-spread': () => {
+            if (state.spreadType === 'three' && !state.threeCardType) {
+                showSection('threeType');
+            } else {
+                showSection('spread');
+            }
+        },
         'back-to-deck-from-reversed': () => showSection('deck'),
         'back-to-reversed-from-question': () => showSection('reversed'),
         'back-to-question-from-shuffle': () => showSection('question'),
