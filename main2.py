@@ -275,29 +275,14 @@ async def get_ai_interpretation(query: str) -> str:
 # ============================================================
 # ТАРО: вызов ИИ
 # ============================================================
-# Авторские колоды Школы: для них в таро-промпт подкладываем материалы Школы.
-# (Если константа уже есть выше — не дублируйте, оставьте одну.)
-SCHOOL_DECK_IDS = {"author_deck_146", "author_deck"}
-
-
-def _is_school_deck(deck_id=None, deck_name=None) -> bool:
-    """Определяет авторскую колоду Школы по id ИЛИ по названию (надёжно)."""
-    if deck_id and deck_id in SCHOOL_DECK_IDS:
-        return True
-    if deck_name and "12 Планет" in deck_name:
-        return True
-    return False
-
-
-async def get_tarot_ai_interpretation(question: str, drawn, deck_name: str,
-                                      position_kinds=None, deck_id=None) -> str:
-    """
-    Интерпретация расклада через LLM.
-    position_kinds: список видов позиций ('positive'/'negative'/'day'/'neutral').
-    deck_id: если колода авторская (Школа) — в промпт добавляются материалы Школы
-    (ключевые слова планет и знаков), как в астрологических вопросах.
-    Возвращает None при ошибке 429 (для кнопки повтора).
-    """
+async def get_tarot_ai_interpretation(
+    question: str,
+    drawn,
+    deck_name: str,
+    position_kinds=None,
+    deck_id=None
+) -> str:
+    """Интерпретация расклада через LLM. Возвращает None при 429."""
     logger.info("=" * 60)
     logger.info(f"🎴 ТАРО ЗАПРОС: {question[:200]}...")
     start_time = time.time()
@@ -1416,24 +1401,20 @@ async def keep_alive_pinger():
 
 
 async def start_web_server():
-    from services.web_server import setup_web_server_routes
-
     app = web.Application()
-    app.router.add_get('/', handle_health_check)
-
-    # Регистрация маршрутов Mini App с передачей сервисов
-    setup_web_server_routes(
-        app,
-        tarot_service=tarot,
-        astro_retriever=astro_retriever,
-        llm=llm
-    )
-
+    app.router.add_get("/", handle_health_check)
+    try:
+        from services.web_server import setup_web_server_routes
+        setup_web_server_routes(app, tarot_service=tarot)
+    except Exception as e:
+        logger.warning(f"⚠️ Маршруты Mini App не подключены: {e}")
     runner = web.AppRunner(app)
     await runner.setup()
     port = int(os.getenv("PORT", 8080))
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
+    logger.info(
+        f"🌐 Веб-сервер запущен: порт {port} (/ — health, /webapp — Mini App)")
 
 
 async def setup_bot_ui():

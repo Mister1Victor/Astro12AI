@@ -1,19 +1,20 @@
 """
 services/web_server.py
-Веб-сервер Mini App и API (production).
-Маршруты (корень '/' обслуживает main.py — здесь НЕ регистрируется):
-  GET  /webapp                                — главная страница Mini App
-  GET  /static/{filepath}                     — статика (css/js)
-  GET  /api/tarot/image/{deck_id}/{filename}  — картинки карт
-  GET  /api/tarot/decks                       — список колод (реальный TarotService)
-  POST /api/tarot/draw                        — вытянуть карты (реальный TarotService)
-  POST /api/tarot/interpret                   — толкование расклада через LLM
-  POST /api/webapp/data                       — резервный приём данных Mini App
+Веб-сервер Mini App и API для Astro12AI.
+
+Маршруты:
+GET  /webapp                              — главная страница Mini App (static/index.html)
+GET  /static/{filepath}                   — статика (css/js/изображения Mini App)
+GET  /api/tarot/decks                     — список колод из реального TarotService
+POST /api/tarot/draw                      — вытянуть карты (реальный TarotService)
+GET  /api/tarot/image/{deck_id}/{file}    — картинки карт из data/tarot/decks/
+POST /api/webapp/data                     — резервный приём данных Mini App
+
+ВАЖНО: Маршрут "/" (health check) регистрируется в main.py — здесь мы его НЕ трогаем, 
+чтобы избежать RuntimeError: method HEAD is already registered.
 """
 import logging
-import os
 from pathlib import Path
-
 from aiohttp import web
 
 logger = logging.getLogger(__name__)
@@ -23,71 +24,95 @@ STATIC_DIR = BASE_DIR / "static"
 DECKS_DIR = BASE_DIR / "data" / "tarot" / "decks"
 
 CONTENT_TYPES = {
+    ".html": "text/html",
     ".css": "text/css",
     ".js": "application/javascript",
-    ".html": "text/html",
     ".json": "application/json",
     ".png": "image/png",
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
     ".svg": "image/svg+xml",
     ".ico": "image/x-icon",
+    ".woff": "font/woff",
+    ".woff2": "font/woff2",
 }
-
 
 # ============================================================
 # MINI APP: ГЛАВНАЯ СТРАНИЦА
 # ============================================================
+
+
 async def handle_mini_app_index(request: web.Request) -> web.Response:
+    """Отдаёт static/index.html."""
     index = STATIC_DIR / "index.html"
     if not index.is_file():
         return web.Response(status=404, text="Mini App not found: static/index.html")
-    return web.Response(text=index.read_text(encoding="utf-8"),
-                        content_type="text/html")
-
+    return web.Response(text=index.read_text(encoding="utf-8"), content_type="text/html")
 
 # ============================================================
 # СТАТИКА
 # ============================================================
+
+
 async def handle_static_file(request: web.Request) -> web.Response:
+    """Отдаёт файлы из static/ с защитой от выхода за пределы папки."""
     rel = request.match_info.get("filepath", "")
     base = STATIC_DIR.resolve()
     path = (STATIC_DIR / rel).resolve()
+
     if not str(path).startswith(str(base)) or not path.is_file():
         return web.Response(status=404, text="File not found")
+
     ctype = CONTENT_TYPES.get(path.suffix.lower(), "application/octet-stream")
     return web.Response(body=path.read_bytes(), content_type=ctype)
-
 
 # ============================================================
 # КАРТИНКИ КАРТ
 # ============================================================
+
+
 async def handle_deck_image(request: web.Request) -> web.Response:
+    """Картинка карты: ищет в images/, фолбэк — корень папки колоды."""
     deck_id = request.match_info["deck_id"]
     filename = request.match_info["filename"]
+
     base = (DECKS_DIR / deck_id / "images").resolve()
     path = (base / filename).resolve()
+
     if not str(path).startswith(str(base)) or not path.is_file():
         base2 = (DECKS_DIR / deck_id).resolve()
         path = (base2 / filename).resolve()
         if not str(path).startswith(str(base2)) or not path.is_file():
             return web.Response(status=404, text="Image not found")
+
     ctype = CONTENT_TYPES.get(path.suffix.lower(), "image/jpeg")
     return web.Response(body=path.read_bytes(), content_type=ctype)
-
 
 # ============================================================
 # API: КОЛОДЫ
 # ============================================================
+
+
 async def api_get_decks(request: web.Request) -> web.Response:
-    """API: Получить список колод."""
-    # В продакшене загружать из реального сервиса
+    """Список колод из реального TarotService."""
+    svc = request.app.get("tarot_service")
+    if svc is None:
+        return web.json_response({"error": "tarot service unavailable"}, status=503)
+
     decks = [
-        {"deck_id": "rider_waite", "name": "Райдер-Уэйт", "cards_count": 78},
-        {"deck_id": "thoth", "name": "Таро Тота", "cards_count": 78},
-        {"deck_id": "author_deck_146", "name": "Авторская колода 12 Планет", "cards_count": 146}
+        {
+            "deck_id": d.deck_id,
+            "name": d.name,
+            "cards_count": d.cards_count,
+            "deck_type": d.deck_type,
+        }
+        for d in svc.list_decks() if d.cards_count > 0
     ]
     return web.json_response(decks)
+
+# ============================================================
+# API: ВЫТЯНУТЬ КАРТЫ
+# ============================================================
 
 
 async def api_draw_cards(request: web.Request) -> web.Response:
@@ -197,79 +222,20 @@ def generate_demo_interpretation(cards, allow_reversed):
 # ============================================================
 # API: ТОЛКОВАНИЕ РАСКЛАДА (LLM) — ответ ВНУТРИ Mini App
 # ============================================================
-async def api_interpret_spread(request: web.Request) -> web.Response:
-    svc = request.app.get("tarot_service")
-    llm = request.app.get("llm")
-    astro_retriever = request.app.get("astro_retriever")
-    if not svc or not llm:
-        return web.json_response({"error": "service unavailable"}, status=503)
-    try:
-        data = await request.json()
-    except Exception:
-        return web.json_response({"error": "invalid json"}, status=400)
-
-    deck_id = data.get("deck_id")
-    spread_type = data.get("spread_type", "one")
-    three_card_type = data.get("three_card_type")
-    question = (data.get("question") or "").strip()
-    cards_data = data.get("cards", [])
-
-    deck = svc.get_deck(deck_id)
-    if not deck or not deck.cards:
-        return web.json_response({"error": "deck not found"}, status=404)
-
-    # Восстанавливаем РЕАЛЬНЫЕ карты колоды (со значениями) — не пустышки
-    drawn = []
-    for c in cards_data:
-        card = deck.get_card(c.get("card_id"))
-        if card:
-            drawn.append((card, bool(c.get("reversed", False))))
-    if not drawn:
-        return web.json_response({"error": "no cards restored"}, status=400)
-
-    # Виды позиций для позиционной логики оракула
-    position_kinds = None
-    if spread_type == "three" and three_card_type == "plus-minus-result":
-        position_kinds = ["positive", "negative", "neutral"]
-
-    if not question:
-        question = "Интерпретируй расклад из Mini App в контексте вопроса пользователя."
-
-    from handlers.tarot import get_tarot_ai_interpretation
-    interpretation = await get_tarot_ai_interpretation(
-        question=question,
-        drawn=drawn,
-        deck_name=deck.name,
-        position_kinds=position_kinds,
-        deck_id=deck.deck_id,
-        llm=llm,
-        astro_retriever=astro_retriever,
-    )
-    if not interpretation:
-        return web.json_response(
-            {"error": "rate_limit",
-             "message": "Сервис ИИ временно перегружен. Попробуйте через 1–2 минуты."},
-            status=503)
-    return web.json_response({"interpretation": interpretation, "success": True})
 
 
-# ============================================================
-# РЕЗЕРВНЫЙ ПРИЁМ ДАННЫХ MINI APP
-# ============================================================
 async def handle_webapp_data(request: web.Request) -> web.Response:
+    """Логирует данные Mini App (основной канал — tg.sendData в боте)."""
     try:
         data = await request.json()
     except Exception:
         return web.json_response({"error": "invalid json"}, status=400)
-    action = data.get("action")
-    if action in ("tarot_spread", "astrology_aspect", "main_menu"):
-        logger.info(f"📥 Mini App data: action={action}")
-        return web.json_response({"status": "ok"})
-    return web.json_response({"status": "unknown_action"}, status=400)
 
+    logger.info(f"📥 Mini App data: action={data.get('action')}")
+    return web.json_response({"status": "ok"})
 
 # ============================================================
-# РЕГИСТРАЦИЯ МАРШРУТОВ ('/' НЕ трогаем — он в main.py)
+# РЕГИСТРАЦИЯ МАРШРУТОВ
 # ============================================================
 def setup_web_server_routes(app: web.Application, tarot_service=None, astro_retriever=None, llm=None):
     """Регистрация маршрутов веб-сервера."""
@@ -292,4 +258,24 @@ def setup_web_server_routes(app: web.Application, tarot_service=None, astro_retr
     app.router.add_post('/api/tarot/interpret', api_interpret_spread)
     app.router.add_post('/api/webapp/data', handle_webapp_data)
 
-    logger.info("✅ Маршруты веб-сервера зарегистрированы")
+def setup_web_server_routes(app: web.Application,
+                            tarot_service=None,
+                            astro_retriever=None):
+    """Регистрация маршрутов Mini App и API. Вызывается из main.py."""
+    if tarot_service is not None:
+        app["tarot_service"] = tarot_service
+    if astro_retriever is not None:
+        app["astro_retriever"] = astro_retriever
+
+    # ❌ ИСПРАВЛЕНО: Убрали app.router.add_get('/', handle_mini_app_index)
+    # Путь '/' уже занят health check в main.py. Mini App доступен по '/webapp'.
+
+    app.router.add_get("/webapp", handle_mini_app_index)
+    app.router.add_get("/static/{filepath:.*}", handle_static_file)
+    app.router.add_get("/api/tarot/decks", api_get_decks)
+    app.router.add_post("/api/tarot/draw", api_draw_cards)
+    app.router.add_get(
+        "/api/tarot/image/{deck_id}/{filename}", handle_deck_image)
+    app.router.add_post("/api/webapp/data", handle_webapp_data)
+
+    logger.info("✅ Маршруты Mini App и API успешно зарегистрированы")
