@@ -234,38 +234,59 @@ async def handle_webapp_data(request: web.Request) -> web.Response:
     logger.info(f"📥 Mini App data: action={data.get('action')}")
     return web.json_response({"status": "ok"})
 
+
+# ============================================================
+# API: ТОЛКОВАНИЕ РАСКЛАДА (LLM) — ответ ВНУТРИ Mini App
+# ============================================================
+
+
+async def api_interpret_spread(request: web.Request) -> web.Response:
+    """API: Толкование расклада через LLM."""
+    try:
+        data = await request.json()
+        cards = data.get('cards', [])
+        question = data.get('question', '')
+        spread_type = data.get('spread_type', 'one_card')
+        
+        llm = request.app.get('llm')
+        if not llm or not cards:
+            # Фолбэк на демо-толкование
+            interpretation = generate_demo_interpretation(cards, False)
+            return web.json_response({"interpretation": interpretation})
+        
+        # Формируем промпт для LLM
+        card_names = [f"{card['name']}{' (перевернута)' if card.get('reversed') else ''}" for card in cards]
+        prompt_text = f"""
+Ты эксперт по Таро. Дай толкование расклада.
+Расклад: {spread_type}
+Вопрос: {question}
+Карты: {', '.join(card_names)}
+
+Дай краткое и точное толкование на русском языке.
+"""
+        response = await llm.ainvoke(prompt_text)
+        interpretation = response.content if hasattr(response, 'content') else str(response)
+        
+        return web.json_response({"interpretation": interpretation})
+    except Exception as e:
+        logger.error(f"Ошибка API interpret_spread: {e}")
+        return web.json_response({"error": str(e), "interpretation": ""}, status=500)
+
 # ============================================================
 # РЕГИСТРАЦИЯ МАРШРУТОВ
 # ============================================================
-def setup_web_server_routes(app: web.Application, tarot_service=None, astro_retriever=None, llm=None):
-    """Регистрация маршрутов веб-сервера."""
-    # Сохраняем сервисы в app context для доступа из хендлеров
-    if tarot_service:
-        app['tarot_service'] = tarot_service
-    if astro_retriever:
-        app['astro_retriever'] = astro_retriever
-    if llm:
-        app['llm'] = llm
-    
-    # Mini App и статика
-    app.router.add_get('/webapp', handle_mini_app_index)
-    app.router.add_get('/static/{filepath:.*}', handle_static_file)
-    app.router.add_get('/api/tarot/image/{deck_id}/{filename}', handle_deck_image)
-
-    # API endpoints
-    app.router.add_get('/api/tarot/decks', api_get_decks)
-    app.router.add_post('/api/tarot/draw', api_draw_cards)
-    app.router.add_post('/api/tarot/interpret', api_interpret_spread)
-    app.router.add_post('/api/webapp/data', handle_webapp_data)
-
 def setup_web_server_routes(app: web.Application,
                             tarot_service=None,
-                            astro_retriever=None):
+                            astro_retriever=None,
+                            llm=None):
     """Регистрация маршрутов Mini App и API. Вызывается из main.py."""
+    # Сохраняем сервисы в app context для доступа из хендлеров
     if tarot_service is not None:
         app["tarot_service"] = tarot_service
     if astro_retriever is not None:
         app["astro_retriever"] = astro_retriever
+    if llm is not None:
+        app["llm"] = llm
 
     # ❌ ИСПРАВЛЕНО: Убрали app.router.add_get('/', handle_mini_app_index)
     # Путь '/' уже занят health check в main.py. Mini App доступен по '/webapp'.
@@ -274,6 +295,7 @@ def setup_web_server_routes(app: web.Application,
     app.router.add_get("/static/{filepath:.*}", handle_static_file)
     app.router.add_get("/api/tarot/decks", api_get_decks)
     app.router.add_post("/api/tarot/draw", api_draw_cards)
+    app.router.add_post("/api/tarot/interpret", api_interpret_spread)
     app.router.add_get(
         "/api/tarot/image/{deck_id}/{filename}", handle_deck_image)
     app.router.add_post("/api/webapp/data", handle_webapp_data)
