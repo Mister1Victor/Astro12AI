@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Таро «12 Планет»</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="css/mini-app.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🔮 Таро «12 Планет»</h1>
+        </header>
+
+        <!-- Экран 1: Выбор расклада -->
+        <section id="step-spread" class="section active">
+            <h2>Выберите тип расклада</h2>
+            <div class="button-grid">
+                <button class="btn-primary" data-spread="one_card">Одна карта</button>
+                <button class="btn-primary" data-spread="three_cards">Три карты</button>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav" disabled>← Назад</button>
+                <button class="btn-nav" onclick="goToMain()">Основное меню →</button>
+            </div>
+        </section>
+
+        <!-- Экран 2: Выбор типа трёх карт (только для расклада "Три карты") -->
+        <section id="step-three-type" class="section hidden">
+            <h2>Тип расклада «Три карты»</h2>
+            <div class="button-grid">
+                <button class="btn-primary" data-three-type="past_present_future">Прошлое / Настоящее / Будущее</button>
+                <button class="btn-primary" data-three-type="situation_obstacle_advice">Ситуация / Препятствие / Совет</button>
+                <button class="btn-primary" data-three-type="thoughts_feelings_actions">Мысли / Чувства / Действия</button>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav" onclick="showSection('step-spread')">← Назад</button>
+                <button class="btn-nav" onclick="goToMain()">Основное меню →</button>
+            </div>
+        </section>
+
+        <!-- Экран 3: Выбор колоды -->
+        <section id="step-deck" class="section hidden">
+            <h2>Выберите колоду</h2>
+            <div id="decks-list" class="deck-list"></div>
+            <div class="navigation">
+                <button class="btn-nav" onclick="showSection('step-spread')">← Назад</button>
+                <button class="btn-nav" onclick="goToMain()">Основное меню →</button>
+            </div>
+        </section>
+
+        <!-- Экран 4: Перевёрнутые карты? -->
+        <section id="step-reversed" class="section hidden">
+            <h2>Использовать перевёрнутые карты?</h2>
+            <div class="button-grid">
+                <button class="btn-primary" data-reversed="yes">Да, учитывать</button>
+                <button class="btn-primary" data-reversed="no">Нет, только прямые</button>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav" onclick="showSection('step-deck')">← Назад</button>
+                <button class="btn-nav" onclick="goToMain()">Основное меню →</button>
+            </div>
+        </section>
+
+        <!-- Экран 5: Ввод вопроса -->
+        <section id="step-question" class="section hidden">
+            <h2>Ваш вопрос картам</h2>
+            <textarea id="user-question" placeholder="Введите ваш вопрос или оставьте пустым для общего чтения..." rows="4"></textarea>
+            <div class="button-grid" style="margin-top: 20px;">
+                <button class="btn-primary" id="confirm-question">Продолжить</button>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav" onclick="showSection('step-reversed')">← Назад</button>
+                <button class="btn-nav" onclick="goToMain()">Основное меню →</button>
+            </div>
+        </section>
+
+        <!-- Экран 6: Перемешивание и вытягивание -->
+        <section id="step-shuffle" class="section hidden">
+            <h2 id="shuffle-title">Перемешайте колоду</h2>
+            <div class="card-deck-visual">
+                <div class="card-back" id="deck-visual"></div>
+            </div>
+            <div class="button-grid">
+                <button class="btn-primary btn-large" id="shuffle-btn">🔀 Перемешать</button>
+                <button class="btn-primary btn-large hidden" id="draw-cards-btn">✨ Вытянуть карты</button>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav" onclick="showSection('step-question')">← Назад</button>
+                <button class="btn-nav" onclick="goToMain()">Основное меню →</button>
+            </div>
+        </section>
+
+        <!-- Экран 7: Результат и толкование ВНУТРИ приложения -->
+        <section id="step-result" class="section hidden">
+            <h2>Ваши карты</h2>
+            <div id="cards-container" class="cards-container"></div>
+            <div id="interpretation" class="interpretation"></div>
+            <div class="button-grid" style="margin-top: 20px;">
+                <button class="btn-success" id="send-to-bot-btn">✅ Отправить в чат бота</button>
+                <button class="btn-secondary" id="retry-btn">🔄 Новый расклад</button>
+            </div>
+            <div class="navigation">
+                <button class="btn-nav" onclick="showSection('step-shuffle')">← Назад</button>
+                <button class="btn-nav" onclick="goToMain()">Основное меню →</button>
+            </div>
+        </section>
+    </div>
+
+    <script src="js/mini-app.js"></script>
+</body>
+</html>

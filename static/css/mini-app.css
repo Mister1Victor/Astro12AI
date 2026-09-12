@@ -1,0 +1,346 @@
+/* Astro12AI Mini App - Таро «12 Планет» - Современный стиль */
+
+:root {
+    --tg-theme-bg-color: #1a1a2e;
+    --tg-theme-text-color: #eaeaea;
+    --tg-theme-button-color: #6c5ce7;
+    --tg-theme-button-text-color: #ffffff;
+    --tg-theme-secondary-bg-color: #16213e;
+    --tg-theme-hint-color: #a0a0a0;
+    
+    --primary-color: #6c5ce7;
+    --secondary-color: #a29bfe;
+    --success-color: #00b894;
+    --warning-color: #fdcb6e;
+    --danger-color: #d63031;
+    --card-bg: #0f3460;
+    --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--tg-theme-bg-color);
+    color: var(--tg-theme-text-color);
+    min-height: 100vh;
+    padding: 20px;
+    overflow-x: hidden;
+}
+
+.container {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 25px;
+    padding: 20px;
+    background: var(--gradient-1);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+}
+
+.header h1 {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.section {
+    background: var(--tg-theme-secondary-bg-color);
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.section.hidden {
+    display: none;
+}
+
+.section.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+h2 {
+    font-size: 18px;
+    margin-bottom: 20px;
+    text-align: center;
+    color: var(--tg-theme-text-color);
+}
+
+.button-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.btn-primary, .btn-secondary, .btn-success, .btn-nav {
+    width: 100%;
+    padding: 14px 20px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.btn-primary {
+    background: var(--gradient-1);
+    color: white;
+    box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(108, 92, 231, 0.6);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--tg-theme-text-color);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.btn-success {
+    background: var(--success-color);
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 184, 148, 0.4);
+}
+
+.btn-success:hover {
+    background: #00a383;
+    transform: translateY(-2px);
+}
+
+.btn-large {
+    padding: 18px 24px;
+    font-size: 17px;
+}
+
+.btn-nav {
+    background: transparent;
+    color: var(--tg-theme-hint-color);
+    font-size: 14px;
+    padding: 10px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-nav:hover:not([disabled]) {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--tg-theme-text-color);
+}
+
+.btn-nav[disabled] {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.navigation {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.deck-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.deck-item {
+    background: var(--card-bg);
+    padding: 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.deck-item:hover {
+    border-color: var(--primary-color);
+    transform: translateX(5px);
+}
+
+.card-deck-visual {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 180px;
+    margin: 20px 0;
+}
+
+.card-back {
+    width: 100px;
+    height: 150px;
+    background: var(--gradient-1);
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    position: relative;
+    transition: transform 0.6s ease;
+}
+
+.card-back.shuffling {
+    animation: shuffle 0.6s ease-in-out infinite;
+}
+
+@keyframes shuffle {
+    0%, 100% {
+        transform: rotateY(0deg) translateX(0);
+    }
+    50% {
+        transform: rotateY(180deg) translateX(20px);
+    }
+}
+
+.cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.card-result {
+    width: 90px;
+    height: 130px;
+    background: var(--card-bg);
+    border-radius: 10px;
+    padding: 8px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    animation: cardFlip 0.6s ease-out;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+@keyframes cardFlip {
+    from {
+        opacity: 0;
+        transform: rotateY(90deg);
+    }
+    to {
+        opacity: 1;
+        transform: rotateY(0deg);
+    }
+}
+
+.card-result img {
+    width: 100%;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 6px;
+}
+
+.card-result .card-name {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.card-result.reversed {
+    border: 2px solid var(--warning-color);
+}
+
+.interpretation {
+    margin-top: 20px;
+}
+
+.interpretation-box {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: 12px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.interpretation-box h3 {
+    font-size: 16px;
+    margin-bottom: 12px;
+    color: var(--tg-theme-text-color);
+}
+
+.interpretation-box p {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--tg-theme-text-color);
+    opacity: 0.9;
+}
+
+textarea {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: var(--card-bg);
+    color: var(--tg-theme-text-color);
+    font-size: 15px;
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color 0.3s ease;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+textarea::placeholder {
+    color: var(--tg-theme-hint-color);
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 400px) {
+    .header h1 {
+        font-size: 20px;
+    }
+    
+    h2 {
+        font-size: 16px;
+    }
+    
+    .card-result {
+        width: 75px;
+        height: 110px;
+    }
+    
+    .card-result .card-name {
+        font-size: 10px;
+    }
+}
+
+.hidden {
+    display: none !important;
+}
