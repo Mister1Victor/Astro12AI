@@ -1411,12 +1411,8 @@ async def start_web_server():
     # app.router.add_get('/', handle_health_check)
 
     # Регистрация маршрутов Mini App с передачей сервисов
-    setup_web_server_routes(
-        app,
-        tarot_service=tarot,
-        astro_retriever=astro_retriever,
-        llm=llm
-    )
+    setup_web_server_routes(app, tarot_service=tarot,
+                            astro_retriever=astro_retriever, llm=llm)
 
     runner = web.AppRunner(app)
     await runner.setup()
