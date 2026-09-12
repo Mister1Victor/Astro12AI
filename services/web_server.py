@@ -195,47 +195,6 @@ def generate_demo_interpretation(cards, allow_reversed):
 
 
 # ============================================================
-# API: ВЫТЯНУТЬ КАРТЫ (реальный TarotService)
-# ============================================================
-async def api_draw_cards(request: web.Request) -> web.Response:
-    svc = request.app.get("tarot_service")
-    if not svc:
-        return web.json_response({"error": "tarot service unavailable"}, status=503)
-    try:
-        data = await request.json()
-    except Exception:
-        return web.json_response({"error": "invalid json"}, status=400)
-
-    deck_id = data.get("deck_id")
-    try:
-        count = int(data.get("count", 1))
-    except (TypeError, ValueError):
-        count = 1
-    count = max(1, min(count, 10))
-    use_reversed = bool(data.get("use_reversed", True))
-
-    deck = svc.get_deck(deck_id)
-    if not deck or not deck.cards:
-        return web.json_response({"error": "deck not found"}, status=404)
-
-    drawn = svc.draw_cards(count, deck.deck_id, user_id=None)
-    cards = []
-    for card, is_reversed in drawn:
-        if not use_reversed:
-            is_reversed = False
-        cards.append({
-            "card_id": card.card_id,
-            "name": card.name,
-            "reversed": is_reversed,
-            "astrology": card.astrology or "",
-            "keywords": card.keywords or [],
-            "image_url": (f"/api/tarot/image/{deck.deck_id}/{card.image}"
-                          if card.image else None),
-        })
-    return web.json_response({"cards": cards, "deck_id": deck.deck_id})
-
-
-# ============================================================
 # API: ТОЛКОВАНИЕ РАСКЛАДА (LLM) — ответ ВНУТРИ Mini App
 # ============================================================
 async def api_interpret_spread(request: web.Request) -> web.Response:
@@ -314,13 +273,23 @@ async def handle_webapp_data(request: web.Request) -> web.Response:
 # ============================================================
 def setup_web_server_routes(app: web.Application, tarot_service=None, astro_retriever=None, llm=None):
     """Регистрация маршрутов веб-сервера."""
+    # Сохраняем сервисы в app context для доступа из хендлеров
+    if tarot_service:
+        app['tarot_service'] = tarot_service
+    if astro_retriever:
+        app['astro_retriever'] = astro_retriever
+    if llm:
+        app['llm'] = llm
+    
     # Mini App и статика
     app.router.add_get('/webapp', handle_mini_app_index)
     app.router.add_get('/static/{filepath:.*}', handle_static_file)
+    app.router.add_get('/api/tarot/image/{deck_id}/{filename}', handle_deck_image)
 
     # API endpoints
     app.router.add_get('/api/tarot/decks', api_get_decks)
     app.router.add_post('/api/tarot/draw', api_draw_cards)
+    app.router.add_post('/api/tarot/interpret', api_interpret_spread)
     app.router.add_post('/api/webapp/data', handle_webapp_data)
 
     logger.info("✅ Маршруты веб-сервера зарегистрированы")
