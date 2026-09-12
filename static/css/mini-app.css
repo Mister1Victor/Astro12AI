@@ -1,437 +1,445 @@
-/* Astro12AI Mini App - Таро «12 Планет» - Современный стиль */
-
 :root {
-    --tg-theme-bg-color: #1a1a2e;
-    --tg-theme-text-color: #eaeaea;
-    --tg-theme-button-color: #6c5ce7;
-    --tg-theme-button-text-color: #ffffff;
-    --tg-theme-secondary-bg-color: #16213e;
-    --tg-theme-hint-color: #a0a0a0;
+    /* Цветовая палитра "Космический Премиум" */
+    --bg-color: #0f0f13;
+    --bg-gradient: linear-gradient(135deg, #0f0f13 0%, #1a1a2e 100%);
+    --card-bg: rgba(255, 255, 255, 0.08);
+    --card-border: rgba(255, 255, 255, 0.1);
+    --primary-color: #d4af37; /* Золото */
+    --primary-hover: #f9d86c;
+    --text-main: #ffffff;
+    --text-secondary: #a0a0b0;
+    --accent-glow: rgba(212, 175, 55, 0.3);
+    --error-color: #ff4b4b;
+    --success-color: #4bff86;
     
-    --primary-color: #6c5ce7;
-    --secondary-color: #a29bfe;
-    --success-color: #00b894;
-    --warning-color: #fdcb6e;
-    --danger-color: #d63031;
-    --card-bg: #0f3460;
-    
-    --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    
-    --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    /* Размеры и отступы */
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
 }
 
 * {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background: var(--tg-theme-bg-color);
-    color: var(--tg-theme-text-color);
+    font-family: 'Montserrat', sans-serif;
+    background: var(--bg-gradient);
+    color: var(--text-main);
     min-height: 100vh;
-    padding: 20px;
     overflow-x: hidden;
+    font-size: 16px;
+    line-height: 1.5;
 }
 
-.container {
-    max-width: 500px;
+/* Контейнер приложения */
+.app-container {
+    max-width: 600px;
     margin: 0 auto;
+    padding: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
-.header {
+/* Заголовок */
+.app-header {
     text-align: center;
-    margin-bottom: 25px;
-    padding: 20px;
-    background: var(--gradient-1);
-    border-radius: 20px;
-    box-shadow: var(--shadow);
+    margin-bottom: var(--spacing-lg);
+    padding-top: var(--spacing-sm);
 }
 
-.header h1 {
-    font-size: 24px;
-    font-weight: 700;
+.app-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    color: var(--primary-color);
+    text-shadow: 0 0 15px var(--accent-glow);
+    margin-bottom: 4px;
 }
 
-.section {
-    background: var(--tg-theme-secondary-bg-color);
-    border-radius: 20px;
-    padding: 25px;
-    margin-bottom: 20px;
-    box-shadow: var(--shadow);
-    animation: fadeIn 0.3s ease-out;
+.subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 400;
 }
 
-.section.hidden {
+/* Область контента */
+.content-area {
+    flex: 1;
+    position: relative;
+}
+
+/* Экраны */
+.screen {
     display: none;
+    animation: fadeIn 0.4s ease-out;
 }
 
-.section.active {
+.screen.active {
     display: block;
 }
 
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-h2 {
-    font-size: 18px;
-    margin-bottom: 20px;
+.screen-title {
+    font-size: 22px;
+    font-weight: 700;
     text-align: center;
-    color: var(--tg-theme-text-color);
+    margin-bottom: var(--spacing-md);
+    color: var(--text-main);
 }
 
-.setting-description {
+.description {
     text-align: center;
-    margin-bottom: 20px;
-    opacity: 0.9;
-    font-size: 14px;
+    color: var(--text-secondary);
+    font-size: 15px;
+    margin-bottom: var(--spacing-lg);
+    padding: 0 10px;
 }
 
-.button-grid {
+/* Сетки и списки опций */
+.options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.options-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
 }
 
-.btn-primary, .btn-secondary, .btn-success, .btn-nav {
-    width: 100%;
-    padding: 14px 20px;
-    border: none;
-    border-radius: 12px;
-    font-size: 15px;
-    font-weight: 600;
+/* Карточки опций */
+.option-card, .option-row {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.option-row {
+    flex-direction: row;
+    justify-content: flex-start;
+    text-align: left;
+    padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.option-card:hover, .option-row:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.option-card:active, .option-row:active {
+    transform: scale(0.98);
+}
+
+.icon {
+    font-size: 32px;
+    margin-bottom: var(--spacing-sm);
+    display: block;
+}
+
+.option-row .icon {
+    font-size: 24px;
+    margin-right: var(--spacing-md);
+    margin-bottom: 0;
+}
+
+.label {
+    font-weight: 600;
+    font-size: 14px;
     text-align: center;
+}
+
+.option-row .text {
+    font-weight: 600;
+    font-size: 16px;
+    flex: 1;
+}
+
+.subtext {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    display: block;
+    width: 100%;
+}
+
+.option-row .subtext {
+    margin-top: 0;
+    width: auto;
+    margin-left: auto;
+    text-align: right;
+}
+
+/* Яркие названия колод */
+.deck-name-highlight {
+    color: #ffd700 !important; /* Ярко-золотой */
+    font-weight: 800 !important;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
+}
+
+.soon {
+    font-size: 10px;
+    background: rgba(255,255,255,0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 4px;
+    color: var(--text-secondary);
+}
+
+/* Поля ввода */
+.input-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+textarea {
+    width: 100%;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    color: var(--text-main);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 16px;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+
+textarea::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+/* Визуализация перемешивания */
+.shuffle-visual {
+    height: 200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+    position: relative;
+}
+
+.card-stack {
+    position: relative;
+    width: 100px;
+    height: 160px;
+}
+
+.card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, #2c2c3e, #1a1a2e);
+    border: 2px solid var(--primary-color);
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    transition: transform 0.3s ease;
+}
+
+.offset-1 { transform: rotate(-5deg) translate(-10px, 0); z-index: 2; }
+.offset-2 { transform: rotate(5deg) translate(10px, 0); z-index: 3; }
+
+.shuffling .card-back {
+    animation: shuffleAnim 0.5s infinite alternate;
+}
+
+@keyframes shuffleAnim {
+    from { transform: translateX(-5px) rotate(-2deg); }
+    to { transform: translateX(5px) rotate(2deg); }
+}
+
+/* Отображение результатов */
+.cards-display {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    flex-wrap: wrap;
+    min-height: 180px;
+}
+
+.tarot-card-item {
+    width: 80px;
+    height: 140px;
+    background: var(--card-bg);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--card-border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    animation: flipIn 0.6s ease-out backwards;
+}
+
+.tarot-card-item:nth-child(1) { animation-delay: 0.1s; }
+.tarot-card-item:nth-child(2) { animation-delay: 0.3s; }
+.tarot-card-item:nth-child(3) { animation-delay: 0.5s; }
+
+.tarot-card-item.reversed {
+    transform: rotate(180deg);
+}
+
+.card-image {
+    flex: 1;
+    background-size: cover;
+    background-position: center;
+    background-color: #2a2a35;
+}
+
+.card-name {
+    font-size: 10px;
+    text-align: center;
+    padding: 4px;
+    background: rgba(0,0,0,0.8);
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+@keyframes flipIn {
+    from { opacity: 0; transform: rotateY(90deg); }
+    to { opacity: 1; transform: rotateY(0); }
+}
+
+/* Блок толкования */
+.interpretation-box {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    min-height: 200px;
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 15px;
+    line-height: 1.6;
+    white-space: pre-wrap; /* Сохраняет переносы строк от ИИ */
+}
+
+.loading-text {
+    color: var(--text-secondary);
+    font-style: italic;
+    text-align: center;
+    padding-top: 50px;
+}
+
+/* Навигация и кнопки */
+.nav-buttons {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: center;
+    margin-bottom: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.nav-bottom {
+    text-align: center;
+    margin-top: var(--spacing-md);
+    border-top: 1px solid var(--card-border);
+    padding-top: var(--spacing-md);
+}
+
+button {
+    font-family: 'Montserrat', sans-serif;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    border-radius: var(--radius-md);
+    font-size: 15px;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .btn-primary {
-    background: var(--gradient-1);
-    color: white;
-    box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+    background: var(--primary-color);
+    color: #000;
+    padding: 14px 24px;
+    flex: 1;
+    max-width: 200px;
+    box-shadow: 0 4px 15px var(--accent-glow);
 }
 
 .btn-primary:hover {
+    background: var(--primary-hover);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(108, 92, 231, 0.6);
-}
-
-.btn-primary:active {
-    transform: translateY(0);
 }
 
 .btn-secondary {
     background: rgba(255, 255, 255, 0.1);
-    color: var(--tg-theme-text-color);
-    margin-top: 10px;
+    color: var(--text-main);
+    padding: 14px 24px;
+    flex: 1;
+    max-width: 200px;
 }
 
 .btn-secondary:hover {
     background: rgba(255, 255, 255, 0.2);
 }
 
-.btn-success {
-    background: var(--success-color);
-    color: white;
-    box-shadow: 0 4px 15px rgba(0, 184, 148, 0.4);
-}
-
-.btn-success:hover {
-    background: #00a383;
-    transform: translateY(-2px);
-}
-
-.btn-large {
-    padding: 18px 24px;
-    font-size: 17px;
-}
-
-.btn-nav {
+.btn-secondary-small {
     background: transparent;
-    color: var(--tg-theme-hint-color);
-    font-size: 14px;
-    padding: 10px 16px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.btn-nav:hover:not([disabled]) {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--tg-theme-text-color);
-}
-
-.btn-nav[disabled] {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
-
-.navigation {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.nav-buttons {
-    margin-top: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.deck-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.deck-item {
-    background: var(--card-bg);
-    padding: 16px;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.deck-item:hover {
-    border-color: var(--primary-color);
-    transform: translateX(5px);
-}
-
-.deck-name {
-    color: #FFD700;
-    font-weight: 800;
-    font-size: 16px;
-    text-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
-    letter-spacing: 0.5px;
-}
-
-.deck-count {
-    color: var(--tg-theme-hint-color);
+    color: var(--text-secondary);
     font-size: 13px;
+    padding: 8px 16px;
+    border: 1px solid var(--card-border);
 }
 
-.card-deck-visual {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 180px;
-    margin: 20px 0;
-}
-
-.card-back {
-    width: 100px;
-    height: 150px;
-    background: var(--gradient-1);
-    border-radius: 10px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    position: relative;
-    transition: transform 0.6s ease;
-}
-
-.card-back.shuffling {
-    animation: shuffle 0.6s ease-in-out infinite;
-}
-
-@keyframes shuffle {
-    0%, 100% {
-        transform: rotateY(0deg) translateX(0);
-    }
-    50% {
-        transform: rotateY(180deg) translateX(20px);
-    }
-}
-
-.cards-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    justify-content: center;
-    margin: 20px 0;
-}
-
-.card-result {
-    width: 100px;
-    background: var(--card-bg);
-    border-radius: 10px;
-    padding: 8px;
-    text-align: center;
-    box-shadow: var(--shadow);
-    animation: cardFlip 0.6s ease-out;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-}
-
-@keyframes cardFlip {
-    from {
-        opacity: 0;
-        transform: rotateY(90deg);
-    }
-    to {
-        opacity: 1;
-        transform: rotateY(0deg);
-    }
-}
-
-.card-result img {
-    width: 100%;
-    height: 140px;
-    object-fit: cover;
-    border-radius: 8px;
-    margin-bottom: 6px;
-}
-
-.card-placeholder {
-    width: 100%;
-    height: 140px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 40px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    margin-bottom: 8px;
-}
-
-.card-result .card-name {
-    font-size: 11px;
-    font-weight: 600;
-    line-height: 1.3;
-    margin-bottom: 4px;
-}
-
-.card-result .card-pos {
-    font-size: 10px;
-    opacity: 0.8;
-    color: var(--tg-theme-hint-color);
-}
-
-.card-result.reversed {
-    border: 2px solid var(--warning-color);
-}
-
-.card-result.reversed img {
-    transform: rotate(180deg);
-}
-
-.result-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-top: 20px;
-}
-
-.interpretation-content {
-    background: var(--card-bg);
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    line-height: 1.6;
-    font-size: 15px;
-}
-
-.interpretation-content p {
-    margin-bottom: 12px;
-}
-
-.interpretation-content p:last-child {
-    margin-bottom: 0;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.interpretation-box h3 {
-    font-size: 16px;
-    margin-bottom: 12px;
-    color: var(--tg-theme-text-color);
-}
-
-.interpretation-box p {
+.btn-text {
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 14px 20px;
     font-size: 14px;
-    line-height: 1.5;
-    color: var(--tg-theme-text-color);
-    opacity: 0.9;
 }
 
-textarea {
-    width: 100%;
-    padding: 14px;
-    border-radius: 12px;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    background: var(--card-bg);
-    color: var(--tg-theme-text-color);
-    font-size: 15px;
-    font-family: inherit;
-    resize: vertical;
-    transition: border-color 0.3s ease;
+.btn-text:hover {
+    color: var(--text-main);
+    text-decoration: underline;
 }
 
-textarea:focus {
-    outline: none;
-    border-color: var(--primary-color);
-}
-
-textarea::placeholder {
-    color: var(--tg-theme-hint-color);
-}
-
-/* Адаптивность для мобильных */
-@media (max-width: 400px) {
-    .header h1 {
-        font-size: 20px;
+/* Адаптив для очень маленьких экранов */
+@media (max-width: 350px) {
+    .options-grid {
+        grid-template-columns: 1fr;
     }
-    
-    h2 {
-        font-size: 16px;
+    .app-header h1 {
+        font-size: 24px;
     }
-    
-    .card-result {
-        width: 75px;
-        height: 110px;
+    .nav-buttons {
+        flex-direction: column;
     }
-    
-    .card-result {
-        width: 80px;
-    }
-    
-    .card-result img,
-    .card-placeholder {
-        height: 120px;
-    }
-}
-
-/* Индикатор загрузки */
-.loading {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    border-top-color: white;
-    animation: spin 1s ease-in-out infinite;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
+    .btn-primary, .btn-secondary {
+        max-width: 100%;
     }
 }
