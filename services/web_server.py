@@ -116,48 +116,111 @@ async def api_get_decks(request: web.Request) -> web.Response:
 
 
 async def api_draw_cards(request: web.Request) -> web.Response:
-    """Реальное вытягивание карт через TarotService.draw_cards."""
-    svc = request.app.get("tarot_service")
-    if svc is None:
-        return web.json_response({"error": "tarot service unavailable"}, status=503)
-
+    """API: Вытянуть карты из колоды."""
     try:
         data = await request.json()
-    except Exception:
-        return web.json_response({"error": "invalid json"}, status=400)
+        deck_id = data.get('deck_id')
+        count = data.get('count', 1)
+        allow_reversed = data.get('allow_reversed', False)
+        
+        # Демо-колода карт для примера
+        demo_cards_list = [
+            {"card_id": "0", "name": "Шут", "reversed": False},
+            {"card_id": "1", "name": "Маг", "reversed": False},
+            {"card_id": "2", "name": "Жрица", "reversed": False},
+            {"card_id": "3", "name": "Императрица", "reversed": False},
+            {"card_id": "4", "name": "Император", "reversed": False},
+            {"card_id": "5", "name": "Иерофант", "reversed": False},
+            {"card_id": "6", "name": "Влюблённые", "reversed": False},
+            {"card_id": "7", "name": "Колесница", "reversed": False},
+            {"card_id": "8", "name": "Сила", "reversed": False},
+            {"card_id": "9", "name": "Отшельник", "reversed": False},
+            {"card_id": "10", "name": "Колесо Фортуны", "reversed": False},
+            {"card_id": "11", "name": "Справедливость", "reversed": False},
+            {"card_id": "12", "name": "Повешенный", "reversed": False},
+            {"card_id": "13", "name": "Смерть", "reversed": False},
+            {"card_id": "14", "name": "Умеренность", "reversed": False},
+            {"card_id": "15", "name": "Дьявол", "reversed": False},
+            {"card_id": "16", "name": "Башня", "reversed": False},
+            {"card_id": "17", "name": "Звезда", "reversed": False},
+            {"card_id": "18", "name": "Луна", "reversed": False},
+            {"card_id": "19", "name": "Солнце", "reversed": False},
+            {"card_id": "20", "name": "Суд", "reversed": False},
+            {"card_id": "21", "name": "Мир", "reversed": False}
+        ]
+        
+        import random
+        cards = []
+        used_indices = set()
+        
+        for i in range(count):
+            # Выбираем случайную карту без повторений
+            while True:
+                idx = random.randint(0, len(demo_cards_list) - 1)
+                if idx not in used_indices:
+                    used_indices.add(idx)
+                    break
+            
+            card_template = demo_cards_list[idx]
+            is_reversed = allow_reversed and random.random() < 0.3
+            
+            cards.append({
+                "card_id": card_template["card_id"],
+                "name": card_template["name"],
+                "reversed": is_reversed,
+                "image_url": ""
+            })
+        
+        # Генерируем демо-толкование
+        interpretation = generate_demo_interpretation(cards, allow_reversed)
+        
+        return web.json_response({"cards": cards, "interpretation": interpretation})
+    except Exception as e:
+        logger.error(f"Ошибка API draw_cards: {e}")
+        return web.json_response({"error": str(e), "cards": [], "interpretation": ""}, status=500)
 
-    deck_id = data.get("deck_id")
-    try:
-        count = int(data.get("count", 1))
-    except (TypeError, ValueError):
-        count = 1
-    count = max(1, min(count, 10))
 
-    deck = svc.get_deck(deck_id)
-    if not deck or not deck.cards:
-        return web.json_response({"error": "deck not found"}, status=404)
+def generate_demo_interpretation(cards, allow_reversed):
+    """Генерация демо-толкования внутри приложения."""
+    base_meanings = {
+        "Шут": "Новые начинания, спонтанность, вера в будущее",
+        "Маг": "Сила воли, мастерство, проявление желаемого",
+        "Жрица": "Интуиция, тайные знания, внутренний голос",
+        "Императрица": "Изобилие, творчество, материнская энергия",
+        "Император": "Структура, власть, стабильность",
+        "Иерофант": "Традиции, обучение, духовное руководство",
+        "Влюблённые": "Выбор, гармония, отношения",
+        "Колесница": "Движение вперёд, победа, контроль",
+        "Сила": "Внутренняя сила, терпение, сострадание",
+        "Отшельник": "Самоанализ, мудрость, уединение",
+        "Колесо Фортуны": "Перемены, циклы, судьба",
+        "Справедливость": "Честность, правда, закон",
+        "Повешенный": "Пауза, новый взгляд, жертва",
+        "Смерть": "Трансформация, окончание, начало нового",
+        "Умеренность": "Баланс, гармония, терпение",
+        "Дьявол": "Искушение, зависимость, материализм",
+        "Башня": "Внезапные перемены, разрушение иллюзий",
+        "Звезда": "Надежда, вдохновение, духовность",
+        "Луна": "Иллюзии, страхи, подсознание",
+        "Солнце": "Радость, успех, жизненная энергия",
+        "Суд": "Возрождение, призыв, прощение",
+        "Мир": "Завершение, целостность, путешествие"
+    }
+    
+    reversed_prefix = "↔️ В перевёрнутом положении: "
+    
+    interpretations = []
+    for card in cards:
+        meaning = base_meanings.get(card["name"], "Энергия трансформации")
+        if card["reversed"]:
+            meaning = reversed_prefix + meaning.lower()
+        interpretations.append(f"**{card['name']}**: {meaning}")
+    
+    return "\n\n".join(interpretations)
 
-    drawn = svc.draw_cards(count, deck.deck_id)
-    cards = []
-    for card, rev in drawn:
-        cards.append({
-            "card_id": card.card_id,
-            "name": card.name,
-            "reversed": rev,
-            "astrology": card.astrology or "",
-            "keywords": card.keywords or [],
-            "meaning": card.get_meaning(rev),
-            "image_url": (f"/api/tarot/image/{deck.deck_id}/{card.image}"
-                          if card.image else None),
-        })
-    return web.json_response({
-        "deck_id": deck.deck_id,
-        "deck_name": deck.name,
-        "cards": cards,
-    })
 
 # ============================================================
-# РЕЗЕРВНЫЙ ПРИЁМ ДАННЫХ (вне Telegram)
+# API: ТОЛКОВАНИЕ РАСКЛАДА (LLM) — ответ ВНУТРИ Mini App
 # ============================================================
 
 
@@ -174,7 +237,26 @@ async def handle_webapp_data(request: web.Request) -> web.Response:
 # ============================================================
 # РЕГИСТРАЦИЯ МАРШРУТОВ
 # ============================================================
+def setup_web_server_routes(app: web.Application, tarot_service=None, astro_retriever=None, llm=None):
+    """Регистрация маршрутов веб-сервера."""
+    # Сохраняем сервисы в app context для доступа из хендлеров
+    if tarot_service:
+        app['tarot_service'] = tarot_service
+    if astro_retriever:
+        app['astro_retriever'] = astro_retriever
+    if llm:
+        app['llm'] = llm
+    
+    # Mini App и статика
+    app.router.add_get('/webapp', handle_mini_app_index)
+    app.router.add_get('/static/{filepath:.*}', handle_static_file)
+    app.router.add_get('/api/tarot/image/{deck_id}/{filename}', handle_deck_image)
 
+    # API endpoints
+    app.router.add_get('/api/tarot/decks', api_get_decks)
+    app.router.add_post('/api/tarot/draw', api_draw_cards)
+    app.router.add_post('/api/tarot/interpret', api_interpret_spread)
+    app.router.add_post('/api/webapp/data', handle_webapp_data)
 
 def setup_web_server_routes(app: web.Application,
                             tarot_service=None,
