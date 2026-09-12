@@ -1404,7 +1404,7 @@ async def start_web_server():
     from services.web_server import setup_web_server_routes
 
     app = web.Application()
-    app.router.add_get('/', handle_health_check)
+    # app.router.add_get('/', handle_health_check)
 
     # Регистрация маршрутов Mini App с передачей сервисов
     setup_web_server_routes(

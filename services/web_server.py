@@ -218,23 +218,20 @@ async def handle_webapp_data(request: web.Request) -> web.Response:
         return web.json_response({"error": str(e)}, status=500)
 
 
-def setup_web_server_routes(app: web.Application, tarot_service=None, astro_retriever=None, llm=None):
+def setup_web_server_routes(app: web.Application, tarot_service=None, astro_retriever=None):
     """Регистрация маршрутов веб-сервера."""
-    if tarot_service:
-        app['tarot_service'] = tarot_service
-    if astro_retriever:
-        app['astro_retriever'] = astro_retriever
-    if llm:
-        app['llm'] = llm
 
+    # 1. Health check для Render (выносим на отдельный путь /health)
+    app.router.add_get('/health', handle_health_check)
+
+    # 2. Mini App и статика (корень остается за Mini App)
     app.router.add_get('/', handle_mini_app_index)
     app.router.add_get('/webapp', handle_mini_app_index)
     app.router.add_get('/static/{filepath:.*}', handle_static_file)
 
-    # API endpoints
+    # 3. API endpoints
     app.router.add_get('/api/tarot/decks', api_get_decks)
     app.router.add_post('/api/tarot/draw', api_draw_cards)
-    app.router.add_post('/api/tarot/interpret', api_interpret_spread)
     app.router.add_post('/api/webapp/data', handle_webapp_data)
 
     logger.info("✅ Маршруты веб-сервера зарегистрированы")
