@@ -1,461 +1,395 @@
-/**
- * Astro12AI Mini App - Логика работы
- * Интеграция с Telegram WebApp API
- */
-
+// static/js/mini-app.js
 // Инициализация Telegram WebApp
 const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
 // Глобальное состояние приложения
-const AppState = {
-    currentSpread: null,
-    threeCardType: null,
-    selectedDeck: null,
-    useReversed: true,
+const state = {
+    spreadType: null, // 'one', 'three', 'choice', 'celtic'
+    threeCardType: null, // 'past_present_future', 'thoughts_feelings_actions', 'plus_minus_result'
+    deckId: null,
+    useReversed: false,
     question: '',
-    drawnCards: [],
-    decks: [],
-    isShuffling: false,
-    interpretation: null
+    cards: [],
+    interpretation: ''
 };
 
-// Конфигурация раскладов
-const SPREAD_CONFIGS = {
-    one: { name: 'Одна карта', count: 1, positions: ['Карта дня'] },
-    three: { 
-        name: 'Три карты', 
-        count: 3, 
-        positions: {
-            'past-present-future': ['Прошлое', 'Настоящее', 'Будущее'],
-            'thoughts-feelings-actions': ['Мысли', 'Чувства', 'Действия'],
-            'plus-minus-result': ['Плюс', 'Минус', 'Итог']
-        }
-    },
-    choice: { 
-        name: 'Выбор пути', 
-        count: 7, 
-        positions: ['Вариант 1: Достоинство', 'Вариант 1: Недостаток', 'Вариант 1: Исход',
-                    'Вариант 2: Достоинство', 'Вариант 2: Недостаток', 'Вариант 2: Исход',
-                    'Совет']
-    },
-    celtic: { 
-        name: 'Кельтский крест', 
-        count: 10, 
-        positions: ['Суть ситуации', 'Препятствие', 'Цель', 'Корни', 'Прошлое',
-                    'Ближайшее будущее', 'Я', 'Окружение', 'Надежды и страхи', 'Итог']
-    }
+// Конфигурация колод
+const decks = [
+    { id: 'school_12planets', name: 'Авторская колода Школы «12 Планет»', count: 78 },
+    { id: 'oracle_12planets', name: 'Оракул «12 Планет»', count: 146 },
+    { id: 'rider_waite', name: 'Таро Райдера-Уэйта', count: 78 },
+    { id: 'thoth', name: 'Таро Тота (Алистер Кроули)', count: 78 }
+];
+
+// Ссылки на секции (экраны)
+const sections = {
+    spread: document.getElementById('spread-selection'),
+    threeType: document.getElementById('three-card-type-selection'),
+    deck: document.getElementById('deck-selection'),
+    reversed: document.getElementById('reversed-setting'),
+    question: document.getElementById('question-input'),
+    shuffle: document.getElementById('shuffle-screen'),
+    result: document.getElementById('result-screen'),
+    interpretation: document.getElementById('interpretation-screen'),
+    astrology: document.getElementById('astrology-input')
 };
 
-// DOM элементы
-const elements = {
-    spreadSelection: document.getElementById('spread-selection'),
-    threeCardTypeSelection: document.getElementById('three-card-type-selection'),
-    deckSelection: document.getElementById('deck-selection'),
-    reversedSetting: document.getElementById('reversed-setting'),
-    questionInput: document.getElementById('question-input'),
-    shuffleScreen: document.getElementById('shuffle-screen'),
-    resultScreen: document.getElementById('result-screen'),
-    interpretationScreen: document.getElementById('interpretation-screen'),
-    astrologyInput: document.getElementById('astrology-input'),
-    decksList: document.getElementById('decks-list'),
-    cardsResult: document.getElementById('cards-result'),
-    interpretationContent: document.getElementById('interpretation-content'),
-    deckVisual: document.getElementById('deck-visual'),
-    shuffleTitle: document.getElementById('shuffle-title'),
-    questionText: document.getElementById('question-text')
-};
-
-// ==================== ИНИЦИАЛИЗАЦИЯ ====================
-document.addEventListener('DOMContentLoaded', () => {
-    loadDecks();
-    setupEventListeners();
-    applyTelegramTheme();
-});
-
-// Загрузка колод с бэкенда
-async function loadDecks() {
-    try {
-        const response = await fetch('/api/tarot/decks');
-        if (!response.ok) throw new Error('Failed to load decks');
-        AppState.decks = await response.json();
-        renderDecksList();
-    } catch (error) {
-        console.error('Ошибка загрузки колод:', error);
-        AppState.decks = [
-            { deck_id: 'rider_waite', name: 'Райдер-Уэйт', cards_count: 78 },
-            { deck_id: 'thoth', name: 'Таро Тота', cards_count: 78 },
-            { deck_id: 'author_deck_146', name: 'Авторская колода 12 Планет', cards_count: 146 }
-        ];
-        renderDecksList();
-    }
-}
-
-// Отрисовка списка колод
-function renderDecksList() {
-    elements.decksList.innerHTML = AppState.decks
-        .filter(deck => deck.cards_count > 0)
-        .map(deck => `
-            <button class="deck-item" data-deck-id="${deck.deck_id}">
-                <strong>${deck.name}</strong>
-                <span class="deck-count">${deck.cards_count} карт</span>
-            </button>
-        `).join('');
-
-    document.querySelectorAll('.deck-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const deckId = item.dataset.deckId;
-            selectDeck(deckId);
-        });
+// Функция переключения экранов
+function showSection(sectionName) {
+    // Скрываем все секции
+    Object.values(sections).forEach(section => {
+        if (section) section.classList.add('hidden');
     });
-}
-
-// Применение темы Telegram
-function applyTelegramTheme() {
-    const root = document.documentElement;
-    if (tg.themeParams) {
-        root.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color || '#1a1a2e');
-        root.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color || '#eaeaea');
-        root.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color || '#6c5ce7');
-        root.style.setProperty('--tg-theme-button-text-color', tg.themeParams.button_text_color || '#ffffff');
-        root.style.setProperty('--tg-theme-secondary-bg-color', tg.themeParams.secondary_bg_color || '#16213e');
-    }
-}
-
-// ==================== ОБРАБОТЧИКИ СОБЫТИЙ ====================
-function setupEventListeners() {
-    // Выбор расклада
-    document.querySelectorAll('[data-spread]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const spreadType = e.target.dataset.spread;
-            selectSpread(spreadType);
-        });
-    });
-
-    // Выбор типа трёхкарточного расклада
-    document.querySelectorAll('[data-three-type]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const threeType = e.target.dataset.threeType;
-            selectThreeCardType(threeType);
-        });
-    });
-
-    // Настройка перевёрнутых карт
-    document.querySelectorAll('[data-reversed]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const useReversed = e.target.dataset.reversed === 'yes';
-            setReversedSetting(useReversed);
-        });
-    });
-
-    // Кнопка "Продолжить" после ввода вопроса
-    document.getElementById('continue-to-shuffle').addEventListener('click', () => {
-        const question = elements.questionText.value.trim();
-        if (question.length < 5) {
-            tg.showAlert('Пожалуйста, опишите вопрос подробнее (минимум 5 символов)');
-            return;
-        }
-        AppState.question = question;
-        showSection('shuffle-screen');
-        resetDeckVisual();
-    });
-
-    // Кнопка "Назад" из различных секций
-    document.getElementById('back-to-spread-from-three').addEventListener('click', () => showSection('spread-selection'));
-    document.getElementById('back-to-spread').addEventListener('click', () => {
-        if (AppState.currentSpread === 'three') {
-            showSection('three-card-type-selection');
-        } else {
-            showSection('spread-selection');
-        }
-    });
-    document.getElementById('back-to-deck-from-reversed').addEventListener('click', () => showSection('deck-selection'));
-    document.getElementById('back-to-reversed-from-question').addEventListener('click', () => showSection('reversed-setting'));
-    document.getElementById('back-to-question-from-shuffle').addEventListener('click', () => showSection('question-input'));
-    document.getElementById('back-to-shuffle-from-result').addEventListener('click', () => showSection('shuffle-screen'));
-    document.getElementById('back-to-result-from-interp').addEventListener('click', () => showSection('result-screen'));
-
-    // Кнопки "Основное меню"
-    document.getElementById('main-menu-from-spread').addEventListener('click', sendToMainMenu);
-    document.getElementById('main-menu-from-three').addEventListener('click', sendToMainMenu);
-    document.getElementById('main-menu-from-deck').addEventListener('click', sendToMainMenu);
-    document.getElementById('main-menu-from-reversed').addEventListener('click', sendToMainMenu);
-    document.getElementById('main-menu-from-question').addEventListener('click', sendToMainMenu);
-    document.getElementById('main-menu-from-shuffle').addEventListener('click', sendToMainMenu);
-    document.getElementById('main-menu-from-result').addEventListener('click', sendToMainMenu);
-    document.getElementById('main-menu-from-interp').addEventListener('click', sendToMainMenu);
-    document.getElementById('main-menu-from-astro').addEventListener('click', sendToMainMenu);
-
-    // Перемешивание колоды
-    document.getElementById('shuffle-btn').addEventListener('click', shuffleDeck);
-
-    // Вытягивание карт
-    document.getElementById('draw-cards-btn').addEventListener('click', drawCards);
-
-    // Получение толкования
-    document.getElementById('get-interpretation').addEventListener('click', getInterpretation);
-
-    // Повторный расклад
-    document.getElementById('retry-spread').addEventListener('click', () => {
-        AppState.drawnCards = [];
-        showSection('shuffle-screen');
-        resetDeckVisual();
-    });
-
-    // Новый расклад
-    document.getElementById('new-spread-from-interp').addEventListener('click', () => {
-        AppState.drawnCards = [];
-        AppState.interpretation = null;
-        AppState.question = '';
-        showSection('spread-selection');
-    });
-
-    // Форма астрологии
-    document.getElementById('astrology-form').addEventListener('submit', handleAstrologySubmit);
-}
-
-// ==================== ЛОГИКА ТАРО ====================
-function selectSpread(spreadType) {
-    AppState.currentSpread = spreadType;
     
-    if (spreadType === 'three') {
-        showSection('three-card-type-selection');
+    // Показываем нужную
+    const targetSection = sections[sectionName];
+    if (targetSection) {
+        targetSection.classList.remove('hidden');
+        // Прокрутка вверх
+        window.scrollTo(0, 0);
     } else {
-        const config = SPREAD_CONFIGS[spreadType];
-        elements.shuffleTitle.textContent = `Расклад: ${config.name}`;
-        showSection('deck-selection');
+        console.error(`Секция ${sectionName} не найдена!`);
     }
 }
 
-function selectThreeCardType(threeType) {
-    AppState.threeCardType = threeType;
-    const config = SPREAD_CONFIGS.three;
-    elements.shuffleTitle.textContent = `Расклад: ${config.name}`;
-    showSection('deck-selection');
+// Навигация
+function goBack() {
+    if (!sections.interpretation.classList.contains('hidden')) {
+        showSection('result');
+    } else if (!sections.result.classList.contains('hidden')) {
+        showSection('shuffle');
+    } else if (!sections.question.classList.contains('hidden')) {
+        showSection('reversed');
+    } else if (!sections.reversed.classList.contains('hidden')) {
+        showSection('deck');
+    } else if (!sections.deck.classList.contains('hidden')) {
+        if (state.spreadType === 'three') {
+            showSection('threeType');
+        } else {
+            showSection('spread');
+        }
+    } else if (!sections.threeType.classList.contains('hidden')) {
+        showSection('spread');
+    }
+    // На экране spread назад не работает (это начало)
 }
 
+function goToMain() {
+    // Сброс состояния
+    state.spreadType = null;
+    state.threeCardType = null;
+    state.deckId = null;
+    state.useReversed = false;
+    state.question = '';
+    state.cards = [];
+    state.interpretation = '';
+    
+    // Очистка полей ввода
+    const questionInput = document.getElementById('question-text');
+    if (questionInput) questionInput.value = '';
+    
+    showSection('spread');
+}
+
+// Логика выбора расклада
+function selectSpread(type) {
+    state.spreadType = type;
+    if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+    
+    if (type === 'three') {
+        showSection('threeType');
+    } else {
+        // Для одиночной карты сразу переходим к колоде
+        showSection('deck');
+    }
+}
+
+// Логика выбора типа тройного расклада
+function selectThreeType(type) {
+    state.threeCardType = type;
+    if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+    showSection('deck');
+}
+
+// Логика выбора колоды
 function selectDeck(deckId) {
-    AppState.selectedDeck = deckId;
-    showSection('reversed-setting');
+    state.deckId = deckId;
+    if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+    showSection('reversed');
 }
 
-function setReversedSetting(useReversed) {
-    AppState.useReversed = useReversed;
-    showSection('question-input');
-    elements.questionText.value = AppState.question || '';
+// Логика переворотов
+function setReversed(use) {
+    state.useReversed = use;
+    if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+    showSection('question');
 }
 
-function resetDeckVisual() {
-    elements.deckVisual.classList.remove('shuffling');
-    document.getElementById('draw-cards-btn').classList.add('hidden');
-    document.getElementById('shuffle-btn').classList.remove('hidden');
+// Логика вопроса
+function submitQuestion() {
+    const input = document.getElementById('question-text');
+    if (input && input.value.trim()) {
+        state.question = input.value.trim();
+        if (tg.HapticFeedback) tg.HapticFeedback.notificationChanged('success');
+        showSection('shuffle');
+    } else {
+        if (tg.HapticFeedback) tg.HapticFeedback.notificationChanged('error');
+        if (tg.showAlert) tg.showAlert('Пожалуйста, введите вопрос.');
+    }
 }
 
-async function shuffleDeck() {
-    if (AppState.isShuffling) return;
+// Перемешивание и вытягивание
+let isShuffling = false;
+function shuffleDeck() {
+    if (isShuffling) return;
+    isShuffling = true;
     
-    AppState.isShuffling = true;
-    elements.deckVisual.classList.add('shuffling');
+    const btn = document.getElementById('shuffle-btn');
+    if (btn) {
+        btn.textContent = 'Перемешивание...';
+        btn.disabled = true;
+    }
     
-    await sleep(1500);
+    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
     
-    AppState.isShuffling = false;
-    elements.deckVisual.classList.remove('shuffling');
-    document.getElementById('shuffle-btn').classList.add('hidden');
-    document.getElementById('draw-cards-btn').classList.remove('hidden');
-    
-    tg.HapticFeedback.notificationOccurred('success');
+    // Имитация перемешивания
+    setTimeout(() => {
+        isShuffling = false;
+        if (btn) {
+            btn.textContent = '🔀 Перемешать';
+            btn.disabled = false;
+        }
+        drawCards();
+    }, 1500);
 }
 
-async function drawCards() {
-    const config = SPREAD_CONFIGS[AppState.currentSpread];
-    if (!config) return;
-
-    tg.showLoading();
-
-    try {
-        const positions = AppState.currentSpread === 'three' 
-            ? config.positions[AppState.threeCardType]
-            : config.positions;
-
-        const response = await fetch('/api/tarot/draw', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                deck_id: AppState.selectedDeck,
-                count: config.count,
-                use_reversed: AppState.useReversed,
-                spread_type: AppState.currentSpread
-            })
+function drawCards() {
+    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+    
+    // Генерация случайных карт (заглушка, потом будет API)
+    const count = state.spreadType === 'one' ? 1 : 3;
+    const deckInfo = decks.find(d => d.id === state.deckId);
+    const maxCard = deckInfo ? deckInfo.count : 78;
+    
+    state.cards = [];
+    for (let i = 0; i < count; i++) {
+        const cardNum = Math.floor(Math.random() * maxCard) + 1;
+        const isReversed = state.useReversed && Math.random() > 0.5;
+        state.cards.push({
+            id: cardNum,
+            reversed: isReversed,
+            name: `Карта ${cardNum}`, // Временное имя
+            image: `/static/images/cards/${state.deckId}/${cardNum}.jpg` // Путь к изображению
         });
-
-        if (!response.ok) throw new Error('Failed to draw cards');
-        
-        const result = await response.json();
-        AppState.drawnCards = result.cards;
-        
-        renderCardsResult(AppState.drawnCards, positions);
-        showSection('result-screen');
-        
-        tg.hideLoading();
-        tg.HapticFeedback.notificationOccurred('success');
-        
-    } catch (error) {
-        console.error('Ошибка вытягивания карт:', error);
-        tg.hideLoading();
-        tg.showAlert('Произошла ошибка при вытягивании карт. Попробуйте ещё раз.');
-        tg.HapticFeedback.notificationOccurred('error');
     }
+    
+    showSection('result');
+    renderCards();
 }
 
-function renderCardsResult(cards, positions) {
-    elements.cardsResult.innerHTML = cards.map((card, index) => `
-        <div class="card-result ${card.reversed ? 'reversed' : ''}"
-             style="animation-delay: ${index * 0.1}s">
-            ${card.image_url ? `<img src="${card.image_url}" alt="${card.name}">` : '<div class="card-placeholder">🎴</div>'}
-            <div class="card-name">
-                ${card.name}<br>
-                ${card.reversed ? '🔻' : '✅'}
+function renderCards() {
+    const container = document.getElementById('cards-result');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    state.cards.forEach((card, index) => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'tarot-card';
+        if (card.reversed) cardEl.classList.add('reversed');
+        
+        // Заглушка изображения, если нет реального файла
+        const imgSrc = card.image; 
+        // Для демонстрации используем плейсхолдер, если картинка не загрузится
+        cardEl.innerHTML = `
+            <div class="card-image">
+                <img src="${imgSrc}" alt="Card ${card.id}" onerror="this.src='https://placehold.co/200x350/2a1b3d/FFF?text=Card+${card.id}'">
             </div>
-            <div class="card-pos">${positions[index] || ''}</div>
-        </div>
-    `).join('');
+            <div class="card-name">${card.name} ${card.reversed ? '(перевёрнутая)' : ''}</div>
+        `;
+        container.appendChild(cardEl);
+    });
 }
 
+// Получение толкования
 async function getInterpretation() {
-    if (AppState.drawnCards.length === 0) {
-        tg.showAlert('Сначала вытяните карты!');
-        return;
+    const btn = document.getElementById('get-interpretation');
+    if (btn) {
+        btn.textContent = 'Толкуем...';
+        btn.disabled = true;
     }
-
-    tg.showLoading();
-    tg.HapticFeedback.notificationOccurred('success');
-
+    
+    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
+    
     try {
-        const positions = AppState.currentSpread === 'three'
-            ? SPREAD_CONFIGS.three.positions[AppState.threeCardType]
-            : SPREAD_CONFIGS[AppState.currentSpread].positions;
-
+        // Запрос к API бота
         const response = await fetch('/api/tarot/interpret', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                deck_id: AppState.selectedDeck,
-                spread_type: AppState.currentSpread,
-                three_card_type: AppState.threeCardType,
-                question: AppState.question,
-                cards: AppState.drawnCards,
-                positions: positions,
-                use_reversed: AppState.useReversed
+                deck_id: state.deckId,
+                cards: state.cards,
+                question: state.question,
+                spread_type: state.spreadType,
+                three_card_type: state.threeCardType
             })
         });
-
-        if (!response.ok) throw new Error('Failed to get interpretation');
         
-        const result = await response.json();
-        AppState.interpretation = result.interpretation;
+        if (!response.ok) throw new Error('Ошибка сети');
         
-        renderInterpretation(result.interpretation);
-        showSection('interpretation-screen');
+        const data = await response.json();
+        state.interpretation = data.text || data.result || "Толкование не найдено.";
         
-        tg.hideLoading();
+        showSection('interpretation');
+        const contentEl = document.getElementById('interpretation-content');
+        if (contentEl) contentEl.textContent = state.interpretation;
         
     } catch (error) {
-        console.error('Ошибка получения толкования:', error);
-        tg.hideLoading();
-        tg.showAlert('Не удалось получить толкование. Попробуйте ещё раз.');
-        tg.HapticFeedback.notificationOccurred('error');
+        console.error('Error:', error);
+        // Если API нет, показываем заглушку для демонстрации
+        state.interpretation = "Демонстрационное толкование: Карты указывают на важные перемены в вашей жизни. Будьте внимательны к знакам судьбы.";
+        showSection('interpretation');
+        const contentEl = document.getElementById('interpretation-content');
+        if (contentEl) contentEl.textContent = state.interpretation;
+        
+        if (btn) {
+            btn.textContent = '🔮 Получить толкование';
+            btn.disabled = false;
+        }
     }
 }
 
-function renderInterpretation(interpretation) {
-    // Форматируем текст с переносами строк
-    const formatted = interpretation
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line)
-        .map(line => `<p>${line}</p>`)
-        .join('');
-    
-    elements.interpretationContent.innerHTML = formatted;
+function repeatSpread() {
+    state.cards = [];
+    state.interpretation = '';
+    showSection('shuffle');
 }
 
-// ==================== ЛОГИКА АСТРОЛОГИИ ====================
-function handleAstrologySubmit(e) {
-    e.preventDefault();
-    
-    const formData = {
-        planet1: document.getElementById('planet1').value,
-        sign1: document.getElementById('sign1').value,
-        aspectType: document.getElementById('aspect-type').value,
-        planet2: document.getElementById('planet2').value,
-        sign2: document.getElementById('sign2').value
-    };
-
-    if (!formData.planet1 || !formData.sign1 || !formData.aspectType ||
-        !formData.planet2 || !formData.sign2) {
-        tg.showAlert('Заполните все поля!');
-        return;
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', () => {
+    // Настройка темы Telegram
+    if (tg.colorScheme === 'dark') {
+        document.body.classList.add('dark-theme');
     }
-
-    const aspectNames = {
-        conjunction: 'Соединение',
-        sextile: 'Секстиль',
-        square: 'Квадрат',
-        trine: 'Трин',
-        opposition: 'Оппозиция',
-        quincunx: 'Квиконс'
-    };
-
-    const queryText = `${aspectNames[formData.aspectType]} между ${formData.planet1} в ${formData.sign1} и ${formData.planet2} в ${formData.sign2}`;
     
-    const data = {
-        action: 'astrology_aspect',
-        query: queryText,
-        details: formData,
-        timestamp: Date.now()
-    };
-
-    tg.sendData(JSON.stringify(data));
+    // Рендер кнопок колод
+    const deckContainer = document.getElementById('decks-list');
+    if (deckContainer) {
+        deckContainer.innerHTML = '';
+        decks.forEach(deck => {
+            const btn = document.createElement('button');
+            btn.className = 'deck-btn';
+            btn.innerHTML = `<span class="deck-name">${deck.name}</span><span class="deck-count">${deck.count} карт</span>`;
+            btn.onclick = () => selectDeck(deck.id);
+            deckContainer.appendChild(btn);
+        });
+    }
     
-    tg.showPopup({
-        title: '🪐 Отправлено!',
-        message: 'Данные аспекта отправлены боту. Ожидайте интерпретацию.',
-        buttons: [{ type: 'ok' }]
+    // Обработчики кнопок расклада
+    document.querySelectorAll('[data-spread]').forEach(btn => {
+        btn.addEventListener('click', () => selectSpread(btn.dataset.spread));
     });
-}
-
-// ==================== УТИЛИТЫ ====================
-function showSection(sectionId) {
-    document.querySelectorAll('.section').forEach(sec => {
-        sec.classList.add('hidden');
+    
+    // Обработчики кнопок типа тройного расклада
+    document.querySelectorAll('[data-three-type]').forEach(btn => {
+        btn.addEventListener('click', () => selectThreeType(btn.dataset.threeType));
     });
-
-    const target = document.getElementById(sectionId);
-    if (target) {
-        target.classList.remove('hidden');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Обработчики кнопок переворотов
+    document.querySelectorAll('[data-reversed]').forEach(btn => {
+        btn.addEventListener('click', () => setReversed(btn.dataset.reversed === 'yes'));
+    });
+    
+    // Обработчик кнопки продолжения
+    const continueBtn = document.getElementById('continue-to-shuffle');
+    if (continueBtn) {
+        continueBtn.addEventListener('click', submitQuestion);
     }
-
-    tg.MainButton.hide();
-}
-
-function sendToMainMenu() {
-    const data = {
-        action: 'main_menu',
-        timestamp: Date.now()
+    
+    // Обработчики кнопок перемешивания
+    const shuffleBtn = document.getElementById('shuffle-btn');
+    if (shuffleBtn) {
+        shuffleBtn.addEventListener('click', shuffleDeck);
+    }
+    
+    const drawBtn = document.getElementById('draw-cards-btn');
+    if (drawBtn) {
+        drawBtn.addEventListener('click', drawCards);
+    }
+    
+    // Обработчик получения толкования
+    const interpretBtn = document.getElementById('get-interpretation');
+    if (interpretBtn) {
+        interpretBtn.addEventListener('click', getInterpretation);
+    }
+    
+    // Обработчик повтора расклада
+    const retryBtn = document.getElementById('retry-spread');
+    if (retryBtn) {
+        retryBtn.addEventListener('click', repeatSpread);
+    }
+    
+    // Обработчики навигации "Назад"
+    const backButtons = {
+        'back-to-spread-from-three': () => showSection('spread'),
+        'back-to-spread': () => showSection('spread'),
+        'back-to-deck-from-reversed': () => showSection('deck'),
+        'back-to-reversed-from-question': () => showSection('reversed'),
+        'back-to-question-from-shuffle': () => showSection('question'),
+        'back-to-shuffle-from-result': () => showSection('shuffle'),
+        'back-to-result-from-interp': () => showSection('result')
     };
-    tg.sendData(JSON.stringify(data));
-}
+    
+    Object.entries(backButtons).forEach(([id, handler]) => {
+        const btn = document.getElementById(id);
+        if (btn) btn.addEventListener('click', handler);
+    });
+    
+    // Обработчики кнопок "Основное меню"
+    const menuButtons = [
+        'main-menu-from-spread',
+        'main-menu-from-three',
+        'main-menu-from-deck',
+        'main-menu-from-reversed',
+        'main-menu-from-question',
+        'main-menu-from-shuffle',
+        'main-menu-from-result',
+        'main-menu-from-interp',
+        'main-menu-from-astro'
+    ];
+    
+    menuButtons.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.addEventListener('click', goToMain);
+    });
+    
+    // Обработчик нового расклада
+    const newSpreadBtn = document.getElementById('new-spread-from-interp');
+    if (newSpreadBtn) {
+        newSpreadBtn.addEventListener('click', () => {
+            state.cards = [];
+            state.interpretation = '';
+            showSection('shuffle');
+        });
+    }
+    
+    // Показать первый экран
+    showSection('spread');
+});
 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// Экспорт для использования в других модулях
-window.Astro12AI = {
-    AppState,
-    SPREAD_CONFIGS,
-    showSection
+// Экспорт функций для глобального доступа (если нужно)
+window.appActions = {
+    selectSpread,
+    selectThreeType,
+    selectDeck,
+    setReversed,
+    submitQuestion,
+    shuffleDeck,
+    drawCards,
+    getInterpretation,
+    repeatSpread,
+    goBack,
+    goToMain
 };
