@@ -33,8 +33,6 @@ htmlcov/
 # Editors
 .vscode/
 .idea/
-*.swp
-*.swo
 
 # Build/dist folders
 dist/
