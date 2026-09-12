@@ -1314,10 +1314,6 @@ async def handle_webapp_data(message: types.Message, state: FSMContext):
         await process_astro_request(message, query)
         return
 
-    if action == "main_menu":
-        await message.answer("🏠 Главное меню:", reply_markup=main_menu_keyboard())
-        return
-
     if action != "tarot_spread":
         await message.answer(f"⚠️ Неизвестное действие Mini App: {action}")
         return
@@ -1406,21 +1402,12 @@ async def keep_alive_pinger():
 
 async def start_web_server():
     app = web.Application()
-    app.router.add_get("/", handle_health_check)  # Health check для Render
-
+    app.router.add_get("/", handle_health_check)
     try:
         from services.web_server import setup_web_server_routes
-        setup_web_server_routes(
-            app,
-            tarot_service=tarot,
-            astro_retriever=astro_retriever,
-            llm=llm  # Передаем LLM для API интерпретации
-        )
+        setup_web_server_routes(app, tarot_service=tarot)
     except Exception as e:
-        # Заменили warning на error, чтобы сразу видеть проблему в логах
-        logger.error(
-            f"❌ КРИТИЧЕСКАЯ ОШИБКА: Маршруты Mini App не подключены: {e}")
-
+        logger.warning(f"⚠️ Маршруты Mini App не подключены: {e}")
     runner = web.AppRunner(app)
     await runner.setup()
     port = int(os.getenv("PORT", 8080))
@@ -1442,14 +1429,11 @@ async def setup_bot_ui():
 # ============================================================
 async def main():
     validate_settings()
-
-    # УБРАЛИ if not settings.IS_DEVELOPMENT:
-    await start_web_server()
-
+    if not settings.IS_DEVELOPMENT:
+        await start_web_server()
     asyncio.create_task(keep_alive_pinger())
     await bot.delete_webhook(drop_pending_updates=True)
     await setup_bot_ui()
-    # ... далее запуск polling
 
     drawable = len(_drawable_decks())
     logger.info(f"🚀 Режим: {settings.ENV}")
