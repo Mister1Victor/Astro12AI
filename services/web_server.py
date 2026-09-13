@@ -267,11 +267,8 @@ async def handle_webapp_data(request: web.Request) -> web.Response:
 # ============================================================
 # РЕГИСТРАЦИЯ МАРШРУТОВ
 # ============================================================
-def setup_web_server_routes(app: web.Application,
-                            tarot_service=None,
-                            astro_retriever=None,
-                            llm=None):
-    """Регистрация маршрутов веб-сервера. Вызывается из main.py."""
+def setup_web_server_routes(app: web.Application, tarot_service=None, astro_retriever=None, llm=None):
+    """Регистрация маршрутов веб-сервера."""
     if tarot_service is not None:
         app["tarot_service"] = tarot_service
     if astro_retriever is not None:
@@ -279,14 +276,18 @@ def setup_web_server_routes(app: web.Application,
     if llm is not None:
         app["llm"] = llm
 
-    # Путь "/" НЕ регистрируем — он занят health check в main.py
-    app.router.add_get("/webapp", handle_mini_app_index)
-    app.router.add_get("/static/{filepath:.*}", handle_static_file)
-    app.router.add_get("/api/tarot/decks", api_get_decks)
-    app.router.add_post("/api/tarot/draw", api_draw_cards)
-    app.router.add_post("/api/tarot/interpret", api_interpret_spread)
+    # Mini App и статика
+    app.router.add_get('/', handle_mini_app_index)
+    app.router.add_get('/webapp', handle_mini_app_index)
+    app.router.add_get('/static/{filepath:.*}', handle_static_file)
+    # Картинки карт
     app.router.add_get(
-        "/api/tarot/image/{deck_id}/{filename}", handle_deck_image)
-    app.router.add_post("/api/webapp/data", handle_webapp_data)
-
-    logger.info("✅ Маршруты Mini App и API успешно зарегистрированы")
+        '/api/tarot/image/{deck_id}/{filename}', handle_deck_image)
+    # API endpoints
+    app.router.add_get('/api/tarot/decks', api_get_decks)
+    app.router.add_post('/api/tarot/draw', api_draw_cards)
+    # ✅ ДОБАВЛЕН роут интерпретации (был пропущен!)
+    app.router.add_post('/api/tarot/interpret', api_interpret_spread)
+    app.router.add_post('/api/webapp/data', handle_webapp_data)
+    logger.info(
+        "✅ Маршруты веб-сервера зарегистрированы (включая /api/tarot/interpret)")
