@@ -1,33 +1,29 @@
 """
 services/web_server.py
 Веб-сервер Mini App и API для Astro12AI.
-
 Маршруты:
-  GET  /webapp                              — главная страница Mini App (static/index.html)
-  GET  /static/{filepath}                   — статика (css/js/изображения Mini App)
-  GET  /api/tarot/decks                     — список колод из реального TarotService
-  POST /api/tarot/draw                      — вытянуть карты (реальный TarotService)
-  GET  /api/tarot/image/{deck_id}/{file}    — картинки карт из data/tarot/decks/
-  POST /api/tarot/interpret                 — толкование расклада через LLM
-  POST /api/webapp/data                     — резервный приём данных Mini App
-
+GET  /webapp                              — главная страница Mini App (static/index.html)
+GET  /favicon.ico                         — пустой ответ (не 404)
+GET  /static/{filepath}                   — статика (css/js/изображения Mini App)
+GET  /api/tarot/decks                     — список колод из TarotService
+POST /api/tarot/draw                      — вытянуть карты (TarotService)
+POST /api/tarot/interpret                 — толкование расклада через LLM
+GET  /api/tarot/image/{deck_id}/{file}    — картинки карт
+POST /api/webapp/data                     — резервный приём данных Mini App
 ВАЖНО: Маршрут "/" (health check) регистрируется в main.py — здесь НЕ трогаем.
 """
 import logging
-import os
 from pathlib import Path
 from aiohttp import web
 
-# ✅ ИСПРАВЛЕНО: было `name` вместо `__name__`
 logger = logging.getLogger(__name__)
 
-# ✅ ИСПРАВЛЕНО: было `file` вместо `__file__`
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "static"
 DECKS_DIR = BASE_DIR / "data" / "tarot" / "decks"
 
 CONTENT_TYPES = {
-    ".html": "text/html",           # ✅ ИСПРАВЛЕНО: убраны пробелы в ключах
+    ".html": "text/html",
     ".css": "text/css",
     ".js": "application/javascript",
     ".json": "application/json",
@@ -53,6 +49,14 @@ async def handle_mini_app_index(request: web.Request) -> web.Response:
 
 
 # ============================================================
+# FAVICON (убираем 404)
+# ============================================================
+async def handle_favicon(request: web.Request) -> web.Response:
+    """Пустой ответ 204 — браузер не показывает ошибку."""
+    return web.Response(status=204)
+
+
+# ============================================================
 # СТАТИКА
 # ============================================================
 async def handle_static_file(request: web.Request) -> web.Response:
@@ -60,10 +64,8 @@ async def handle_static_file(request: web.Request) -> web.Response:
     rel = request.match_info.get("filepath", "")
     base = STATIC_DIR.resolve()
     path = (STATIC_DIR / rel).resolve()
-
-    if not str(path).startswith(str(base)) or not path.is_file():  # ✅ ИСПРАВЛЕНО: убран пробел
+    if not str(path).startswith(str(base)) or not path.is_file():
         return web.Response(status=404, text="File not found")
-
     ctype = CONTENT_TYPES.get(path.suffix.lower(), "application/octet-stream")
     return web.Response(body=path.read_bytes(), content_type=ctype)
 
@@ -75,16 +77,13 @@ async def handle_deck_image(request: web.Request) -> web.Response:
     """Картинка карты: ищет в images/, фолбэк — корень папки колоды."""
     deck_id = request.match_info["deck_id"]
     filename = request.match_info["filename"]
-
     base = (DECKS_DIR / deck_id / "images").resolve()
     path = (base / filename).resolve()
-
     if not str(path).startswith(str(base)) or not path.is_file():
         base2 = (DECKS_DIR / deck_id).resolve()
         path = (base2 / filename).resolve()
         if not str(path).startswith(str(base2)) or not path.is_file():
             return web.Response(status=404, text="Image not found")
-
     ctype = CONTENT_TYPES.get(path.suffix.lower(), "image/jpeg")
     return web.Response(body=path.read_bytes(), content_type=ctype)
 
@@ -97,7 +96,6 @@ async def api_get_decks(request: web.Request) -> web.Response:
     svc = request.app.get("tarot_service")
     if svc is None:
         return web.json_response({"error": "tarot service unavailable"}, status=503)
-
     decks = [
         {
             "deck_id": d.deck_id,
@@ -118,7 +116,6 @@ async def api_draw_cards(request: web.Request) -> web.Response:
     svc = request.app.get("tarot_service")
     if svc is None:
         return web.json_response({"error": "tarot service unavailable"}, status=503)
-
     try:
         data = await request.json()
     except Exception:
@@ -130,7 +127,7 @@ async def api_draw_cards(request: web.Request) -> web.Response:
     except (TypeError, ValueError):
         count = 1
     count = max(1, min(count, 10))
-    use_reversed = data.get("use_reversed", True)
+    allow_reversed = bool(data.get("use_reversed", True))
 
     deck = svc.get_deck(deck_id)
     if not deck or not deck.cards:
@@ -139,19 +136,18 @@ async def api_draw_cards(request: web.Request) -> web.Response:
     drawn = svc.draw_cards(count, deck.deck_id)
     cards = []
     for card, rev in drawn:
-        if not use_reversed:
-            rev = False
+        # Если пользователь отключил перевёрнутые — сбрасываем rev
+        final_rev = rev if allow_reversed else False
         cards.append({
             "card_id": card.card_id,
             "name": card.name,
-            "reversed": rev,
+            "reversed": final_rev,
             "astrology": card.astrology or "",
             "keywords": card.keywords or [],
-            "meaning": card.get_meaning(rev),
+            "meaning": card.get_meaning(final_rev),
             "image_url": (f"/api/tarot/image/{deck.deck_id}/{card.image}"
                           if card.image else None),
         })
-
     return web.json_response({
         "deck_id": deck.deck_id,
         "deck_name": deck.name,
@@ -160,89 +156,75 @@ async def api_draw_cards(request: web.Request) -> web.Response:
 
 
 # ============================================================
-# API: ТОЛКОВАНИЕ РАСКЛАДА (через LLM)
+# API: ТОЛКОВАНИЕ РАСКЛАДА (LLM) — ответ ВНУТРИ Mini App
 # ============================================================
 async def api_interpret_spread(request: web.Request) -> web.Response:
-    """Толкование расклада через LLM."""
-    llm = request.app.get("llm")
-    astro_retriever = request.app.get("astro_retriever")
-    tarot_service = request.app.get("tarot_service")
-
-    if not llm or not tarot_service:
-        return web.json_response({"error": "LLM or TarotService not available"}, status=503)
-
+    """Толкование расклада через LLM (вызывается из Mini App)."""
     try:
         data = await request.json()
     except Exception:
         return web.json_response({"error": "invalid json"}, status=400)
 
-    question = data.get("question", "")
-    cards = data.get("cards", [])
-    spread_type = data.get("spread_type", "one")
+    llm = request.app.get("llm")
+    svc = request.app.get("tarot_service")
+    astro_retriever = request.app.get("astro_retriever")
+
+    if not llm or not svc:
+        return web.json_response({"error": "LLM or TarotService unavailable"}, status=503)
+
+    cards_data = data.get("cards", [])
+    question = data.get("question", "") or "Общая интерпретация расклада"
     deck_id = data.get("deck_id")
+    spread_type = data.get("spread_type", "one")
 
-    if not cards:
-        return web.json_response({"error": "no cards provided"}, status=400)
+    deck = svc.get_deck(deck_id)
+    deck_name = deck.name if deck else "Неизвестная колода"
 
-    # Восстанавливаем карты из TarotService по card_id
-    deck = tarot_service.get_deck(deck_id)
+    # Восстанавливаем объекты карт
     drawn = []
-    for c in cards:
-        card_id = c.get("card_id")
-        reversed_flag = c.get("reversed", False)
-        if deck:
-            card = deck.get_card(card_id)
-            if card:
-                drawn.append((card, reversed_flag))
+    for c in cards_data:
+        card = deck.get_card(c.get("card_id")) if deck else None
+        if card:
+            drawn.append((card, bool(c.get("reversed", False))))
 
     if not drawn:
-        return web.json_response({"error": "cards not found in deck"}, status=404)
+        return web.json_response({"error": "No valid cards"}, status=400)
 
+    # Определяем position_kinds по типу расклада
+    position_kinds = None
+    if spread_type == "plusminus":
+        position_kinds = ["positive", "negative", "neutral"]
+    elif spread_type == "choice" and len(drawn) == 7:
+        position_kinds = ["positive", "negative", "neutral",
+                          "positive", "negative", "neutral", "day"]
+    elif spread_type == "cod":
+        position_kinds = ["day"]
+
+    # Импортируем функцию интерпретации (из handlers/tarot.py или main.py)
     try:
-        from core.prompts.tarot_prompt import TAROT_SYSTEM_PROMPT
-        from core.tarot import render as tarot_render
-
-        cards_desc = []
-        for i, (card, rev) in enumerate(drawn):
-            orient = "перевёрнутое" if rev else "прямое"
-            astro = f" [{card.astrology}]" if card.astrology else ""
-            meaning = tarot_render.card_context_for_position(
-                card, rev, "neutral")
-            cards_desc.append(
-                f"Позиция {i + 1}: {card.name} ({orient}{astro}) —\n{meaning}")
-
-        cards_text = "\n".join(cards_desc)
-
-        # Материалы Школы для авторских колод
-        school_block = ""
-        if deck_id in ("author_deck_146", "author_deck") and astro_retriever:
-            entities_src = " ".join(
-                f"{card.name} {card.astrology or ''}" for card, _ in drawn
-            )
-            school_block = astro_retriever.build_authority_context(
-                entities_src)
-
-        human_prompt = (
-            f"Вопрос клиента: {question}\n"
-            + (school_block + "\n" if school_block else "")
-            + f"Вытянутые карты (колода «{deck.name}»):\n{cards_text}\n"
-            f"Дай связную, глубокую интерпретацию этого расклада в контексте вопроса."
+        from handlers.tarot import get_tarot_ai_interpretation
+        interpretation = await get_tarot_ai_interpretation(
+            question=question,
+            drawn=drawn,
+            deck_name=deck_name,
+            position_kinds=position_kinds,
+            deck_id=deck_id,
+            llm=llm,
+            astro_retriever=astro_retriever,
+        )
+    except ImportError:
+        # Fallback: функция в main.py (без llm/astro_retriever параметров)
+        from main import get_tarot_ai_interpretation
+        interpretation = await get_tarot_ai_interpretation(
+            question, drawn, deck_name, position_kinds, deck_id
         )
 
-        resp = await llm.ainvoke([
-            ("system", TAROT_SYSTEM_PROMPT),
-            ("human", human_prompt)
-        ])
+    if not interpretation:
+        return web.json_response({
+            "interpretation": "⚠️ Сервис ИИ временно недоступен. Попробуйте через 1–2 минуты."
+        })
 
-        text = getattr(resp, "content", "") or str(resp)
-        if isinstance(text, dict):
-            text = text.get("text") or str(text)
-
-        return web.json_response({"interpretation": text, "success": True})
-
-    except Exception as e:
-        logger.error(f"Ошибка api_interpret_spread: {e}")
-        return web.json_response({"error": str(e)}, status=500)
+    return web.json_response({"interpretation": interpretation})
 
 
 # ============================================================
@@ -254,21 +236,18 @@ async def handle_webapp_data(request: web.Request) -> web.Response:
         data = await request.json()
     except Exception:
         return web.json_response({"error": "invalid json"}, status=400)
-
-    action = data.get("action", "unknown")
-    logger.info(f"📥 Mini App data: action={action}")
-
-    if action == "main_menu":
-        return web.json_response({"status": "ok"})
-
+    logger.info(f"📥 Mini App data: action={data.get('action')}")
     return web.json_response({"status": "ok"})
 
 
 # ============================================================
 # РЕГИСТРАЦИЯ МАРШРУТОВ
 # ============================================================
-def setup_web_server_routes(app: web.Application, tarot_service=None, astro_retriever=None, llm=None):
-    """Регистрация маршрутов веб-сервера."""
+def setup_web_server_routes(app: web.Application,
+                            tarot_service=None,
+                            astro_retriever=None,
+                            llm=None):
+    """Регистрация маршрутов Mini App и API. Вызывается из main.py."""
     if tarot_service is not None:
         app["tarot_service"] = tarot_service
     if astro_retriever is not None:
@@ -276,18 +255,15 @@ def setup_web_server_routes(app: web.Application, tarot_service=None, astro_retr
     if llm is not None:
         app["llm"] = llm
 
-    # Mini App и статика
-    app.router.add_get('/', handle_mini_app_index)
-    app.router.add_get('/webapp', handle_mini_app_index)
-    app.router.add_get('/static/{filepath:.*}', handle_static_file)
-    # Картинки карт
+    # ❌ НЕ регистрируем '/' — он уже занят health check в main.py
+    app.router.add_get("/webapp", handle_mini_app_index)
+    app.router.add_get("/favicon.ico", handle_favicon)
+    app.router.add_get("/static/{filepath:.*}", handle_static_file)
+    app.router.add_get("/api/tarot/decks", api_get_decks)
+    app.router.add_post("/api/tarot/draw", api_draw_cards)
+    app.router.add_post("/api/tarot/interpret", api_interpret_spread)
     app.router.add_get(
-        '/api/tarot/image/{deck_id}/{filename}', handle_deck_image)
-    # API endpoints
-    app.router.add_get('/api/tarot/decks', api_get_decks)
-    app.router.add_post('/api/tarot/draw', api_draw_cards)
-    # ✅ ДОБАВЛЕН роут интерпретации (был пропущен!)
-    app.router.add_post('/api/tarot/interpret', api_interpret_spread)
-    app.router.add_post('/api/webapp/data', handle_webapp_data)
-    logger.info(
-        "✅ Маршруты веб-сервера зарегистрированы (включая /api/tarot/interpret)")
+        "/api/tarot/image/{deck_id}/{filename}", handle_deck_image)
+    app.router.add_post("/api/webapp/data", handle_webapp_data)
+
+    logger.info("✅ Маршруты Mini App и API зарегистрированы")

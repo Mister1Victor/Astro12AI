@@ -1362,19 +1362,32 @@ async def keep_alive_pinger():
 
 async def start_web_server():
     app = web.Application()
+    # Health check на '/' — для Render self-ping
     app.router.add_get("/", handle_health_check)
+
+    # Подключаем маршруты Mini App и API, передавая ВСЕ сервисы
     try:
-        setup_web_server_routes(app, tarot_service=tarot,
-                                llm=llm, astro_retriever=astro_retriever)
+        from services.web_server import setup_web_server_routes
+        setup_web_server_routes(
+            app,
+            tarot_service=tarot,
+            astro_retriever=astro_retriever,
+            llm=llm,
+        )
     except Exception as e:
-        logger.warning(f"⚠️ Маршруты Mini App не подключены: {e}")
+        logger.error(
+            f"❌ КРИТИЧЕСКАЯ ОШИБКА: маршруты Mini App не подключены: {e}")
+        import traceback
+        traceback.print_exc()
+
     runner = web.AppRunner(app)
     await runner.setup()
     port = int(os.getenv("PORT", 8080))
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
     logger.info(
-        f"🌐 Веб-сервер запущен: порт {port} (/ — health, /webapp — Mini App)")
+        f"🌐 Веб-сервер запущен: порт {port} (/ — health, /webapp — Mini App)"
+    )
 
 
 async def setup_bot_ui():
