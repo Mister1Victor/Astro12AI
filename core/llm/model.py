@@ -31,12 +31,12 @@ def create_llm():
     # 🆕 Безопасное приведение типов с fallback на значения по умолчанию
     try:
         temperature = float(getattr(settings, "TEMPERATURE", 0.2))
-        max_tokens = int(getattr(settings, "MAX_TOKENS", 4096))
+        max_tokens = int(getattr(settings, "MAX_TOKENS", 1000))
     except (ValueError, TypeError):
         logger.warning(
             "⚠️ Неверный формат TEMPERATURE или MAX_TOKENS в настройках. Используются значения по умолчанию.")
         temperature = 0.2
-        max_tokens = 4096
+        max_tokens = 1000
 
     logger.info(f"🤖 Инициализация LLM: Провайдер={provider}, Модель={model_name}, "
                 f"Температура={temperature}, MaxTokens={max_tokens}")

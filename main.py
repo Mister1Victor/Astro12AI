@@ -1426,7 +1426,8 @@ async def main():
     logger.info(f"Колод: всего={len(tarot_decks)}, с картами={drawable}")
     logger.info("=" * 60)
     try:
-        await dp.start_polling(bot)
+        await bot.delete_webhook(drop_pending_updates=True)
+        await dp.start_polling(bot, skip_updates=True)
     finally:
         await bot.session.close()
 
