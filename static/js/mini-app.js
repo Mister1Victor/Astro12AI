@@ -187,6 +187,8 @@
   function renderResults() {
     var container = $('result-cards-container');
     if (!container) return;
+    // ИСПРАВЛЕНИЕ: Очищаем старые классы раскладов и добавляем класс текущего расклада
+    container.className = 'cards-display spread-' + (state.spreadType || 'one');
     var positions = positionsFor();
     container.innerHTML = '';
     state.cards.forEach(function (card, i) {
