@@ -95,11 +95,21 @@
     }
   }
   function goHome() {
-    if (tg && tg.close) { tg.close(); return; }
-    state.spreadType = null; state.threeType = null; state.deckId = null;
-    state.question = ''; state.cards = []; state.interpretation = '';
-    showScreen('spread-type');
-  }
+  // УДАЛЕНО: tg.close() больше не вызывается, приложение не закроется!
+  state.spreadType = null; 
+  state.threeType = null; 
+  state.deckId = null;
+  state.question = ''; 
+  state.cards = []; 
+  state.interpretation = '';
+  
+  // Сбрасываем видимость кнопок перемешивания, если они были изменены
+  var shuffleBtn = $('shuffle-btn'); if (shuffleBtn) shuffleBtn.classList.remove('hidden');
+  var drawBtn = $('draw-btn');       if (drawBtn) drawBtn.classList.add('hidden');
+  
+  // Возвращаем пользователя на самый первый экран выбора расклада
+  showScreen('spread-type');
+}
 
   // ---------- Колоды ----------
   function renderDecks(decks) {
