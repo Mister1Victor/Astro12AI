@@ -10,181 +10,139 @@
 <body>
 <div class="app-container">
   <header class="app-header">
-    <h1 id="app-title">Таро «12 Планет»</h1>
-    <p class="subtitle" data-i18n="subtitle">Мудрость в каждой карте</p>
-    <div class="lang-switch">
-      <button class="lang-btn" data-lang="ru">RU</button>
-      <button class="lang-btn" data-lang="en">EN</button>
-      <button class="lang-btn" data-lang="de">DE</button>
-    </div>
+    <h1>🔮 Таро «12 Планет»</h1>
+    <p class="subtitle">Школа Астрологии — интерактивный расклад</p>
   </header>
+  <div class="content-area">
 
-  <main class="content-area">
-
-    <!-- ЭКРАН 1: Выбор расклада -->
-    <section id="screen-spread" class="screen active">
-      <h2 class="screen-title" data-i18n="choose_spread">Выберите тип расклада</h2>
-      <p class="description" data-i18n="choose_spread_desc">Какой вопрос вас интересует?</p>
-      <div class="options-list">
-        <button class="option-card spread-option" data-spread="one">
-          <span class="icon">🃏</span><span class="label" data-i18n="spread_one">Одна карта</span>
-        </button>
-        <button class="option-card spread-option" data-spread="three">
-          <span class="icon">🔮</span><span class="label" data-i18n="spread_three">Три карты</span>
-        </button>
-        <button class="option-card spread-option" data-spread="choice">
-          <span class="icon">⚖️</span><span class="label" data-i18n="spread_choice">Выбор пути</span>
-        </button>
-        <button class="option-card spread-option" data-spread="celtic">
-          <span class="icon">✝️</span><span class="label" data-i18n="spread_celtic">Кельтский крест</span>
-        </button>
-        <button class="option-card spread-option" data-spread="yesno">
-          <span class="icon">🎯</span><span class="label" data-i18n="spread_yesno">Да или Нет</span>
-        </button>
+    <!-- 1. Тип расклада -->
+    <section id="screen-spread-type" class="screen">
+      <h2 class="screen-title">Выберите тип расклада</h2>
+      <p class="description">Карты тянутся из реальных колод с картинками</p>
+      <div class="options-grid">
+        <button type="button" class="option-card spread-option" data-type="one"><span class="icon">🃏</span><span class="label">Одна карта</span></button>
+        <button type="button" class="option-card spread-option" data-type="three"><span class="icon">🔮</span><span class="label">Три карты</span></button>
+        <button type="button" class="option-card spread-option" data-type="choice"><span class="icon">⚖️</span><span class="label">Выбор пути</span></button>
+        <button type="button" class="option-card spread-option" data-type="celtic"><span class="icon">✝️</span><span class="label">Кельтский крест</span></button>
       </div>
-      <div class="divider"></div>
-      <button class="btn-secondary" id="astro-open-btn">🪐 <span data-i18n="astrology">Астрология</span></button>
-      <div class="nav-bottom">
-        <button class="btn-text btn-home" data-i18n="main_menu">🏠 Основное меню</button>
+      <div class="nav-buttons">
+        <button type="button" class="btn-secondary" id="open-astro">🪐 Параметры аспекта</button>
       </div>
+      <div class="nav-bottom"><button type="button" class="btn-text btn-home">🏠 Основное меню</button></div>
     </section>
 
-    <!-- ЭКРАН 2: Тип трёх карт -->
+    <!-- 2. Тип трёх карт -->
     <section id="screen-three-type" class="screen">
-      <h2 class="screen-title" data-i18n="three_type_title">Тип расклада «Три карты»</h2>
+      <h2 class="screen-title">Тип расклада «Три карты»</h2>
       <div class="options-list">
-        <button class="option-card three-type-option" data-three-type="past-present-future">
-          <span class="icon">🕐</span><span class="label" data-i18n="three_ppf">Прошлое — Настоящее — Будущее</span>
-        </button>
-        <button class="option-card three-type-option" data-three-type="thoughts-feelings-actions">
-          <span class="icon">💭</span><span class="label" data-i18n="three_tfa">Мысли — Чувства — Действия</span>
-        </button>
-        <button class="option-card three-type-option" data-three-type="plus-minus-result">
-          <span class="icon">➕➖</span><span class="label" data-i18n="three_pmr">Плюс — Минус — Итог</span>
-        </button>
+        <button type="button" class="option-row three-type-option" data-type="past-present-future"><span class="icon">🕐</span><span class="text">Прошлое — Настоящее — Будущее</span></button>
+        <button type="button" class="option-row three-type-option" data-type="thoughts-feelings-actions"><span class="icon">💭</span><span class="text">Мысли — Чувства — Действия</span></button>
+        <button type="button" class="option-row three-type-option" data-type="plus-minus-result"><span class="icon">➕➖</span><span class="text">Плюс — Минус — Итог</span></button>
       </div>
       <div class="nav-bottom">
-        <button class="btn-secondary btn-back" data-i18n="back">🔙 Назад</button>
-        <button class="btn-text btn-home" data-i18n="main_menu">🏠 Основное меню</button>
+        <button type="button" class="btn-secondary btn-back">🔙 Назад</button>
+        <button type="button" class="btn-text btn-home">🏠 Основное меню</button>
       </div>
     </section>
 
-    <!-- ЭКРАН 3: Выбор колоды -->
+    <!-- 3. Колода (список рисует JS из /api/tarot/decks) -->
     <section id="screen-deck" class="screen">
-      <h2 class="screen-title" data-i18n="choose_deck">Выберите колоду</h2>
+      <h2 class="screen-title">Выберите колоду</h2>
       <div id="deck-list" class="options-list"></div>
       <div class="nav-bottom">
-        <button class="btn-secondary btn-back" data-i18n="back">🔙 Назад</button>
-        <button class="btn-text btn-home" data-i18n="main_menu">🏠 Основное меню</button>
+        <button type="button" class="btn-secondary btn-back">🔙 Назад</button>
+        <button type="button" class="btn-text btn-home">🏠 Основное меню</button>
       </div>
     </section>
 
-    <!-- ЭКРАН 4: Перевёрнутые карты -->
+    <!-- 4. Перевёрнутые -->
     <section id="screen-reverse" class="screen">
-      <h2 class="screen-title" data-i18n="reverse_title">Настройка карт</h2>
-      <p class="description" data-i18n="reverse_desc">Использовать ли перевёрнутые карты?</p>
+      <h2 class="screen-title">Настройка карт</h2>
+      <p class="description">Использовать ли перевёрнутые карты в раскладах?</p>
       <div class="options-list">
-        <button class="option-card" id="reverse-yes">
-          <span class="icon">✅</span><span class="label" data-i18n="reverse_yes">Да, использовать перевёрнутые</span>
-        </button>
-        <button class="option-card" id="reverse-no">
-          <span class="icon">❌</span><span class="label" data-i18n="reverse_no">Нет, только прямые</span>
-        </button>
+        <button type="button" class="option-row" id="reverse-yes"><span class="icon">✅</span><span class="text">Да, использовать перевёрнутые</span></button>
+        <button type="button" class="option-row" id="reverse-no"><span class="icon">❌</span><span class="text">Нет, только прямые</span></button>
       </div>
       <div class="nav-bottom">
-        <button class="btn-secondary btn-back" data-i18n="back">🔙 Назад</button>
-        <button class="btn-text btn-home" data-i18n="main_menu">🏠 Основное меню</button>
+        <button type="button" class="btn-secondary btn-back">🔙 Назад</button>
+        <button type="button" class="btn-text btn-home">🏠 Основное меню</button>
       </div>
     </section>
 
-    <!-- ЭКРАН 5: Вопрос -->
+    <!-- 5. Вопрос -->
     <section id="screen-question" class="screen">
-      <h2 class="screen-title" data-i18n="question_title">Ваш вопрос</h2>
-      <p class="description" data-i18n="question_desc">Напишите вопрос для расклада</p>
+      <h2 class="screen-title">Ваш вопрос</h2>
       <div class="input-group">
-        <textarea id="question-input" rows="4" data-i18n-placeholder="question_placeholder" placeholder="Например: что ждёт меня в работе?"></textarea>
+        <textarea id="question-input" rows="4" placeholder="Напишите вопрос, на который должен ответить расклад…"></textarea>
       </div>
-      <button class="btn-primary" id="question-submit-btn" data-i18n="continue_btn">Продолжить →</button>
+      <div class="nav-buttons">
+        <button type="button" class="btn-primary" id="submit-question-btn">Продолжить →</button>
+      </div>
       <div class="nav-bottom">
-        <button class="btn-secondary btn-back" data-i18n="back">🔙 Назад</button>
-        <button class="btn-text btn-home" data-i18n="main_menu">🏠 Основное меню</button>
+        <button type="button" class="btn-secondary btn-back">🔙 Назад</button>
+        <button type="button" class="btn-text btn-home">🏠 Основное меню</button>
       </div>
     </section>
 
-    <!-- ЭКРАН 6: Перемешивание -->
+    <!-- 6. Перемешивание -->
     <section id="screen-shuffle" class="screen">
-      <h2 class="screen-title" data-i18n="shuffle_title">Перемешайте колоду</h2>
+      <h2 class="screen-title">Перемешайте колоду</h2>
+      <p class="description">Сосредоточьтесь на вопросе и перемешайте карты</p>
       <div class="shuffle-visual">
-        <div class="card-stack" id="card-stack">
+        <div class="card-stack">
           <div class="card-back offset-1"></div>
           <div class="card-back offset-2"></div>
           <div class="card-back"></div>
         </div>
       </div>
-      <button class="btn-primary" id="shuffle-btn" data-i18n="shuffle_btn">🔀 Перемешать</button>
-      <button class="btn-primary hidden" id="draw-btn" data-i18n="draw_btn">✨ Вытянуть карты</button>
+      <div class="nav-buttons">
+        <button type="button" class="btn-primary" id="shuffle-btn">🔀 Перемешать</button>
+        <button type="button" class="btn-primary hidden" id="draw-btn">✨ Вытянуть карты</button>
+      </div>
       <div class="nav-bottom">
-        <button class="btn-secondary btn-back" data-i18n="back">🔙 Назад</button>
-        <button class="btn-text btn-home" data-i18n="main_menu">🏠 Основное меню</button>
+        <button type="button" class="btn-secondary btn-back">🔙 Назад</button>
+        <button type="button" class="btn-text btn-home">🏠 Основное меню</button>
       </div>
     </section>
 
-    <!-- ЭКРАН 7: Результат -->
+    <!-- 7. Результат -->
     <section id="screen-result" class="screen">
-      <h2 class="screen-title" data-i18n="result_title">Ваши карты</h2>
-      <div id="result-cards" class="cards-display"></div>
+      <h2 class="screen-title">Ваши карты</h2>
+      <div id="result-cards-container" class="cards-display"></div>
       <div class="nav-buttons">
-        <button class="btn-primary" id="interpret-btn" data-i18n="interpret_btn">🔮 Получить толкование</button>
-        <button class="btn-secondary" id="redraw-btn" data-i18n="redraw_btn">🔄 Повторить расклад</button>
+        <button type="button" class="btn-primary" id="get-interpretation-btn">🔮 Получить толкование</button>
+        <button type="button" class="btn-secondary" id="retry-spread-btn">🔄 Повторить расклад</button>
       </div>
       <div class="nav-bottom">
-        <button class="btn-secondary btn-back" data-i18n="back">🔙 Назад</button>
-        <button class="btn-text btn-home" data-i18n="main_menu">🏠 Основное меню</button>
+        <button type="button" class="btn-secondary btn-back">🔙 Назад</button>
+        <button type="button" class="btn-text btn-home">🏠 Основное меню</button>
       </div>
     </section>
 
-    <!-- ЭКРАН 8: Толкование -->
+    <!-- 8. Толкование (реальное, от LLM) -->
     <section id="screen-interpretation" class="screen">
-      <h2 class="screen-title" data-i18n="interpret_title">Толкование расклада</h2>
-      <div id="interpretation-box" class="interpretation-box">
-        <div id="interpretation-text" class="loading-text" data-i18n="loading">Звёзды шепчут ответ…</div>
-      </div>
+      <h2 class="screen-title">🔮 Толкование расклада</h2>
+      <div id="interpretation-text" class="interpretation-box loading-text">Звезды шепчут ответ…</div>
       <div class="nav-buttons">
-        <button class="btn-secondary" id="back-to-cards-btn" data-i18n="back_to_cards">🔙 К картам</button>
-        <button class="btn-primary" id="send-to-bot-btn" data-i18n="send_to_bot">📨 Отправить в бот</button>
+        <button type="button" class="btn-secondary" data-action="back-to-cards">🔙 К картам</button>
+        <button type="button" class="btn-primary" id="new-reading-btn">🔄 Новый расклад</button>
       </div>
       <div class="nav-bottom">
-        <button class="btn-secondary btn-back" data-i18n="back">🔙 Назад</button>
-        <button class="btn-text btn-home" data-i18n="main_menu">🏠 Основное меню</button>
+        <button type="button" class="btn-text btn-home">🏠 Основное меню</button>
       </div>
     </section>
 
-    <!-- ЭКРАН 9: Астрология -->
+    <!-- 9. Астрология -->
     <section id="screen-astro" class="screen">
-      <h2 class="screen-title" data-i18n="astro_title">Параметры аспекта</h2>
-      <form id="astro-form" class="input-group">
-        <select id="planet1" required><option value="" data-i18n="select_planet">Выберите планету</option></select>
-        <select id="sign1" required><option value="" data-i18n="select_sign">Выберите знак</option></select>
-        <select id="aspect-type" required><option value="" data-i18n="select_aspect">Тип аспекта</option></select>
-        <select id="planet2" required><option value="" data-i18n="select_planet">Выберите планету</option></select>
-        <select id="sign2" required><option value="" data-i18n="select_sign">Выберите знак</option></select>
-        <button type="submit" class="btn-primary" data-i18n="send_to_bot">🪐 Отправить в бот</button>
+      <h2 class="screen-title">🪐 Параметры аспекта</h2>
+      <form id="astrology-form">
+        <div class="form-group"><label for="planet1">Первая планета</label><select id="planet1" required></select></div>
+        <div class="form-group"><label for="sign1">Знак первой планеты</label><select id="sign1" required></select></div>
+        <div class="form-group"><label for="aspect-type">Тип аспекта</label><select id="aspect-type" required></select></div>
+        <div class="form-group"><label for="planet2">Вторая планета</label><select id="planet2" required></select></div>
+        <div class="form-group"><label for="sign2">Знак второй планеты</label><select id="sign2" required></select></div>
+        <div class="nav-buttons"><button type="submit" class="btn-primary">✅ Отправить в бот</button></div>
       </form>
       <div class="nav-bottom">
-        <button class="btn-secondary btn-back" data-i18n="back">🔙 Назад</button>
-        <button class="btn-text btn-home" data-i18n="main_menu">🏠 Основное меню</button>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- Лоадер (вместо несуществующего tg.showLoading) -->
-  <div id="loading-overlay" class="loading-overlay hidden">
-    <div class="spinner"></div>
-    <p id="loading-text" data-i18n="loading">Загрузка…</p>
-  </div>
-</div>
-
-<script src="/static/js/mini-app.js"></script>
-</body>
-</html>
+        <button type="button" class="btn-secondary btn-back">🔙 Назад</button>
+        <button type="button" class="btn-text btn-home">🏠 Основное меню
