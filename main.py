@@ -1257,20 +1257,22 @@ async def handle_rephrase(callback: types.CallbackQuery):
 
 @dp.message(F.web_app_data)
 async def handle_webapp_data(message: types.Message, state: FSMContext):
-    """Обрабатывает данные Mini App: расклад или аспект."""
+    """Обрабатывает данные Mini App: расклад, аспект или возврат в меню."""
     import json as _json
-    logger.info(f"📲 Mini App: получены данные от {message.from_user.id}")
+    logger.info(f"📲 Mini App: данные от {message.from_user.id}")
     try:
         data = _json.loads(message.web_app_data.data)
     except Exception:
-        await message.answer("⚠️ Не удалось разобрать данные Mini App.")
+        await message.answer("⚠️ Не удалось разобрать данные.")
         return
     action = data.get("action")
+
+    # Возврат в главное меню бота
     if action == "main_menu":
-        # Mini App запросил возврат в главное меню
         await state.clear()
         await message.answer("🏠 Главное меню:", reply_markup=main_menu_keyboard())
         return
+
     if action == "astrology_aspect":
         query = (data.get("query") or "").strip()
         if not query:
@@ -1278,31 +1280,37 @@ async def handle_webapp_data(message: types.Message, state: FSMContext):
             return
         await process_astro_request(message, query)
         return
+
     if action != "tarot_spread":
-        await message.answer(f"⚠️ Неизвестное действие Mini App: {action}")
+        await message.answer(f"⚠️ Неизвестное действие: {action}")
         return
+
     deck_id = data.get("deck_id")
     spread_type = data.get("spread_type", "three")
     deck = tarot.get_deck(deck_id) if deck_id else tarot.get_deck()
     if not deck or not deck.cards:
         await message.answer("⚠️ Колода недоступна.")
         return
+
     drawn = []
     for c in data.get("cards", []):
         card = deck.get_card(c.get("card_id"))
         if card:
             drawn.append((card, bool(c.get("reversed", False))))
     if not drawn:
-        await message.answer("⚠️ Не удалось восстановить карты из данных Mini App.")
+        await message.answer("⚠️ Не удалось восстановить карты.")
         return
+
     positions = {
         "one": ["Карта дня"],
         "three": ["Прошлое", "Настоящее", "Будущее"],
         "celtic": CELTIC_CROSS_POSITIONS,
     }.get(spread_type, [f"Карта {i + 1}" for i in range(len(drawn))])
-    await message.answer(f"📲 Расклад из Mini App: «{deck.name}» ({spread_type})")
+
+    await message.answer(f"📲 Расклад из Mini App: «{deck.name}»")
     await send_spread_cards_visual(message, deck, drawn, positions)
-    question = data.get("question") or \
+
+    question = data.get("question") or data.get("interpretation") or \
         "Интерпретируй расклад из Mini App в контексте вопроса пользователя."
     await bot.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
     interpretation = await get_tarot_ai_interpretation(
