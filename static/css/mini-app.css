@@ -529,20 +529,84 @@ color: var(--primary-hover) !important;
    ============================================================ */
 
 /* Класс, который будет добавляться к карте при клике */
+/* ============================================================
+   ИСПРАВЛЕННЫЙ РЕЖИМ: КАРТА ВО ВЕСЬ ЭКРАН (ТЕКСТ ВИДЕН!)
+   ============================================================ */
+
 .tarot-card-item.fullscreen {
     position: fixed !important;
     top: 50% !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important; /* Центрируем строго по экрану */
-    width: 85vw !important;                      /* Занимает 85% ширины экрана */
-    height: auto !important;
-    aspect-ratio: 1 / 1.73 !important;           /* Сохраняем пропорции карты */
-    max-width: 450px !important;                 /* Ограничение для планшетов */
+    
+    /* Фиксируем размеры в зависимости от высоты экрана, чтобы текст никогда не улетал */
+    width: auto !important;
+    height: 70vh !important;                     /* Занимает ровно 70% от высоты экрана */
+    aspect-ratio: 1 / 1.73 !important;           /* Сохраняем идеальные пропорции карты */
+    
+    display: flex !important;
+    flex-direction: column !important;           /* Выстраиваем элементы вертикально */
+    overflow: visible !important;                /* ИСПРАВЛЕНИЕ: разрешаем тексту быть видимым */
+    
     z-index: 9999 !important;                    /* Поверх абсолютно всего */
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.95), 0 0 20px var(--accent-glow) !important;
     cursor: zoom-out;
     animation: zoomInCard 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
 }
+
+/* Настройка картинки в полноэкранном режиме, чтобы она ужималась, давая место тексту */
+.tarot-card-item.fullscreen .card-image {
+    flex: 1 !important;
+    width: 100% !important;
+    object-fit: cover !important;
+}
+
+/* Делаем крупное и читаемое название карты во весь экран */
+.tarot-card-item.fullscreen .card-name {
+    font-size: 16px !important;                 /* Крупный читаемый шрифт */
+    padding: 12px var(--spacing-sm) !important;
+    background: #1a1a2e !important;             /* Плотный темный фон */
+    color: #ffffff !important;                  /* Белый текст */
+    border-top: 1px solid var(--primary-color) !important;
+    flex-shrink: 0 !important;                  /* Запрещаем названию сжиматься */
+}
+
+/* Делаем крупную подпись позиции расклада */
+.tarot-card-item.fullscreen .card-pos {
+    font-size: 14px !important;
+    padding: 10px var(--spacing-sm) !important;
+    background: rgba(0, 0, 0, 0.9) !important;  /* Контрастный черный фон под картой */
+    color: var(--primary-color) !important;     /* Золотой текст */
+    flex-shrink: 0 !important;                  /* Запрещаем позиции сжиматься */
+}
+
+/* Размытие заднего фона (оверлей), когда карта открыта */
+.tarot-card-item.fullscreen::before {
+    content: '';
+    position: fixed;
+    top: -200vh;
+    left: -200vw;
+    width: 500vw;
+    height: 500vh;
+    background: rgba(10, 10, 15, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: -1; 
+    cursor: zoom-out;
+}
+
+/* Плавная анимация увеличения */
+@keyframes zoomInCard {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.6);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
 
 /* Изменяем отображение позиции карты в полноэкранном режиме */
 .tarot-card-item.fullscreen .card-pos {
