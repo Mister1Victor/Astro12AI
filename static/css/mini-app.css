@@ -128,13 +128,17 @@ body {
     border-radius: var(--radius-md);
     padding: var(--spacing-md);
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
     cursor: pointer;
     transition: all 0.2s ease;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+}
+
+.option-card {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-main) !important; /* Белый цвет текста для раскладов */
 }
 
 .option-row {
@@ -142,6 +146,7 @@ body {
     justify-content: flex-start;
     text-align: left;
     padding: var(--spacing-md) var(--spacing-lg);
+    color: var(--text-main) !important; /* Белый цвет текста для колод */
 }
 
 .option-card:hover, .option-row:hover {
@@ -276,22 +281,20 @@ textarea::placeholder {
     from { transform: translateX(-5px) rotate(-2deg); }
     to { transform: translateX(5px) rotate(2deg); }
 }
+
+/* КОРРЕКТНЫЙ блок стилей карт (Ошибка исправлена) */
 .tarot-card-item {
-    /* Увеличиваем базовый размер карты (было 80px на 140px) */
     width: 110px;        
     height: 190px;       
-    
-    /* Делаем карты адаптивными для маленьких экранов (минимум 95px) */
     min-width: 95px;     
-    
-    background: rgba(255, 255, 255, 0.15); 
+    background: rgba(255, 255, 255, 0.15); /* Подложка светлее */
     border-radius: var(--radius-sm);
-    border: 1.5px solid var(--primary-color); 
+    border: 1.5px solid var(--primary-color); /* Золотая рамка */
     display: flex;
     flex-direction: column;
     overflow: hidden;
     position: relative;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6); /* Чуть усилили тень для объема */
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
     animation: flipIn 0.6s ease-out backwards;
 }
 
@@ -301,22 +304,8 @@ textarea::placeholder {
     gap: var(--spacing-md);
     margin-bottom: var(--spacing-lg);
     flex-wrap: wrap;
-    min-height: 230px; /* Увеличили минимальную высоту под новые карты */
+    min-height: 230px; 
     padding: 10px 0;
-}
-
- {
-    width: 80px;
-    height: 140px;
-    background: rgba(255, 255, 255, 0.15); /* Сделали подложку карты светлее */
-    border-radius: var(--radius-sm);
-    border: 1.5px solid var(--primary-color); /* Добавили четкую золотую рамку вместо блеклой белой */
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    position: relative;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); /* Добавили тень для отделения от фона */
-    animation: flipIn 0.6s ease-out backwards;
 }
 
 .tarot-card-item:nth-child(1) { animation-delay: 0.1s; }
@@ -335,13 +324,22 @@ textarea::placeholder {
 }
 
 .card-name {
-    font-size: 11px; /* Было 10px */
+    font-size: 11px; 
     text-align: center;
     padding: 6px 4px;
     background: #1a1a2e; 
-    color: #ffffff; 
+    color: #ffffff !important; /* Принудительно белый текст названия */
     font-weight: 700;
     border-top: 1px solid var(--primary-color); 
+}
+
+.card-pos {
+    font-size: 12px; 
+    color: var(--primary-color) !important; /* Яркий золотой для позиций */
+    text-align: center;
+    padding: 6px 4px;
+    line-height: 1.2;
+    font-weight: 600;
 }
 
 @keyframes flipIn {
@@ -361,7 +359,7 @@ textarea::placeholder {
     overflow-y: auto;
     font-size: 15px;
     line-height: 1.6;
-    white-space: pre-wrap; /* Сохраняет переносы строк от ИИ */
+    white-space: pre-wrap; 
 }
 
 .loading-text {
@@ -463,44 +461,45 @@ button:disabled {
         max-width: 100%;
     }
 }
-/* ============================================================
-   ДОПОЛНЕНИЯ v4.0 (базовую тему не меняем)
-   ============================================================ */
+
 .hidden { display: none !important; }
 
-/* Плейсхолдер, если картинки нет (никаких 404 на back.jpg) */
+/* Плейсхолдер, если картинки нет */
 .card-image-empty {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 40px;
-  background: linear-gradient(45deg, #2c2c3e, #1a1a2e);
-  border: 1px solid var(--card-border);
+justify-content: center;
+font-size: 40px;
+background: linear-gradient(45deg, #2c2c3e, #1a1a2e);
+border: 1px solid var(--card-border);
 }
 img.card-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  background-color: #2a2a35;
-}
-
-.card-pos {
-    font-size: 12px; /* Было 11px */
-    color: var(--primary-color); 
-    text-align: center;
-    padding: 6px 4px;
-    line-height: 1.2;
-    font-weight: 600;
+width: 100%;
+height: 100%;
+object-fit: cover;
+background-color: #2a2a35;
 }
 .error-text { color: var(--error-color); }
 .form-group select {
-  width: 100%;
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius-md);
-  padding: 12px;
-  color: var(--text-main);
-  font-family: 'Montserrat', sans-serif;
-  font-size: 15px;
+width: 100%;
+background: var(--card-bg);
+border: 1px solid var(--card-border);
+border-radius: var(--radius-md);
+padding: 12px;
+color: var(--text-main);
+font-family: 'Montserrat', sans-serif;
+font-size: 15px;
 }
 .deck-list { gap: var(--spacing-md); }
+/* Полный фикс контрастности текстов внутри кнопок опций */
+.option-card .label,
+.option-row .text {
+color: var(--text-main) !important;
+}
+.option-row .subtext {
+color: var(--text-secondary) !important;
+}
+.option-card:hover .label,
+.option-row:hover .text {
+color: var(--primary-hover) !important;
+}
