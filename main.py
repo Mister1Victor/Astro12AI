@@ -591,15 +591,18 @@ async def save_reversed_setting(callback: types.CallbackQuery, state: FSMContext
 
 @dp.callback_query(F.data == "menu_astro")
 async def menu_astro(callback: types.CallbackQuery, state: FSMContext):
-    logger.info("🔘 menu_astro")
+    logger.info("🔘 Callback: menu_astro")
     await callback.answer()
     await state.set_state(AppStates.waiting_astro_question)
+
+    # ИСПРАВЛЕНО: убраны пробелы в тегах, символы > и < заменены на &gt; и &lt;
     text = (
         "🪐 <b>АСТРОЛОГИЯ 12</b>\n\n"
-        "Напишите вопрос или вставьте строку из ZET:\n"
-        "<code>Квадрат Сатурн-Нептун > 91°19' < 20Vir16 - 21Sgr36</code>\n\n"
-        "Или текстом: «Сатурн в Деве в 4 доме?»"
+        "Напишите вопрос или вставьте строку из ZET, например:\n"
+        "<code>Квадрат Сатурн-Нептун &gt; 91°19' &lt; 20Vir16 - 21Sgr36</code>\n\n"
+        "Или просто текстом: «Что означает Сатурн в Деве в 4 доме?»"
     )
+
     if not await safe_edit_text(callback.message, text, parse_mode="HTML",
                                 reply_markup=tarot_kb.back_to_main_keyboard()):
         await callback.message.answer(text, parse_mode="HTML",
