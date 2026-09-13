@@ -284,8 +284,8 @@ textarea::placeholder {
 
 /* 1. Увеличиваем карты ЕЩЕ ЧУТЬ-ЧУТЬ для всех обычных раскладов (1, 3 карты) */
 .tarot-card-item {
-    width: 135px;         /* Было 110px, увеличили до 135px */
-    height: 225px;        /* Было 190px, увеличили до 225px */
+    width: 125px;         /* Было 110px, увеличили до 125px */
+    height: 215px;        /* Было 190px, увеличили до 235px */
     min-width: 105px;     
     background: rgba(255, 255, 255, 0.15); 
     border-radius: var(--radius-sm);
@@ -522,4 +522,63 @@ color: var(--text-secondary) !important;
 .option-card:hover .label,
 .option-row:hover .text {
 color: var(--primary-hover) !important;
+}
+
+/* ============================================================
+   ИНТЕРАКТИВНЫЙ РЕЖИМ: КАРТА ВО ВЕСЬ ЭКРАН
+   ============================================================ */
+
+/* Класс, который будет добавляться к карте при клике */
+.tarot-card-item.fullscreen {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important; /* Центрируем строго по экрану */
+    width: 85vw !important;                      /* Занимает 85% ширины экрана */
+    height: auto !important;
+    aspect-ratio: 1 / 1.73 !important;           /* Сохраняем пропорции карты */
+    max-width: 450px !important;                 /* Ограничение для планшетов */
+    z-index: 9999 !important;                    /* Поверх абсолютно всего */
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.95), 0 0 20px var(--accent-glow) !important;
+    cursor: zoom-out;
+    animation: zoomInCard 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+}
+
+/* Изменяем отображение позиции карты в полноэкранном режиме */
+.tarot-card-item.fullscreen .card-pos {
+    font-size: 16px !important;
+    padding: 10px var(--spacing-sm) !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+}
+
+.tarot-card-item.fullscreen .card-name {
+    font-size: 15px !important;
+    padding: 10px var(--spacing-sm) !important;
+}
+
+/* Размытие заднего фона (оверлей), когда карта открыта */
+.tarot-card-item.fullscreen::before {
+    content: '';
+    position: fixed;
+    top: -200vh;
+    left: -200vw;
+    width: 500vw;
+    height: 500vh;
+    background: rgba(10, 10, 15, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: -1; /* Подложка под самой картой */
+    cursor: zoom-out;
+}
+
+/* Плавная анимация увеличения */
+@keyframes zoomInCard {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.6);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
 }

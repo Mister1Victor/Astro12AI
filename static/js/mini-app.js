@@ -183,47 +183,83 @@
     });
   }
 
-  // ---------- Рендер карт с РЕАЛЬНЫМИ картинками ----------
-  function renderResults() {
-    var container = $('result-cards-container');
-    if (!container) return;
-    // ИСПРАВЛЕНИЕ: Очищаем старые классы раскладов и добавляем класс текущего расклада
-    container.className = 'cards-display spread-' + (state.spreadType || 'one');
-    var positions = positionsFor();
-    container.innerHTML = '';
-    state.cards.forEach(function (card, i) {
-      var el = document.createElement('div');
-      el.className = 'tarot-card-item' + (card.reversed ? ' reversed' : '');
-      el.style.animationDelay = (0.15 * i) + 's';
-      if (card.image_url) {
-        var img = document.createElement('img');
-        img.className = 'card-image';
-        img.alt = card.name || '';
-        img.src = card.image_url;
-        img.onerror = function () {
-          var ph = document.createElement('div');
-          ph.className = 'card-image card-image-empty';
-          ph.textContent = '🎴';
-          img.replaceWith(ph);
-        };
-        el.appendChild(img);
+  /**
+ * Отрисовка вытянутых карт Таро с поддержкой полноэкранного режима и тактильного отклика.
+ */
+function renderResults() {
+  var container = $('result-cards-container');
+  if (!container) return;
+
+  // Динамически задаем класс типа расклада (например, spread-celtic для компактных карт)
+  container.className = 'cards-display spread-' + (state.spreadType || 'one');
+  container.innerHTML = '';
+
+  var positions = positionsFor();
+
+  state.cards.forEach(function (card, i) {
+    // 1. Создаем главный контейнер карты
+    var cardItem = document.createElement('div');
+    cardItem.className = 'tarot-card-item' + (card.reversed ? ' reversed' : '');
+    cardItem.style.animationDelay = (0.15 * i) + 's';
+    cardItem.style.cursor = 'zoom-in';
+
+    // 2. Создаем и настраиваем изображение карты
+    if (card.image_url) {
+      var img = document.createElement('img');
+      img.className = 'card-image';
+      img.alt = card.name || 'Карта Таро';
+      img.src = card.image_url;
+      
+      // Фолбэк, если изображение не загрузилось с сервера
+      img.onerror = function () {
+        var placeholder = document.createElement('div');
+        placeholder.className = 'card-image card-image-empty';
+        placeholder.textContent = '🎴';
+        img.replaceWith(placeholder);
+      };
+      cardItem.appendChild(img);
+    } else {
+      var fallback = document.createElement('div');
+      fallback.className = 'card-image card-image-empty';
+      fallback.textContent = '🎴';
+      cardItem.appendChild(fallback);
+    }
+
+    // 3. Добавляем название карты
+    var nameLabel = document.createElement('div');
+    nameLabel.className = 'card-name';
+    nameLabel.textContent = (card.name || '') + (card.reversed ? ' 🔻' : '');
+    cardItem.appendChild(nameLabel);
+
+    // 4. Добавляем позицию карты в раскладе (Прошлое, Настоящее, Итог...)
+    var posLabel = document.createElement('div');
+    posLabel.className = 'card-pos';
+    posLabel.textContent = positions[i] || ('Позиция ' + (i + 1));
+    cardItem.appendChild(posLabel);
+
+    // 5. Логика интерактивного увеличения карты во весь экран (UX/Haptic)
+    cardItem.addEventListener('click', function (e) {
+      e.stopPropagation(); // Предотвращаем ложные срабатывания оверлея
+
+      if (cardItem.classList.contains('fullscreen')) {
+        cardItem.classList.remove('fullscreen');
+        haptic('light'); // Мягкая вибрация при закрытии
       } else {
-        var ph2 = document.createElement('div');
-        ph2.className = 'card-image card-image-empty';
-        ph2.textContent = '🎴';
-        el.appendChild(ph2);
+        // Закрываем любую другую карту, если она была открыта ранее
+        document.querySelectorAll('.tarot-card-item.fullscreen').forEach(function (el) {
+          el.classList.remove('fullscreen');
+        });
+        
+        cardItem.classList.add('fullscreen');
+        haptic('medium'); // Сочная вибрация при раскрытии
       }
-      var name = document.createElement('div');
-      name.className = 'card-name';
-      name.textContent = (card.name || '') + (card.reversed ? ' 🔻' : '');
-      el.appendChild(name);
-      var pos = document.createElement('div');
-      pos.className = 'card-pos';
-      pos.textContent = positions[i] || ('Позиция ' + (i + 1));
-      el.appendChild(pos);
-      container.appendChild(el);
     });
-  }
+
+    // Добавляем готовую карту в контейнер экрана результатов
+    container.appendChild(cardItem);
+  });
+}
+
 
   // ---------- РЕАЛЬНОЕ толкование LLM ----------
   function fetchInterpretation() {
