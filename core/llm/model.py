@@ -24,7 +24,7 @@ def create_llm():
     elif provider == "gemini":
         default_model = "gemini-1.5-flash"
     else:
-        default_model = "qwen/qwen3.6-27b"  # Актуальная модель на Groq [[1]]
+        default_model = "qwen/qwen3.8-27b"  # Актуальная модель на Groq [[1]]
 
     model_name = getattr(settings, "MODEL_NAME", default_model)
 
@@ -64,7 +64,7 @@ def create_llm():
         # По умолчанию используем Groq (для обратной совместимости)
         return ChatGroq(
             api_key=getattr(settings, "GROQ_API_KEY", ""),
-            model=model_name,  # model="qwen/qwen3.6-27b",
+            model=model_name,  # model="qwen/qwen3.8-27b",
             temperature=temperature,
             # ✅ Отключаем режим рассуждения для скорости (поддерживается langchain_groq)
             reasoning_effort="none",
