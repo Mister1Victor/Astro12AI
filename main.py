@@ -50,6 +50,7 @@ from core.rag.engine import AstroRetriever
 from core.rag.context import context_statistics
 from core.llm.model import create_llm
 from core.knowledge.loader import load_knowledge_base
+from core.knowledge.knowledge_retriever import AstroKnowledgeRetriever
 
 # Core — Tarot
 from core.prompts.tarot_prompt import TAROT_SYSTEM_PROMPT
@@ -114,6 +115,11 @@ documents = load_knowledge_base()
 logger.info(f"🔥 Успешно создано фрагментов (Астрология): {len(documents)}")
 
 astro_retriever = AstroRetriever(documents)
+
+# Инициализация нового ретривера знаний для точечной подгрузки материалов
+knowledge_retriever = AstroKnowledgeRetriever()
+logger.info("📚 Инициализирован умный ретривер знаний (AstroKnowledgeRetriever)")
+
 llm = create_llm()
 model_name = getattr(settings, "MODEL_NAME", "Неизвестная модель")
 logger.info(f"🤖 Используемая ИИ-модель: {model_name}")
@@ -209,11 +215,26 @@ async def get_ai_interpretation(query: str) -> str:
     logger.info(f"📥 ВХОДНОЙ ЗАПРОС (АСТРО): {query[:200]}...")
     start_time = time.time()
 
+    # Используем новый умный ретривер для получения релевантного контекста
+    # Это позволяет подгружать только нужные файлы (планеты, знаки, дома) вместо всей базы
+    try:
+        relevant_context = knowledge_retriever.get_context(query)
+        if relevant_context:
+            logger.info(f"📚 Найдено релевантных фрагментов: {len(relevant_context)}")
+            # Добавляем контекст к запросу для LLM
+            enhanced_query = f"Контекст из знаний Школы:\n{relevant_context}\n\nВопрос пользователя: {query}"
+        else:
+            logger.warning("⚠️ Релевантный контекст не найден, используем исходный запрос")
+            enhanced_query = query
+    except Exception as e:
+        logger.error(f"❌ Ошибка при получении контекста: {e}")
+        enhanced_query = query  # fallback к исходному запросу
+
     for attempt in range(3):
         try:
             loop = asyncio.get_running_loop()
             response = await loop.run_in_executor(
-                None, lambda: rag_chain.invoke({"input": query})
+                None, lambda: rag_chain.invoke({"input": enhanced_query})
             )
             elapsed = round(time.time() - start_time, 2)
             logger.info(f"⏱️ Время выполнения: {elapsed} сек")
