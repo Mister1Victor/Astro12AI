@@ -32,6 +32,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_classic.chains import create_retrieval_chain
+from core.knowledge.knowledge_retriever import KnowledgeRetriever
 
 # Backend
 from backend.logger import get_logger
@@ -107,6 +108,16 @@ documents = load_knowledge_base()
 logger.info(f"🔥 Успешно создано фрагментов (Астрология): {len(documents)}")
 astro_retriever = AstroRetriever(documents)
 llm = create_llm()
+# === ШАГ 2: Умный поисковик по модульной базе знаний (.md файлы) ===
+# Если папка knowledge_base с .md файлами не создана — поисковик просто
+# вернёт пустой контекст, и сработает старая логика (безопасный fallback).
+try:
+    knowledge_retriever = KnowledgeRetriever()
+    logger.info("🧠 Умный поисковик (модульная база знаний) инициализирован")
+except Exception as e:
+    knowledge_retriever = None
+    logger.warning(
+        f"⚠️ Умный поисковик не инициализирован (будет старая логика): {e}")
 model_name = getattr(settings, "MODEL_NAME", "Неизвестная модель")
 logger.info(f"🤖 Используемая ИИ-модель: {model_name}")
 
@@ -194,11 +205,74 @@ def parse_astrological_input(text: str) -> str:
 # АСТРОЛОГИЯ: вызов RAG
 # ============================================================
 
+# ============================================================
+# НОВЫЙ ПУТЬ: прямой вызов LLM с модульным контекстом (.md)
+# ============================================================
 
+
+async def _interpret_with_module_context(query: str, module_context: str,
+                                         start_time: float):
+    """Прямой вызов LLM: SYSTEM_PROMPT + модульный контекст из .md файлов.
+    Возвращает текст ответа, сообщение о 429 или None (для фолбэка)."""
+    system_text = SYSTEM_PROMPT.replace("{context}", module_context)
+    for attempt in range(3):
+        try:
+            loop = asyncio.get_running_loop()
+            resp = await loop.run_in_executor(
+                None,
+                lambda: llm.invoke([
+                    ("system", system_text),
+                    ("human", query)
+                ])
+            )
+            elapsed = round(time.time() - start_time, 2)
+            logger.info(
+                f"⏱️ Время выполнения (модульный контекст): {elapsed} сек")
+            text = getattr(resp, "content", "") or str(resp)
+            if isinstance(text, dict):
+                text = text.get("text") or str(text)
+            logger.info(f"📝 Длина ответа: {len(text)} символов")
+            return text if text.strip() else None
+        except Exception as e:
+            error_msg = str(e).lower()
+            if "429" in error_msg or "rate_limit" in error_msg or "too many requests" in error_msg:
+                logger.warning(f"⚠️ Groq rate limit (429): {e}")
+                return ("⏳ **Сервис ИИ временно перегружен**\n\n"
+                        "Бесплатный лимит Groq исчерпан. Попробуйте через 1-2 минуты.")
+            logger.warning(f"⚠️ Ошибка ИИ (попытка {attempt + 1}/3): {e}")
+            if attempt < 2:
+                await asyncio.sleep(3 * (attempt + 1))
+    return None
+
+
+# ============================================================
+# АСТРОЛОГИЯ: вызов RAG (гибрид: модульный поиск → старый RAG)
+# ============================================================
 async def get_ai_interpretation(query: str) -> str:
     logger.info("=" * 60)
     logger.info(f"📥 ВХОДНОЙ ЗАПРОС (АСТРО): {query[:200]}...")
     start_time = time.time()
+
+    # === НОВАЯ ЛОГИКА: умный поиск по модульным .md файлам ===
+    if knowledge_retriever is not None:
+        try:
+            module_context = knowledge_retriever.get_context(query)
+        except Exception as e:
+            logger.warning(f"⚠️ Сбой умного поисковика: {e}")
+            module_context = ""
+
+        if module_context and module_context.strip():
+            logger.info(
+                f"🧠 Найден модульный контекст: {len(module_context)} симв. — "
+                f"используем новый прямой путь")
+            answer_text = await _interpret_with_module_context(
+                query, module_context, start_time)
+            if answer_text:
+                return answer_text
+            logger.warning(
+                "⚠️ Модульный путь не дал ответа — переход на старый BM25-RAG")
+
+    # === СТАРАЯ ЛОГИКА БЕЗ ИЗМЕНЕНИЙ: BM25 по Word-файлам ===
     for attempt in range(3):
         try:
             loop = asyncio.get_running_loop()
