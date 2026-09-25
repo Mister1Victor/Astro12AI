@@ -326,23 +326,58 @@ function renderResults() {
       sel.appendChild(o);
     });
   }
-  function sendAstro(e) {
+
+  async function submitAstro(e) {
     e.preventDefault();
-    var p1 = $('planet1').value, s1 = $('sign1').value, a = $('aspect-type').value,
-        p2 = $('planet2').value, s2 = $('sign2').value;
-    if (!p1 || !s1 || !a || !p2 || !s2) { showAlert('Заполните все поля.'); return; }
-    var aName = (ASPECTS.filter(function (x) { return x.id === a; })[0] || {}).name || a;
-    var payload = { action: 'astrology_aspect',
-                    query: aName + ': ' + p1 + ' в ' + s1 + ' и ' + p2 + ' в ' + s2,
-                    timestamp: Date.now() };
-    if (tg && tg.sendData) {
-      tg.sendData(JSON.stringify(payload));
-      showAlert('Отправлено! Интерпретация придёт в чат бота.');
-      setTimeout(function () { if (tg.close) tg.close(); }, 1200);
-    } else {
-      showAlert('Вне Telegram отправка недоступна.');
+    const p1 = $('planet1').value, s1 = $('sign1').value, a = $('aspect-type').value,
+          p2 = $('planet2').value, s2 = $('sign2').value;
+    if (!p1 || !s1 || !a || !p2 || !s2) { 
+        showAlert(t('select_aspect') ? 'Заполните все поля' : 'Fill all fields'); 
+        return; 
     }
-  }
+    
+    const aName = (ASPECTS.find(x => x.id === a) || {}).name || a;
+    const query = `${aName}: ${p1} в ${s1} и ${p2} в ${s2}`;
+    
+    // Показываем загрузку
+    showLoading('Получаем толкование…');
+    
+    try {
+        const r = await fetch('/api/astro/interpret', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: query })
+        });
+        
+        if (!r.ok) throw new Error('http ' + r.status);
+        const data = await r.json();
+        
+        if (data.error) throw new Error(data.error);
+        if (!data.interpretation) throw new Error('empty');
+        
+        // Отображаем ответ в приложении (переиспользуем экран интерпретации)
+        state.interpretation = data.interpretation;
+        hideLoading();
+        
+        const box = $('interpretation-box');
+        const text = $('interpretation-text');
+        if (box && text) {
+            text.textContent = data.interpretation;
+            text.classList.remove('loading-text');
+            box.classList.remove('hidden');
+            showScreen('interpretation');
+            
+            // Скрываем кнопку "К картам" (для астрологии она не нужна)
+            const backToCardsBtn = $('back-to-cards-btn');
+            if (backToCardsBtn) backToCardsBtn.style.display = 'none';
+        }
+        
+    } catch (e) {
+        hideLoading();
+        console.error('Astro interpretation error:', e);
+        showAlert('Не удалось получить толкование: ' + e.message);
+    }
+}
 
   // ---------- Инициализация ----------
   function init() {

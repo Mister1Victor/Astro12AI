@@ -184,7 +184,7 @@ async def api_draw_cards(request: web.Request) -> web.Response:
 
 
 # ============================================================
-# API: РЕАЛЬНОЕ ТОЛКОВАНИЕ LLM (вместо демо-генерации)
+# API: РЕАЛЬНОЕ ТОЛКОВАНИЕ LLM
 # ============================================================
 async def api_interpret_spread(request: web.Request) -> web.Response:
     """Толкование расклада тем же LLM-пайплайном, что и в боте
@@ -247,10 +247,38 @@ async def api_interpret_spread(request: web.Request) -> web.Response:
             status=503)
     return web.json_response({"interpretation": interpretation, "success": True})
 
+# ============================================================
+# API: АСТРОЛОГИЯ (интерпретация в Mini App)
+# ============================================================
+
+
+async def api_interpret_astro(request: web.Request) -> web.Response:
+    """Интерпретация астрологического запроса через умный поисковик."""
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "invalid json"}, status=400)
+
+    query = data.get("query", "").strip()
+    if not query:
+        return web.json_response({"error": "empty query"}, status=400)
+
+    # Используем существующую функцию из main.py
+    try:
+        from main import get_ai_interpretation
+        interpretation = await get_ai_interpretation(query)
+        if not interpretation:
+            return web.json_response({"error": "ИИ не дал ответа"}, status=503)
+        return web.json_response({"interpretation": interpretation, "success": True})
+    except Exception as e:
+        logger.error(f"Ошибка api_interpret_astro: {e}")
+        return web.json_response({"error": str(e)}, status=500)
 
 # ============================================================
 # РЕЗЕРВНЫЙ ПРИЁМ ДАННЫХ MINI APP
 # ============================================================
+
+
 async def handle_webapp_data(request: web.Request) -> web.Response:
     try:
         data = await request.json()
@@ -295,6 +323,9 @@ def setup_web_server_routes(app: web.Application, tarot_service=None,
     app.router.add_get("/api/tarot/decks", api_get_decks)
     app.router.add_post("/api/tarot/draw", api_draw_cards)
     app.router.add_post("/api/tarot/interpret", api_interpret_spread)
+    app.router.add_post("/api/webapp/data", handle_webapp_data)
+    app.router.add_post("/api/tarot/interpret", api_interpret_spread)
+    app.router.add_post("/api/astro/interpret", api_interpret_astro)
     app.router.add_post("/api/webapp/data", handle_webapp_data)
     logger.info("✅ Маршруты Mini App и API зарегистрированы "
                 "(картинки /api/tarot/image/..., толкование /api/tarot/interpret)")
