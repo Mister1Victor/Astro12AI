@@ -326,23 +326,43 @@ function renderResults() {
       sel.appendChild(o);
     });
   }
-  function sendAstro(e) {
+  // ---------- Астрология ----------
+function sendAstro(e) {
     e.preventDefault();
     var p1 = $('planet1').value, s1 = $('sign1').value, a = $('aspect-type').value,
         p2 = $('planet2').value, s2 = $('sign2').value;
     if (!p1 || !s1 || !a || !p2 || !s2) { showAlert('Заполните все поля.'); return; }
     var aName = (ASPECTS.filter(function (x) { return x.id === a; })[0] || {}).name || a;
-    var payload = { action: 'astrology_aspect',
-                    query: aName + ': ' + p1 + ' в ' + s1 + ' и ' + p2 + ' в ' + s2,
-                    timestamp: Date.now() };
-    if (tg && tg.sendData) {
-      tg.sendData(JSON.stringify(payload));
-      showAlert('Отправлено! Интерпретация придёт в чат бота.');
-      setTimeout(function () { if (tg.close) tg.close(); }, 1200);
-    } else {
-      showAlert('Вне Telegram отправка недоступна.');
-    }
-  }
+    var query = aName + ': ' + p1 + ' в ' + s1 + ' и ' + p2 + ' в ' + s2;
+    
+    // Показываем экран интерпретации и лоадер
+    var box = $('interpretation-text');
+    if (!box) return;
+    box.textContent = 'Звезды шепчут ответ…';
+    box.className = 'interpretation-box loading-text';
+    showScreen('interpretation');
+    
+    // Делаем запрос напрямую к API вместо отправки в чат бота
+    fetch('/api/astro/interpret', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: query })
+    })
+    .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+    .then(function (res) {
+        if (res.ok && res.j && res.j.interpretation) {
+            box.className = 'interpretation-box';
+            box.textContent = res.j.interpretation;   // white-space: pre-wrap сохранит абзацы
+        } else {
+            box.className = 'interpretation-box error-text';
+            box.textContent = (res.j && res.j.error) ? res.j.error : 'Не удалось получить толкование.';
+        }
+    })
+    .catch(function () {
+        box.className = 'interpretation-box error-text';
+        box.textContent = 'Нет связи с сервером. Попробуйте позже.';
+    });
+}
 
   // ---------- Инициализация ----------
   function init() {

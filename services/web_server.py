@@ -254,19 +254,29 @@ async def api_interpret_spread(request: web.Request) -> web.Response:
 
 async def api_interpret_astro(request: web.Request) -> web.Response:
     """Интерпретация астрологического запроса через умный поисковик."""
+    tarot_service, llm, astro_retriever = _get_services(request)
+    if not astro_retriever or not llm:
+        return web.json_response({"error": "service unavailable"}, status=503)
+
     try:
         data = await request.json()
     except Exception:
         return web.json_response({"error": "invalid json"}, status=400)
 
-    query = data.get("query", "").strip()
-    if not query:
+    raw_text = data.get("query", "").strip()
+    if not raw_text:
         return web.json_response({"error": "empty query"}, status=400)
 
-    # Используем существующую функцию из main.py
     try:
-        from main import get_ai_interpretation
-        interpretation = await get_ai_interpretation(query)
+        # Импортируем функции парсинга из main.py
+        from main import parse_astrological_input, get_ai_interpretation
+
+        processed_query = parse_astrological_input(raw_text)
+        task_hint = astro_retriever.build_task_hint(processed_query)
+        final_task = f"Показатель: {processed_query}\nЗадача: {task_hint}."
+
+        interpretation = await get_ai_interpretation(final_task)
+
         if not interpretation:
             return web.json_response({"error": "ИИ не дал ответа"}, status=503)
         return web.json_response({"interpretation": interpretation, "success": True})
