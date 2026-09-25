@@ -500,15 +500,74 @@ object-fit: cover;
 background-color: #2a2a35;
 }
 .error-text { color: var(--error-color); }
+
+/* Улучшенные стили для выпадающих списков (select) */
 .form-group select {
-width: 100%;
-background: var(--card-bg);
-border: 1px solid var(--card-border);
-border-radius: var(--radius-md);
-padding: 12px;
-color: var(--text-main);
-font-family: 'Montserrat', sans-serif;
-font-size: 15px;
+    width: 100%;
+    background: var(--card-bg);
+    border: 2px solid var(--card-border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    color: var(--text-main);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23d4af37' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 12px;
+    padding-right: 40px;
+    transition: all 0.2s ease;
+}
+
+.form-group select:hover {
+    border-color: var(--primary-hover);
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.form-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* Стили для опций выпадающего списка */
+.form-group select option {
+    background: #1a1a2e;
+    color: #ffffff;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.form-group select option:hover,
+.form-group select option:checked {
+    background: var(--primary-color);
+    color: #000000;
+    font-weight: 600;
+}
+
+/* Для WebKit браузеров (Chrome, Safari) */
+.form-group select::-webkit-scrollbar {
+    width: 8px;
+}
+
+.form-group select::-webkit-scrollbar-track {
+    background: #1a1a2e;
+    border-radius: 4px;
+}
+
+.form-group select::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+.form-group select::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-hover);
 }
 .deck-list { gap: var(--spacing-md); }
 /* Полный фикс контрастности текстов внутри кнопок опций */

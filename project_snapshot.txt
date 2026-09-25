@@ -1,5 +1,5 @@
 # СНИМОК ПРОЕКТА Astro12AI (v2)
-# Дата: 2026-09-09T16:13:28.081194
+# Дата: 2026-09-22T19:49:56.904141
 # Корень: D:\Астрология\ ASTRO-KURS_Victor_Slobodniuk\Апликейшн\Astro12AI
 ================================================================================
 # 1. СТРУКТУРА (tree)
@@ -18,6 +18,7 @@
   files2.txt
   init_author_deck_146.py
   main.py
+  main2.py
   main_old.py
   make_snapshot.py
   oracle_generator.py
@@ -28,8 +29,7 @@
   tarot_chart_old.py
   test_dignities.py
   test_keys.py
-  Astro12AI/
-  astro-telegram-bot/
+  test_web.py
   backend/
     config.py
     logger.py
@@ -37,6 +37,7 @@
   core/
     knowledge/
       cache.py
+      knowledge_retriever.py
       loader.py
       weights.py
     llm/
@@ -88,7 +89,7 @@
         thoth/
           debug.log
           deck.json
-  database/
+          deck2.json
   docs/
     AI_MEMORY.md
     API.md
@@ -114,7 +115,54 @@
     ~$trobook_Victor_Slobodniuk.docx
     АстроКурс Виктор Слободнюк.docx
     Знаки Зодиака.docx
-  main/
+    aspects/
+      conjunction.md
+      opposition.md
+      quincunx.md
+      sextile.md
+      square.md
+      trine.md
+    houses/
+      house_1.md
+      house_10.md
+      house_11.md
+      house_12.md
+      house_2.md
+      house_3.md
+      house_4.md
+      house_5.md
+      house_6.md
+      house_7.md
+      house_8.md
+      house_9.md
+    planets/
+      ceres.md
+      eris.md
+      jupiter.md
+      lilith.md
+      mars.md
+      mercury.md
+      moon.md
+      neptune.md
+      pluto.md
+      saturn.md
+      selena.md
+      sun.md
+      uranus.md
+      venus.md
+    signs/
+      aquarius.md
+      aries.md
+      cancer.md
+      capricorn.md
+      gemini.md
+      leo.md
+      libra.md
+      pisces.md
+      sagittarius.md
+      scorpio.md
+      taurus.md
+      virgo.md
   repo_analysis/
   scripts/
     add_card_sections.py
@@ -128,13 +176,19 @@
   services/
     __init__.py
     web_server.py
+    web_server2.py
   static/
+    debug.log
     index.html
+    index2.html
     css/
+      debug.log
       mini-app.css
+      mini-app2.css
     js/
+      debug.log
       mini-app.js
-  telegram/
+      mini-app2.js
   test/
     test_tarot_smoke.py
 
@@ -147,34 +201,43 @@ On branch main
 Your branch is up to date with 'origin/main'.
 
 Changes not staged for commit:
-  (use "git add <file>..." to update what will be committed)
+  (use "git add/rm <file>..." to update what will be committed)
   (use "git restore <file>..." to discard changes in working directory)
-	modified:   make_snapshot.py
+	deleted:    cache/.gitkeep
+	deleted:    cache/knowledge.pkl
+	modified:   core/knowledge/weights.py
+	modified:   knowledge_base/planets/ceres.md
+	modified:   main.py
+	modified:   oracle_generator.py
 	modified:   project_snapshot.txt
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	core/knowledge/knowledge_retriever.py
 
 no changes added to commit (use "git add" and/or "git commit -a")
 
 ## git log --oneline -20
-6e02ed6 v2.2.0 mini App
-a06e02c Mini app from Mister1Victor/code-review-and-optimization-687f7
-0167c41 merge remote code-review-and-optimization-687f7 to align history
-3b1a62a Title: Implement modular architecture and Telegram Mini App integration
-d0597dc code-review-and-optimization-687f7
-e01451b Fix critical errors and implement architectural improvements for Astro12AI project
-48148a9 Merge pull request #1 from Mister1Victor/code-review-and-optimization-687f7
-9bf8748 Update RAG engine with enhanced filtering and ranking
-9690b94 feat: материалы Школы в таро + кнопка повтора при 429
-9d21a5a v2.1.9 add Тоt cards
-2fd61f9 commit
-930ce13 v2.1.9 add Тоt cards
-12391ae content: обновлены тексты карт Оракула 146 (card_data.txt)
-77f8e1c feat: кнопка 'Попробовать ещё раз' после ошибки ИИ — повтор с теми же картами
-d60aeb5 fix: надёжное определение авторской колоды (по id и названию) + лог контекста Школы
-f989b2d feat: таро авторских колод получает материалы Школы (ключевые слова планет/знаков)
-f4125b0 v2.1.8 add Тоt cards
-fe91872 v2.1.8 add Тоt cards
-e9a3c05 v2.1.8 add Тоt cards
-4bbf646 v2.1.8 add Тоt cards
+7baa7ec v3.0.5 Production v3.0
+c747af9 v3.0.5 Production v3.0
+5978e58 v3.0.7 Production v3.0
+2c6ac8f v3.0.6 Production v3.0
+7214564 v3.0.5 Production v3.0
+5589548 v3.0.5 Production v3.0
+0436719 v3.0.5 Production v3.0
+de4adcb v3.0.4 Production v3.0
+949a9a4 v3.0.3 Production v3.0
+85deda1 v3.0.3 Production v3.0
+44e6999 v3.0.3 Production v3.0
+64320b3 fix: синхронизация web_server + main (llm параметр, маршруты)
+b23c4ea feat: полный согласованный комплект Mini App по ТЗ (расклад→толкование в приложении, переводы, навигация)
+bf3d0e9 fix: синхронизация web_server.py и main.py для Mini App
+0c2cbc1 fix: Mini App — свой лоадер (без showLoading), толкование в приложении, кнопка Назад/Меню
+0747090 fix: исправлена ошибка HTML-парсинга в меню Астрологии
+532eccc fix: исправлены критические ошибки в web_server.py (logger, Path, CONTENT_TYPES, handle_health_check)
+55e6a52 v3.0.2 Production v3.0
+699f0c2 v3.0.2 Production v3.0
+e379ccc v 3.0.1 fix: реальные картинки карт (/api/tarot/image) + реальное LLM-толкование в Mini App (/api/tarot/interpret)
 
 ## git remote -v
 origin	https://github.com/Mister1Victor/Astro12AI.git (fetch)
@@ -183,73 +246,389 @@ origin	https://github.com/Mister1Victor/Astro12AI.git (push)
 ================================================================================
 # 3. .gitignore (полный)
 ================================================================================
-```
-# Dependencies
-node_modules/
+# ============================================================
+# ЗАВИСИМОСТИ И ОКРУЖЕНИЕ
+# ============================================================
+
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Виртуальные окружения
+venv/
+ENV/
+env/
+.venv/
+env.bak/
+venv.bak/
+
+# Node.js (для Mini App если используется npm)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/Flutter/flutter_assets/
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/ServiceDefinitions.json
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/android/key.properties
+**/android/**/debug.keystore
+**/android/**/release.keystore
+*.jks
+pubspec.lock
+
+# ============================================================
+# СЕКРЕТЫ И КОНФИГУРАЦИЯ (НИКОГДА В GIT!)
+# ============================================================
+
+# Переменные окружения
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.staging
+
+# Ключи и сертификаты
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.keystore
+google-services.json
+GoogleService-Info.plist
+
+# ============================================================
+# СПЕЦИФИКА ПРОЕКТА ASTRO12AI
+# ============================================================
+
+# Кэш базы знаний RAG (слишком большой для GitHub)
+core/knowledge/cache/
+*.pkl
+*.pickle
+knowledge_cache.pkl
+rag_cache.pkl
+
+# Сгенерированные PNG Таро-карты (тяжёлые артефакты)
+output/
+*.png
+!static/**/*.png
+!data/tarot/decks/**/images/*.png
+
+# Временные файлы генераторов
+*.tmp
+*.bak
+*.swp
+
+# ============================================================
+# БАЗА ЗНАНИЙ (Word-файлы Школы)
+# ============================================================
+
+# ВНИМАНИЕ: Word-файлы Школы Астрологии ХРАНИМ в Git (они источник истины).
+# Исключаем только временные файлы Word (начинаются с ~$)
+~$*.docx
+~$*.doc
+~$*.xlsx
+~$*.xls
+~$*.pptx
+
+# Временные файлы LibreOffice / OpenOffice
+.~lock.*
+
+# ============================================================
+# ЛОГИ
+# ============================================================
+
+logs/
+*.log
+debug.log
+error.log
+astro_bot.log
+
+# ============================================================
+# IDE И РЕДАКТОРЫ
+# ============================================================
+
+# VS Code
+.vscode/
+*.code-workspace
+.history/
+
+# PyCharm / IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Android Studio
+*.iml
+.gradle/
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Xcode (iOS/macOS Flutter)
+**/ios/**/*.mode1v3
+**/ios/**/*.mode2v3
+**/ios/**/*.moved-aside
+**/ios/**/*.pbxuser
+**/ios/**/*.perspectivev3
+**/ios/**/xcuserdata/
+**/ios/.generated/
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/Flutter/flutter_assets/
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/ServiceDefinitions.json
+**/ios/Runner/GeneratedPluginRegistrant.*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+[._]*.s[a-v][a-z]
+!*.svg
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ============================================================
+# ОПЕРАЦИОННЫЕ СИСТЕМЫ
+# ============================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ============================================================
+# ТЕСТИРОВАНИЕ И ПОКРЫТИЕ
+# ============================================================
+
+# Python
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+
+# Flutter
+coverage/
+.dart_tool/
+
+# ============================================================
+# СБОРОЧНЫЕ АРТЕФАКТЫ И КЭШ
+# ============================================================
+
+# Python
 *.pyc
 *.pyo
 *.pyd
-.Python
-venv/
-env/
-ENV/
-.venv/
-.env
-.env.local
-.env.
+__pycache__/
 
-# Build artifacts
+# Flutter
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Web (Mini App build)
 dist/
 build/
-*.egg-info/
+.next/
+out/
+.vercel/
+.netlify/
 
-# Logs
-*.log
+# ============================================================
+# АРХИВЫ И СЖАТЫЕ ФАЙЛЫ
+# ============================================================
 
-# Editors
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Coverage
-.coverage
-coverage/
-htmlcov/
-
-# Testing
-.pytest_cache/
-.mypy_cache/
-
-# Compressed files
 *.zip
-*.gz
 *.tar
+*.tar.gz
 *.tgz
-*.bz2
-*.xz
+*.tar.bz2
+*.tbz2
+*.tar.xz
+*.txz
 *.7z
 *.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
+*.gz
+*.bz2
+*.xz
 *.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
-```
+*.lzma
+*.zst
+
+# ============================================================
+# БАЗЫ ДАННЫХ
+# ============================================================
+
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+
+# ============================================================
+# СНАПШОТЫ И БЭКАПЫ
+# ============================================================
+
+# Снапшоты проекта (генерируются make_snapshot.py — слишком большие для GitHub)
+project_snapshot.txt
+project_snapshot_*.txt
+*_snapshot.txt
+*_snapshot_*.txt
+
+# Бэкапы
+*.bak
+*.backup
+*_old.py
+*_old*.py
+*.orig
+
+# ============================================================
+# ДОКУМЕНТАЦИЯ (опционально)
+# ============================================================
+
+# Сгенерированная документация
+docs/_build/
+docs/build/
+site/
+
+# ============================================================
+# РАЗНОЕ
+# ============================================================
+
+# Временные файлы
+*.tmp
+*.temp
+.cache/
+.parcel-cache/
+.turbo/
+
+# Terraform / Infrastructure (если появится)
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Docker (если появится)
+docker-compose.override.yml
+.dockerignore
+
+# Копии файлов
+*.copy
+*.copy.*
+* (copy).*
+* - Copy.*
+* - Копия.*.env
+.env
+
 ================================================================================
 # 4. КЛЮЧЕВЫЕ ФАЙЛЫ
 ================================================================================
@@ -3546,13 +3925,12 @@ ASTRO_TERMS = {
         "жалость",
         "стремление спасти",
         "забота",
-        "материнство",
-        "плодородие",
-        "питание",
+        "духовные состояния",
+        "утончённые эмоции",
         "помощь",
         "сочувствие",
         "жертвенность",
-        "воспитание",
+        "благотворительность",
     ],
 
     "юпитер": [
@@ -3631,7 +4009,7 @@ ASTRO_TERMS = {
         "вклады",
         "банки",
         "долги",
-        "крелиты",
+        "кредиты",
         "вредные привычки",
         "алкоголь",
     ],
@@ -3956,7 +4334,7 @@ AUTHOR_DEFINITIONS = {
     "венера": """
 === ВЕНЕРА ===
 Управитель знака Телец. Символический управитель 2 дома.
-Ключевые слова: накопленич, приобретения, удовольствия, вкусы, любовь, красота, гармония, искусство, 
+Ключевые слова: накопления, приобретения, удовольствия, вкусы, любовь, красота, гармония, искусство, 
 финансы, романтика, женщины, ценность, роскошь, мастер своего дела.
 """,
 
@@ -6296,8 +6674,8 @@ BM25 остаётся механизмом первичного отбора; ф
   images/   : 0 файлов
 
 [author_deck]
-  deck.json : есть (72927 байт)
-  images/   : 78 файлов
+  deck.json : есть (72687 байт)
+  images/   : 100 файлов
 
 [author_deck_146]
   deck.json : есть (197113 байт)
@@ -6308,5 +6686,5 @@ BM25 остаётся механизмом первичного отбора; ф
   images/   : 104 файлов
 
 [thoth]
-  deck.json : есть (177556 байт)
+  deck.json : есть (205671 байт)
   images/   : 78 файлов
