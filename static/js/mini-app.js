@@ -42,7 +42,10 @@
   ];
 
   var state = { spreadType: null, threeType: null, deckId: null,
-                useReversed: true, question: '', cards: [], interpretation: '' };
+                useReversed: true, question: '', cards: [], interpretation: '', 
+                choiceEssence: '',
+                choiceOptions: [],
+                choiceCount: 2};
   var screens = {};
   var current = 'spread-type';
   var FLOW = ['spread-type', 'three-type', 'deck', 'reverse', 'question', 'shuffle', 'result', 'interpretation'];
@@ -65,14 +68,56 @@
   function positionsFor() {
     var cfg = SPREADS[state.spreadType] || SPREADS.one;
     if (state.spreadType === 'three') {
-      return (cfg.positionsByType && cfg.positionsByType[state.threeType]) ||
-             cfg.positionsByType['past-present-future'];
+        return (cfg.positionsByType && cfg.positionsByType[state.threeType]) || cfg.positionsByType['past-present-future'];
+    }
+    // 🆕 ДИНАМИЧЕСКИЕ ПОЗИЦИИ ДЛЯ ВЫБОРА
+    if (state.spreadType === 'choice') {
+        var pos = [];
+        var opts = state.choiceOptions || [];
+        for (var i = 0; i < opts.length; i++) {
+            var name = opts[i] || ('Вариант ' + (i + 1));
+            pos.push('В' + (i + 1) + ' (' + name + '): Достоинство');
+            pos.push('В' + (i + 1) + ' (' + name + '): Недостаток');
+            pos.push('В' + (i + 1) + ' (' + name + '): Исход');
+        }
+        pos.push('Совет / Итог');
+        return pos;
     }
     return cfg.positions;
+  }
+  // 🆕 ГЕНЕРАЦИЯ ПОЛЕЙ ДЛЯ ВАРИАНТОВ
+  function renderChoiceOptions() {
+    var container = $('choice-options-container');
+    if (!container) return;
+    var count = parseInt($('choice-count').value, 10) || 2;
+    state.choiceCount = count;
+    var html = '';
+    for (var i = 1; i <= count; i++) {
+        // Сохраняем введенное значение, если пользователь случайно сменил количество и вернул обратно
+        var val = (state.choiceOptions && state.choiceOptions[i-1]) ? state.choiceOptions[i-1] : '';
+        html += '<div class="form-group">' +
+                '<label>Вариант ' + i + '</label>' +
+                '<input type="text" class="choice-option-input" data-index="' + (i-1) + '" placeholder="Например: ' + (i===1?'Переезд в Европу':'Остаться в РФ') + '" value="' + esc(val) + '">' +
+                '</div>';
+    }
+    container.innerHTML = html;
   }
 
   // ---------- Навигация ----------
   function showScreen(id) {
+  // 🆕 ПЕРЕХВАТ ДЛЯ ЭКРАНА ВОПРОСА
+    if (id === 'question') {
+        var stdBlock = $('standard-question-block');
+        var choiceBlock = $('choice-question-block');
+        if (state.spreadType === 'choice') {
+            if (stdBlock) stdBlock.classList.add('hidden');
+            if (choiceBlock) choiceBlock.classList.remove('hidden');
+            renderChoiceOptions(); // Генерируем поля ввода вариантов
+        } else {
+            if (stdBlock) stdBlock.classList.remove('hidden');
+            if (choiceBlock) choiceBlock.classList.add('hidden');
+        }
+    }
     current = id;
     haptic('light');
     Object.keys(screens).forEach(function (k) {
@@ -393,14 +438,45 @@ function sendAstro(e) {
     if (ry) ry.addEventListener('click', function () { state.useReversed = true;  haptic('success'); showScreen('question'); });
     if (rn) rn.addEventListener('click', function () { state.useReversed = false; haptic('success'); showScreen('question'); });
 
-    var sq = $('submit-question-btn');
-    if (sq) sq.addEventListener('click', function () {
-      var v = ($('question-input').value || '').trim();
-      if (!v) { haptic('error'); showAlert('Пожалуйста, введите вопрос перед продолжением.'); return; }
-      state.question = v;
-      haptic('success');
-      showScreen('shuffle');
-    });
+  var sq = $('submit-question-btn');
+  if (sq) sq.addEventListener('click', function () {
+    if (state.spreadType === 'choice') {
+        var essence = $('choice-essence') ? $('choice-essence').value.trim() : '';
+        if (!essence) { haptic('error'); showAlert('Пожалуйста, опишите суть выбора.'); return; }
+        
+        var inputs = document.querySelectorAll('.choice-option-input');
+        var opts = [];
+        var valid = true;
+        inputs.forEach(function(inp) {
+            var val = inp.value.trim();
+            if (!val) valid = false;
+            opts.push(val);
+        });
+        if (!valid) { haptic('error'); showAlert('Пожалуйста, заполните все варианты.'); return; }
+
+        state.choiceEssence = essence;
+        state.choiceOptions = opts;
+        
+        // 🧠 Формируем идеальный промпт для LLM (ИИ поймет контекст каждого варианта)
+        var q = 'Суть выбора: ' + essence + '\n';
+        opts.forEach(function(opt, i) { q += 'Вариант ' + (i + 1) + ': ' + opt + '\n'; });
+        state.question = q;
+        
+        // 🆕 Динамически задаем количество карт для API (3 карты на вариант + 1 Совет)
+        SPREADS.choice.count = (opts.length * 3) + 1;
+    } else {
+        var v = ($('question-input') ? $('question-input').value : '').trim();
+        if (!v) { haptic('error'); showAlert('Пожалуйста, введите вопрос перед продолжением.'); return; }
+        state.question = v;
+    }
+    // 🆕 Слушатель изменения количества вариантов
+    var choiceCountSel = $('choice-count');
+    if (choiceCountSel) {
+     choiceCountSel.addEventListener('change', renderChoiceOptions);
+    }
+    haptic('success');
+    showScreen('shuffle'); // Переход к перемешиванию
+  });  
 
     var sh = $('shuffle-btn'); if (sh) sh.addEventListener('click', onShuffle);
     var dr = $('draw-btn');    if (dr) dr.addEventListener('click', performDraw);

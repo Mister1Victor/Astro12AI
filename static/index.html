@@ -70,19 +70,49 @@
     </section>
 
     <!-- 5. Вопрос -->
-    <section id="screen-question" class="screen">
-      <h2 class="screen-title">Ваш вопрос</h2>
-      <div class="input-group">
-        <textarea id="question-input" rows="4" placeholder="Напишите вопрос, на который должен ответить расклад…"></textarea>
-      </div>
-      <div class="nav-buttons">
-        <button type="button" class="btn-primary" id="submit-question-btn">Продолжить →</button>
-      </div>
-      <div class="nav-bottom">
-        <button type="button" class="btn-secondary btn-back">🔙 Назад</button>
-        <button type="button" class="btn-text btn-home">🏠 Основное меню</button>
-      </div>
-    </section>
+  <section id="screen-question" class="screen">
+    <h2 class="screen-title">Ваш вопрос</h2>
+
+    <!-- БЛОК 1: Для обычных раскладов (Одна карта, Три карты, Кельтский крест) -->
+    <div id="standard-question-block">
+        <p class="description">Напишите вопрос, на который должен ответить расклад:</p>
+        <div class="input-group">
+            <textarea id="question-input" placeholder="Например: Что меня ждет на новой работе?"></textarea>
+        </div>
+    </div>
+
+    <!-- БЛОК 2: Специально для расклада "Выбор" (Динамический) -->
+    <div id="choice-question-block" class="hidden">
+        <p class="description">Настройте параметры вашего выбора. ИИ проанализирует каждый вариант по позициям: Достоинство, Недостаток, Исход.</p>
+        
+        <div class="form-group">
+            <label>Суть выбора (над чем думаете?)</label>
+            <textarea id="choice-essence" placeholder="Например: Выбор между переездом иstay на текущем месте"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>Количество вариантов</label>
+            <select id="choice-count">
+                <option value="2">2 варианта</option>
+                <option value="3">3 варианта</option>
+                <option value="4">4 варианта</option>
+                <option value="5">5 вариантов</option>
+            </select>
+        </div>
+        
+        <div id="choice-options-container">
+            <!-- Поля для вариантов генерируются JS автоматически -->
+        </div>
+    </div>
+
+    <div class="nav-buttons">
+        <button id="submit-question-btn" class="btn-primary">Продолжить →</button>
+    </div>
+    <div class="nav-bottom">
+        <button class="btn-text btn-back" data-back="reverse">🔙 Назад</button>
+        <button class="btn-text btn-home">🏠 Основное меню</button>
+    </div>
+</section>
 
     <!-- 6. Перемешивание -->
     <section id="screen-shuffle" class="screen">
