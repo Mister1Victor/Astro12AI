@@ -86,22 +86,30 @@
     return cfg.positions;
   }
   // 🆕 ГЕНЕРАЦИЯ ПОЛЕЙ ДЛЯ ВАРИАНТОВ
-  function renderChoiceOptions() {
+function renderChoiceOptions() {
     var container = $('choice-options-container');
     if (!container) return;
-    var count = parseInt($('choice-count').value, 10) || 2;
+    var sel = $('choice-count');
+    var count = sel ? (parseInt(sel.value, 10) || 2) : (state.choiceCount || 2);
+    count = Math.max(2, Math.min(5, count)); // защита от 1 и >5
     state.choiceCount = count;
+
     var html = '';
     for (var i = 1; i <= count; i++) {
-        // Сохраняем введенное значение, если пользователь случайно сменил количество и вернул обратно
-        var val = (state.choiceOptions && state.choiceOptions[i-1]) ? state.choiceOptions[i-1] : '';
+        var val = (state.choiceOptions && state.choiceOptions[i - 1]) ? state.choiceOptions[i - 1] : '';
         html += '<div class="form-group">' +
-                '<label>Вариант ' + i + '</label>' +
-                '<input type="text" class="choice-option-input" data-index="' + (i-1) + '" placeholder="Например: ' + (i===1?'Переезд в Европу':'Остаться в РФ') + '" value="' + esc(val) + '">' +
-                '</div>';
+            '<label>Вариант ' + i + '</label>' +
+            '<input type="text" class="choice-option-input" data-index="' + (i - 1) + '" placeholder="Опишите вариант ' + i + '" value="' + esc(val) + '">' +
+            '</div>';
     }
     container.innerHTML = html;
-  }
+
+    // Ленивая привязка слушателя смены количества (строго один раз)
+    if (sel && !sel.dataset.bound) {
+        sel.dataset.bound = '1';
+        sel.addEventListener('change', renderChoiceOptions);
+    }
+}
 
   // ---------- Навигация ----------
   function showScreen(id) {
@@ -231,45 +239,53 @@
   /**
  * Отрисовка вытянутых карт Таро с поддержкой полноэкранного режима и тактильного отклика.
  */
-function renderResults() {
-  var container = $('result-cards-container');
-  if (!container) return;
+function renderResult() {
+    var container = $('result-cards');
+    if (!container) return;
+    container.innerHTML = '';
+    var positions = positionsFor();
 
-  // Динамически задаем класс типа расклада (например, spread-celtic для компактных карт)
-  container.className = 'cards-display spread-' + (state.spreadType || 'one');
-  container.innerHTML = '';
+    state.cards.forEach(function (card, i) {
+        var el = document.createElement('div');
+        el.className = 'tarot-card-item' + (card.reversed ? ' reversed' : '');
+        el.style.animationDelay = (i * 0.1) + 's';
 
-  var positions = positionsFor();
+        // 1) Изображение карты (фиксированная высота задаётся в CSS)
+        var imgUrl = card.image_url || card.image || null;
+        if (imgUrl) {
+            var img = document.createElement('img');
+            img.className = 'card-image';
+            img.alt = card.name || '';
+            img.src = imgUrl;
+            img.onerror = function () {
+                var ph = document.createElement('div');
+                ph.className = 'card-image card-placeholder';
+                ph.textContent = '🎴';
+                img.replaceWith(ph);
+            };
+            el.appendChild(img);
+        } else {
+            var ph = document.createElement('div');
+            ph.className = 'card-image card-placeholder';
+            ph.textContent = '🎴';
+            el.appendChild(ph);
+        }
 
-  state.cards.forEach(function (card, i) {
-    // 1. Создаем главный контейнер карты
-    var cardItem = document.createElement('div');
-    cardItem.className = 'tarot-card-item' + (card.reversed ? ' reversed' : '');
-    cardItem.style.animationDelay = (0.15 * i) + 's';
-    cardItem.style.cursor = 'zoom-in';
+        // 2) Название карты
+        var name = document.createElement('div');
+        name.className = 'card-name';
+        name.textContent = card.name || '';
+        el.appendChild(name);
 
-    // 2. Создаем и настраиваем изображение карты
-    if (card.image_url) {
-      var img = document.createElement('img');
-      img.className = 'card-image';
-      img.alt = card.name || 'Карта Таро';
-      img.src = card.image_url;
-      
-      // Фолбэк, если изображение не загрузилось с сервера
-      img.onerror = function () {
-        var placeholder = document.createElement('div');
-        placeholder.className = 'card-image card-image-empty';
-        placeholder.textContent = '🎴';
-        img.replaceWith(placeholder);
-      };
-      cardItem.appendChild(img);
-    } else {
-      var fallback = document.createElement('div');
-      fallback.className = 'card-image card-image-empty';
-      fallback.textContent = '🎴';
-      cardItem.appendChild(fallback);
-    }
+        // 3) Подпись позиции — ПОД названием, отдельный класс
+        var pos = document.createElement('div');
+        pos.className = 'card-position-label';
+        pos.textContent = positions[i] || ('Позиция ' + (i + 1));
+        el.appendChild(pos);
 
+        container.appendChild(el);
+    });
+}
     // 3. Добавляем название карты
     var nameLabel = document.createElement('div');
     nameLabel.className = 'card-name';
