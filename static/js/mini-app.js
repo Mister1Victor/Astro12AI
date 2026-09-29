@@ -236,90 +236,76 @@ function renderChoiceOptions() {
     });
   }
 
-  /**
- * Отрисовка вытянутых карт Таро с поддержкой полноэкранного режима и тактильного отклика.
- */
-function renderResult() {
-    var container = $('result-cards');
+   /**
+   * Отрисовка вытянутых карт Таро с поддержкой полноэкранного режима и тактильного отклика.
+   */
+  function renderResults() { // Переименовано в renderResults, так как в performDraw вызывается именно она
+    var container = $('result-cards-container'); // Исправлен ID контейнера в соответствии с performDraw
     if (!container) return;
     container.innerHTML = '';
     var positions = positionsFor();
 
     state.cards.forEach(function (card, i) {
-        var el = document.createElement('div');
-        el.className = 'tarot-card-item' + (card.reversed ? ' reversed' : '');
-        el.style.animationDelay = (i * 0.1) + 's';
+      var cardItem = document.createElement('div');
+      cardItem.className = 'tarot-card-item' + (card.reversed ? ' reversed' : '');
+      cardItem.style.animationDelay = (i * 0.1) + 's';
 
-        // 1) Изображение карты (фиксированная высота задаётся в CSS)
-        var imgUrl = card.image_url || card.image || null;
-        if (imgUrl) {
-            var img = document.createElement('img');
-            img.className = 'card-image';
-            img.alt = card.name || '';
-            img.src = imgUrl;
-            img.onerror = function () {
-                var ph = document.createElement('div');
-                ph.className = 'card-image card-placeholder';
-                ph.textContent = '🎴';
-                img.replaceWith(ph);
-            };
-            el.appendChild(img);
-        } else {
-            var ph = document.createElement('div');
-            ph.className = 'card-image card-placeholder';
-            ph.textContent = '🎴';
-            el.appendChild(ph);
-        }
-
-        // 2) Название карты
-        var name = document.createElement('div');
-        name.className = 'card-name';
-        name.textContent = card.name || '';
-        el.appendChild(name);
-
-        // 3) Подпись позиции — ПОД названием, отдельный класс
-        var pos = document.createElement('div');
-        pos.className = 'card-position-label';
-        pos.textContent = positions[i] || ('Позиция ' + (i + 1));
-        el.appendChild(pos);
-
-        container.appendChild(el);
-    });
-}
-    // 3. Добавляем название карты
-    var nameLabel = document.createElement('div');
-    nameLabel.className = 'card-name';
-    nameLabel.textContent = (card.name || '') + (card.reversed ? ' 🔻' : '');
-    cardItem.appendChild(nameLabel);
-
-    // 4. Добавляем позицию карты в раскладе (Прошлое, Настоящее, Итог...)
-    var posLabel = document.createElement('div');
-    posLabel.className = 'card-pos';
-    posLabel.textContent = positions[i] || ('Позиция ' + (i + 1));
-    cardItem.appendChild(posLabel);
-
-    // 5. Логика интерактивного увеличения карты во весь экран (UX/Haptic)
-    cardItem.addEventListener('click', function (e) {
-      e.stopPropagation(); // Предотвращаем ложные срабатывания оверлея
-
-      if (cardItem.classList.contains('fullscreen')) {
-        cardItem.classList.remove('fullscreen');
-        haptic('light'); // Мягкая вибрация при закрытии
+      // 1) Изображение карты
+      var imgUrl = card.image_url || card.image || null;
+      if (imgUrl) {
+        var img = document.createElement('img');
+        img.className = 'card-image';
+        img.alt = card.name || '';
+        img.src = imgUrl;
+        img.onerror = function () {
+          var ph = document.createElement('div');
+          ph.className = 'card-image card-placeholder';
+          ph.textContent = '🎴';
+          img.replaceWith(ph);
+        };
+        cardItem.appendChild(img);
       } else {
-        // Закрываем любую другую карту, если она была открыта ранее
-        document.querySelectorAll('.tarot-card-item.fullscreen').forEach(function (el) {
-          el.classList.remove('fullscreen');
-        });
-        
-        cardItem.classList.add('fullscreen');
-        haptic('medium'); // Сочная вибрация при раскрытии
+        var ph = document.createElement('div');
+        ph.className = 'card-image card-placeholder';
+        ph.textContent = '🎴';
+        cardItem.appendChild(ph);
       }
-    });
 
-    // Добавляем готовую карту в контейнер экрана результатов
-    container.appendChild(cardItem);
-  });
-}
+      // 2) Название карты
+      var nameLabel = document.createElement('div');
+      nameLabel.className = 'card-name';
+      nameLabel.textContent = (card.name || '') + (card.reversed ? ' 🔻' : '');
+      cardItem.appendChild(nameLabel);
+
+      // 3) Подпись позиции в раскладе
+      var posLabel = document.createElement('div');
+      posLabel.className = 'card-pos';
+      posLabel.textContent = positions[i] || ('Позиция ' + (i + 1));
+      cardItem.appendChild(posLabel);
+
+      // 4) Логика интерактивного увеличения карты во весь экран
+      cardItem.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (cardItem.classList.contains('fullscreen')) {
+          cardItem.classList.remove('fullscreen');
+          haptic('light');
+        } else {
+          document.querySelectorAll('.tarot-card-item.fullscreen').forEach(function (el) {
+            el.classList.remove('fullscreen');
+          });
+          cardItem.classList.add('fullscreen');
+          haptic('medium');
+        }
+      });
+
+      // Добавляем готовую карту в контейнер
+      container.appendChild(cardItem);
+    });
+  }
+
+  // ---------- РЕАЛЬНОЕ толкование LLM ----------
+  // (Дальше идет ваша функция fetchInterpretation без изменений...)
+
 
 
   // ---------- РЕАЛЬНОЕ толкование LLM ----------
