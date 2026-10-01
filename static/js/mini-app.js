@@ -10,18 +10,32 @@
   if (tg) { try { tg.ready(); tg.expand(); } catch (e) {} }
 
   // ---------- Конфигурация раскладов ----------
-  var SPREADS = {
-    one:   { count: 1, positions: ['Карта дня'] },
-    three: { count: 3, positionsByType: {
-        'past-present-future':       ['Прошлое', 'Настоящее', 'Будущее'],
-        'thoughts-feelings-actions': ['Мысли', 'Чувства', 'Действия'],
-        'plus-minus-result':         ['Плюс', 'Минус', 'Итог']
-    } },
-    choice: { count: 7, positions: ['Вариант 1 — Достоинство', 'Вариант 1 — Недостаток', 'Вариант 1 — Исход',
-                                   'Вариант 2 — Достоинство', 'Вариант 2 — Недостаток', 'Вариант 2 — Исход', 'Совет'] },
-    celtic: { count: 10, positions: ['Суть (сигнификатор)', 'Препятствие', 'Цель', 'Корни', 'Прошлое',
-                                    'Ближайшее будущее', 'Я', 'Окружение', 'Надежды/страхи', 'Итог'] }
-  };
+  // БЫЛО:
+var SPREADS = {
+one:   { count: 1, positions: ['Карта дня'] },
+three: { count: 3, positionsByType: {
+'past-present-future':       ['Прошлое', 'Настоящее', 'Будущее'],
+'thoughts-feelings-actions': ['Мысли', 'Чувства', 'Действия'],
+'plus-minus-result':         ['Плюс', 'Минус', 'Итог']
+} },
+choice: { count: 7, positions: ['Вариант 1 — Достоинство', 'Вариант 1 — Недостаток', 'Вариант 1 — Исход',
+'Вариант 2 — Достоинство', 'Вариант 2 — Недостаток', 'Вариант 2 — Исход', 'Совет'] },
+celtic: { count: 10, positions: ['Суть (сигнификатор)', 'Препятствие', 'Цель', 'Корни', 'Прошлое',
+'Ближайшее будущее', 'Я', 'Окружение', 'Надежды/страхи', 'Итог'] }
+};
+
+// СТАЛО:
+var SPREADS = {
+one:   { count: 1, positions: ['Карта дня'] },
+three: { count: 3, positionsByType: {
+'past-present-future':       ['Прошлое', 'Настоящее', 'Будущее'],
+'thoughts-feelings-actions': ['Мысли', 'Чувства', 'Действия'],
+'plus-minus-result':         ['Плюс', 'Минус', 'Итог']
+} },
+choice: { count: 7, positions: [] },  // count будет пересчитан динамически
+celtic: { count: 10, positions: ['Суть (сигнификатор)', 'Препятствие', 'Цель', 'Корни', 'Прошлое',
+'Ближайшее будущее', 'Я', 'Окружение', 'Надежды/страхи', 'Итог'] }
+};
   var FALLBACK_DECKS = [
     { deck_id: 'author_deck_146', name: 'Оракул «12 Планет»', cards_count: 146 },
     { deck_id: 'author_deck',     name: 'Авторская колода Школы «12 Планет»', cards_count: 78 },
@@ -213,17 +227,15 @@ function renderChoiceOptions() {
       haptic('success');
     }, 900);
   }
-
- function performDraw() {
+function performDraw() {
     var cfg = SPREADS[state.spreadType];
     if (!cfg || !state.deckId) { showAlert('Выберите расклад и колоду.'); return; }
 
-    // 🆕 Для «Выбора пути» количество карт считаем по реальным вариантам:
-    // 3 карты на каждый вариант + 1 карта «Совет»
+    // Динамический пересчёт количества карт для расклада "Выбор пути"
     var count = cfg.count;
     if (state.spreadType === 'choice') {
-        var optsCount = (state.choiceOptions && state.choiceOptions.length) || 2;
-        count = optsCount * 3 + 1;
+        var optionCount = state.choiceCount || 2;
+        count = optionCount * 3 + 1;  // 3 карты на вариант + 1 карта "Совет"
     }
 
     showScreen('result');
@@ -235,7 +247,7 @@ function renderChoiceOptions() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             deck_id: state.deckId,
-            count: count,                      // 🆕 уже корректное число
+            count: count,
             spread_type: state.spreadType,
             use_reversed: state.useReversed
         })
