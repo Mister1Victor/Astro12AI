@@ -67,24 +67,32 @@
   }
   function positionsFor() {
     var cfg = SPREADS[state.spreadType] || SPREADS.one;
+
+    // Три карты — позиции зависят от подтипа
     if (state.spreadType === 'three') {
-        return (cfg.positionsByType && cfg.positionsByType[state.threeType]) || cfg.positionsByType['past-present-future'];
+        return (cfg.positionsByType && cfg.positionsByType[state.threeType]) ||
+            cfg.positionsByType['past-present-future'];
     }
-    // 🆕 ДИНАМИЧЕСКИЕ ПОЗИЦИИ ДЛЯ ВЫБОРА
+
+    // 🆕 Выбор пути — позиции генерируются ПОД РЕАЛЬНЫЕ ВАРИАНТЫ
+    // Каждый вариант = Достоинство + Недостаток + Исход, в конце «Совет»
     if (state.spreadType === 'choice') {
+        var opts = (state.choiceOptions && state.choiceOptions.length)
+            ? state.choiceOptions
+            : ['Вариант 1', 'Вариант 2']; // запасной вариант, если данные пустые
         var pos = [];
-        var opts = state.choiceOptions || [];
-        for (var i = 0; i < opts.length; i++) {
-            var name = opts[i] || ('Вариант ' + (i + 1));
-            pos.push('В' + (i + 1) + ' (' + name + '): Достоинство');
-            pos.push('В' + (i + 1) + ' (' + name + '): Недостаток');
-            pos.push('В' + (i + 1) + ' (' + name + '): Исход');
-        }
-        pos.push('Совет / Итог');
+        opts.forEach(function (opt, i) {
+            var label = 'В' + (i + 1) + ': ' + (opt || ('Вариант ' + (i + 1)));
+            pos.push(label + ' — Достоинство');
+            pos.push(label + ' — Недостаток');
+            pos.push(label + ' — Исход');
+        });
+        pos.push('Совет');
         return pos;
     }
+
     return cfg.positions;
-  }
+}
   // 🆕 ГЕНЕРАЦИЯ ПОЛЕЙ ДЛЯ ВАРИАНТОВ
 function renderChoiceOptions() {
     var container = $('choice-options-container');
@@ -206,36 +214,45 @@ function renderChoiceOptions() {
     }, 900);
   }
 
-  function performDraw() {
+ function performDraw() {
     var cfg = SPREADS[state.spreadType];
     if (!cfg || !state.deckId) { showAlert('Выберите расклад и колоду.'); return; }
+
+    // 🆕 Для «Выбора пути» количество карт считаем по реальным вариантам:
+    // 3 карты на каждый вариант + 1 карта «Совет»
+    var count = cfg.count;
+    if (state.spreadType === 'choice') {
+        var optsCount = (state.choiceOptions && state.choiceOptions.length) || 2;
+        count = optsCount * 3 + 1;
+    }
+
     showScreen('result');
     var container = $('result-cards-container');
     if (container) container.innerHTML = '<div class="loading-text">Вытягиваем карты…</div>';
+
     fetch('/api/tarot/draw', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        deck_id: state.deckId,
-        count: cfg.count,
-        spread_type: state.spreadType,
-        use_reversed: state.useReversed
-      })
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            deck_id: state.deckId,
+            count: count,                      // 🆕 уже корректное число
+            spread_type: state.spreadType,
+            use_reversed: state.useReversed
+        })
     })
     .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(function (data) {
-      if (!data || !data.cards || !data.cards.length) throw new Error('empty');
-      state.cards = data.cards;
-      renderResults();
+        if (!data || !data.cards || !data.cards.length) throw new Error('empty');
+        state.cards = data.cards;
+        renderResults();
     })
     .catch(function (e) {
-      console.error('Draw error:', e);
-      if (container) container.innerHTML = '';
-      showAlert('Не удалось вытянуть карты. Попробуйте ещё раз.');
-      showScreen('shuffle');
+        console.error('Draw error:', e);
+        if (container) container.innerHTML = '';
+        showAlert('Не удалось вытянуть карты. Попробуйте ещё раз.');
+        showScreen('shuffle');
     });
-  }
-
+}
    /**
    * Отрисовка вытянутых карт Таро с поддержкой полноэкранного режима и тактильного отклика.
    */
