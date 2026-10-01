@@ -113,7 +113,7 @@ function renderChoiceOptions() {
     if (!container) return;
     var sel = $('choice-count');
     var count = sel ? (parseInt(sel.value, 10) || 2) : (state.choiceCount || 2);
-    count = Math.max(2, Math.min(5, count)); // защита от 1 и >5
+    count = Math.max(2, Math.min(3, count)); // защита от 1 и >3
     state.choiceCount = count;
 
     var html = '';
