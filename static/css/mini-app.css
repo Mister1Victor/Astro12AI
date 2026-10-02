@@ -116,6 +116,7 @@ body {
 
 .options-list {
     display: flex;
+    align-items: center;
     flex-direction: column;
     gap: var(--spacing-md);
     margin-bottom: var(--spacing-lg);
@@ -459,6 +460,8 @@ button:disabled {
 
 /* Стили конкретных классов кнопок */
 .btn-primary {
+    display: inline-flex;
+    align-items: center;
     background: var(--primary-color);
     color: #000;
     padding: 14px 24px;
@@ -485,23 +488,22 @@ button:disabled {
 }
 
 .btn-secondary-small {
-    display: flex;
+    display: flex;       
     justify-content: center;
+    align-items: center;
     background: transparent;
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: 14px;
     padding: 8px 16px;
     border: 1px solid var(--card-border);
+    
+    /* 🔑 ЭТИ ТРИ СТРОЧКИ СТАВЯТ КНОПКУ СТРОГО ПО ЦЕНТРУ: */
+    width: 100%;
+    max-width: 180px;           /* Чуть компактнее основных кнопок приложения */
+    margin: 0 auto;             /* Жесткое центрирование на случай любых багов в HTML */
 }
 
-.btn-secondary-small {
-    background: transparent;
-    color: var(--text-secondary);
-    font-size: 13px;
-    padding: 8px 16px;
-    border: 1px solid var(--card-border);
-    width: auto;
-}
+
 
 .btn-text {
     background: transparent;
