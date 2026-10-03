@@ -108,6 +108,7 @@ celtic: { count: 10, positions: ['Суть (сигнификатор)', 'Пре�
     return cfg.positions;
 }
   // 🆕 ГЕНЕРАЦИЯ ПОЛЕЙ ДЛЯ ВАРИАНТОВ
+// 🆕 ИСПРАВЛЕННАЯ ГЕНЕРАЦИЯ ПОЛЕЙ ДЛЯ ВАРИАНТОВ В СТРОКУ
 function renderChoiceOptions() {
     var container = $('choice-options-container');
     if (!container) return;
@@ -119,12 +120,23 @@ function renderChoiceOptions() {
     var html = '';
     for (var i = 1; i <= count; i++) {
         var val = (state.choiceOptions && state.choiceOptions[i - 1]) ? state.choiceOptions[i - 1] : '';
-        html += '<div class="form-group">' +
+        // 🔑 Генерируем современную горизонтальную строку: текст + инпут в стиле textarea
+        html += '<div class="input-row-inline">' +
             '<label>Вариант ' + i + '</label>' +
-            '<input type="text" class="choice-option-input" data-index="' + (i - 1) + '" placeholder="Опишите вариант ' + i + '" value="' + esc(val) + '">' +
+            '<input type="text" class="choice-option-input" data-index="' + (i - 1) + '" id="variant-' + i + '" placeholder="Описание варианта ' + i + '" value="' + esc(val) + '">' +
             '</div>';
     }
     container.innerHTML = html;
+
+    // Навешиваем событие сохранения текста при вводе в каждый инпут
+    var inputs = container.querySelectorAll('.choice-option-input');
+    inputs.forEach(function (inp) {
+        inp.addEventListener('input', function (e) {
+            var idx = parseInt(e.target.dataset.index, 10);
+            if (!state.choiceOptions) state.choiceOptions = [];
+            state.choiceOptions[idx] = e.target.value;
+        });
+    });
 
     // Ленивая привязка слушателя смены количества (строго один раз)
     if (sel && !sel.dataset.bound) {
@@ -132,6 +144,7 @@ function renderChoiceOptions() {
         sel.addEventListener('change', renderChoiceOptions);
     }
 }
+
 
   // ---------- Навигация ----------
   function showScreen(id) {
@@ -439,6 +452,40 @@ function sendAstro(e) {
         box.textContent = 'Нет связи с сервером. Попробуйте позже.';
     });
 }
+document.addEventListener("DOMContentLoaded", () => {
+    const choiceCountSelect = document.getElementById("choice-count");
+    const container = document.getElementById("choice-options-container");
+
+    // Функция генерации полей ввода в одну строчку
+    function renderVariantInputs(count) {
+        container.innerHTML = ""; // Полностью очищаем контейнер перед новой сборкой
+
+        for (let i = 1; i <= count; i++) {
+            // Создаем обертку-строку
+            const row = document.createElement("div");
+            row.className = "input-row-inline"; // Применяет наши красивые CSS стили
+
+            // Генерируем структуру строки: надпись + премиум инпут
+            row.innerHTML = `
+                <label>Вариант ${i}</label>
+                <input type="text" id="variant-${i}" placeholder="Например: Описание варианта ${i}">
+            `;
+
+            container.appendChild(row);
+        }
+    }
+
+    // Инициализация: создаем базовые 2 поля при первой загрузке страницы
+    if (choiceCountSelect && container) {
+        renderVariantInputs(parseInt(choiceCountSelect.value));
+
+        // Отслеживаем переключение количества вариантов пользователем
+        choiceCountSelect.addEventListener("change", (e) => {
+            renderVariantInputs(parseInt(e.target.value));
+        });
+    }
+});
+
 
   // ---------- Инициализация ----------
   function init() {

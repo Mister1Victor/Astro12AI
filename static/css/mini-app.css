@@ -219,6 +219,173 @@ body {
 .input-group {
     margin-bottom: var(--spacing-lg);
 }
+/* ============================================================
+   СТИЛИ ДЛЯ ФОРМЫ ВЫБОРА (TEXTAREA И SELECT)
+   ============================================================ */
+
+/* 1. Общие обертки для полей ввода (центрирование и отступы) */
+.input-group,
+.form-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;         /* 🔑 Центрируем элементы внутри обертки */
+    width: 100%;
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Стили для текстовых подписей (Label) над полями */
+.input-group label,
+.form-group label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-bottom: var(--spacing-sm);
+    text-align: center;          /* Центрируем текст надписи */
+    width: 100%;
+}
+
+/* 2. Поле "Суть выбора" (textarea) */
+textarea#choice-essence {
+    width: 100%;
+    max-width: 450px;            /* Ограничиваем аккуратную ширину на смартфонах/планшетах */
+    background: var(--card-bg);   /* rgba(255, 255, 255, 0.08) */
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);    /* Большие глубокие отступы */
+    color: var(--text-main);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 16px;
+    resize: none;
+    outline: none;
+    backdrop-filter: blur(10px);   /* Эффект матового стекла */
+    -webkit-backdrop-filter: blur(10px);
+    transition: all 0.2s ease;
+}
+
+/* 3. Выпадающий список "Количество вариантов" (select) — ТАКОЙ ЖЕ КРАСИВЫЙ */
+.form-group select#choice-count {
+    width: 100%;
+    max-width: 450px;            /* 🔑 Точно такая же ширина, как у textarea */
+    display: block;
+    margin: 0 auto;
+    
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);    /* 🔑 Точно такие же большие отступы, поле станет выше */
+    padding-right: 40px;          /* Место под золотую стрелочку */
+    
+    color: var(--text-main);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    
+    /* Центрирование текста внутри списка */
+    text-align: center;
+    text-align-last: center;
+    
+    /* Сброс стандартных стрелок браузера и добавление кастомной золотой */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://w3.org' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23d4af37' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 12px;
+    
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: all 0.2s ease;
+}
+
+/* 4. Интерактивные эффекты фокуса (золотое свечение при клике) */
+textarea#choice-essence:focus,
+.form-group select#choice-count:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 12px var(--accent-glow);
+    background: rgba(255, 255, 255, 0.12); /* Фон становится чуть плотнее */
+}
+
+/* Ховер-эффект для списка */
+.form-group select#choice-count:hover {
+    border-color: var(--primary-hover);
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Стилизация выпадающих пунктов (option) внутри списка */
+.form-group select#choice-count option {
+    background: #1a1a2e;         /* Глубокий космический фон для открытого списка */
+    color: #ffffff;
+    padding: 12px;
+    font-size: 15px;
+}
+
+#choice-options-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px; /* Небольшое расстояние между строками */
+}
+/* ============================================================
+   СТИЛИ ДЛЯ ДИНАМИЧЕСКИХ ВАРИАНТОВ ВЫБОРА В ОДНУ СТРОКУ
+   ============================================================ */
+
+/* Контейнер-строка: выравнивает текст и инпут по горизонтали */
+.input-row-inline {
+    display: flex;
+    flex-direction: row !important; /* Строго в ряд горизонтально */
+    align-items: center;            /* Центрирование элементов по вертикали */
+    justify-content: center;
+    gap: 16px;                      /* Расстояние между текстом "Вариант" и инпутом */
+    width: 100%;
+    max-width: 450px;               /* Точно такая же ширина, как у поля Суть выбора */
+    margin: 0 auto 12px auto;       /* Центрирование всей строки на экране */
+}
+
+/* Настройка надписи "Вариант 1" */
+.input-row-inline label {
+    font-size: 15px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    white-space: nowrap;            /* Запрещаем перенос слов */
+    width: 85px;                    /* Базовая ширина, чтобы все инпуты начинались ровно */
+    text-align: left;
+    margin-bottom: 0 !important;    /* Сбрасываем нижний отступ, чтобы не косило */
+}
+
+/* Премиальное поле ввода в одну линейку с матовым стеклом */
+.input-row-inline input[type="text"] {
+    flex: 1;                        /* Инпут занимает всё оставшееся место в строке */
+    background: var(--card-bg);     /* Полупрозрачный космический фон */
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md); /* Закругление углов 12px как у textarea */
+    padding: 12px 16px;             /* Большие удобные внутренние отступы */
+    color: var(--text-main);        /* Белый текст */
+    font-family: 'Montserrat', sans-serif;
+    font-size: 15px;
+    outline: none;
+    backdrop-filter: blur(10px);     /* Размытие заднего плана */
+    -webkit-backdrop-filter: blur(10px);
+    transition: all 0.2s ease;
+}
+
+/* Золотой неоновый фокус */
+.input-row-inline input[type="text"]:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 12px var(--accent-glow);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* Цвет подсказки */
+.input-row-inline input[type="text"]::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+
 
 textarea {
     width: 100%;
