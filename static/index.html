@@ -4,14 +4,14 @@
         <meta charset="UTF-8">
         <meta name="viewport"
             content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <title>Таро «12 Планет»</title>
+        <title>«12 Планет»</title>
         <script src="https://telegram.org/js/telegram-web-app.js"></script>
         <link rel="stylesheet" href="/static/css/mini-app.css">
     </head>
     <body>
         <div class="app-container">
             <header class="app-header">
-                <h1>🔮 Таро «12 Планет»</h1>
+                <h1>🔮 «12 Планет»</h1>
                 <p class="subtitle">Школа Астрологии — интерактивный расклад</p>
             </header>
             <main class="content-area">
@@ -22,15 +22,15 @@
                     <div class="options-grid">
                         <!-- Используем сетку grid вместо list, чтобы карточки встали красиво в 2 колонки -->
                         <button type="button" class="option-card"
-                            id="btn-go-tarot">
-                            <span class="icon">🎴</span>
-                            <span class="label" data-i18n="tarot">Таро</span>
-                        </button>
-                        <button type="button" class="option-card"
                             id="btn-go-astro">
                             <span class="icon">🪐</span>
                             <span class="label" data-i18n="astrology">Астрология
-                                12</span>
+                                12 Планет</span>
+                        </button>
+                        <button type="button" class="option-card"
+                            id="btn-go-tarot">
+                            <span class="icon">🎴</span>
+                            <span class="label" data-i18n="tarot">Таро</span>
                         </button>
                     </div>
                 </div>
@@ -64,14 +64,7 @@
                         </button>
                     </div>
                     <div class="nav-buttons">
-                        <!-- Первая кнопка -->
-                        <button type="button" class="btn-secondary"
-                            id="open-astro">
-                            🪐 Астрология 12 планет. Разбор аспекта между двумя
-                            планетами.
-                        </button>
 
-                        <!-- Вторая кнопка (теперь она внутри контейнера и будет иметь отступ) -->
                         <button class="btn-secondary-small btn-home">
                             🏠 Основное меню
                         </button>
@@ -188,11 +181,12 @@
                             <div class="card-back"></div>
                         </div>
                     </div>
-                    <button id="shuffle-btn" class="btn-primary">🔀
-                        Перемешать</button>
-                    <button id="draw-btn" class="btn-primary hidden">✨ Вытянуть
-                        карты</button>
                     <div class="nav-buttons">
+                        <button id="shuffle-btn" class="btn-primary">🔀
+                            Перемешать</button>
+                        <button id="draw-btn" class="btn-primary hidden">✨
+                            Вытянуть
+                            карты</button>
                         <button class="btn-secondary btn-back">🔙 Назад</button>
                         <button class="btn-secondary-small btn-home">🏠 Основное
                             меню</button>
@@ -204,11 +198,12 @@
                     <h2 class="screen-title">Ваши карты</h2>
                     <div id="result-cards-container"
                         class="cards-display"></div>
-                    <button id="get-interpretation-btn" class="btn-primary">🔮
-                        Получить толкование</button>
-                    <button id="retry-spread-btn" class="btn-secondary">🔄
-                        Повторить расклад</button>
                     <div class="nav-buttons">
+                        <button id="get-interpretation-btn"
+                            class="btn-primary">🔮
+                            Получить толкование</button>
+                        <button id="retry-spread-btn" class="btn-secondary">🔄
+                            Повторить расклад</button>
                         <button class="btn-secondary btn-back">🔙 Назад</button>
                         <button class="btn-secondary-small btn-home">🏠 Основное
                             меню</button>
@@ -251,7 +246,8 @@
                     <!-- 1. Переключатель режимов ввода (Вкладки) -->
                     <div class="astro-mode-toggle">
                         <button type="button" class="btn-mode active"
-                            id="mode-params-btn">⚙️ По параметрам</button>
+                            id="mode-params-btn">⚙️ По параметрам
+                            аспекта</button>
                         <button type="button" class="btn-mode"
                             id="mode-text-btn">✍️ Свободный вопрос</button>
                     </div>
@@ -296,7 +292,7 @@
                         <div class="nav-buttons">
                             <button type="button" class="btn-primary"
                                 id="submit-astro-text-btn">🔮 Отправить
-                                ИИ</button>
+                            </button>
                         </div>
                     </div>
 
