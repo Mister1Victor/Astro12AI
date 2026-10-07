@@ -14,13 +14,33 @@
                 <h1>🔮 Таро «12 Планет»</h1>
                 <p class="subtitle">Школа Астрологии — интерактивный расклад</p>
             </header>
-
             <main class="content-area">
+                <!-- 🔑 СТАРТОВЫЙ ЭКРАН (Теперь открывается первым) -->
+                <div id="screen-start" class="screen active">
+                    <h2 class="screen-title" data-i18n="choose_section">Выберите
+                        раздел</h2>
+                    <div class="options-grid">
+                        <!-- Используем сетку grid вместо list, чтобы карточки встали красиво в 2 колонки -->
+                        <button type="button" class="option-card"
+                            id="btn-go-tarot">
+                            <span class="icon">🎴</span>
+                            <span class="label" data-i18n="tarot">Таро</span>
+                        </button>
+                        <button type="button" class="option-card"
+                            id="btn-go-astro">
+                            <span class="icon">🪐</span>
+                            <span class="label" data-i18n="astrology">Астрология
+                                12</span>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Экран 1: Выбор расклада -->
                 <div id="screen-spread-type" class="screen active">
                     <h2 class="screen-title">Выберите тип расклада</h2>
                     <p class="description">Карты тянутся из реальных колод с
                         картинками</p>
+
                     <div class="options-grid">
                         <button class="option-card spread-option"
                             data-type="one">

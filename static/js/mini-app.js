@@ -12,7 +12,7 @@
     try {
       tg.ready();
       tg.expand();
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // ---------- Конфигурация раскладов ----------
@@ -175,7 +175,7 @@
     try {
       if (tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred)
         tg.HapticFeedback.impactOccurred(t || "light");
-    } catch (e) {}
+    } catch (e) { }
   }
   function showAlert(msg) {
     try {
@@ -188,10 +188,10 @@
         tg.showAlert(msg);
         return;
       }
-    } catch (e) {}
+    } catch (e) { }
     try {
       alert(msg);
-    } catch (e) {}
+    } catch (e) { }
   }
   function positionsFor() {
     var cfg = SPREADS[state.spreadType] || SPREADS.one;
@@ -329,7 +329,7 @@
     if (drawBtn) drawBtn.classList.add("hidden");
 
     // Возвращаем пользователя на самый первый экран выбора расклада
-    showScreen("spread-type");
+    showScreen("start");
   }
 
   // ---------- Колоды ----------
@@ -694,6 +694,7 @@
   // ---------- Инициализация ----------
   function init() {
     [
+      "start",
       "spread-type",
       "three-type",
       "deck",
@@ -719,6 +720,23 @@
         goHome();
       });
     });
+    // Логика переходов со Стартового экрана
+    var btnGoTarot = $('btn-go-tarot');
+    if (btnGoTarot) {
+      btnGoTarot.addEventListener('click', function () {
+        haptic('success');
+        showScreen('spread-type'); // Переходим на выбор раскладов Таро
+      });
+    }
+
+    var btnGoAstro = $('btn-go-astro');
+    if (btnGoAstro) {
+      btnGoAstro.addEventListener('click', function () {
+        haptic('success');
+        showScreen('astro'); // Переходим сразу на экран Астрологии
+      });
+    }
+
     document.querySelectorAll(".spread-option").forEach(function (b) {
       b.addEventListener("click", function () {
         state.spreadType = b.getAttribute("data-type");
@@ -857,8 +875,8 @@
     fillSelect("aspect-type", ASPECTS);
 
     loadDecks();
-    showScreen("spread-type");
-    console.log("Mini App v4.0 initialized");
+    showScreen('start'); // 🔑 Открываем стартовый экран при первом запуске Mini App
+    console.log('Mini App v4.1 initialized with Start Screen');
 
     // 1. Логика переключения вкладок в Астрологии
     var modeParamsBtn = $("mode-params-btn");
@@ -899,7 +917,7 @@
 
         // Имитируем объект события для повторного использования существующей функции sendAstro
         var fakeEvent = {
-          preventDefault: function () {},
+          preventDefault: function () { },
         };
 
         // Временно подменяем логику сбора текста внутри sendAstro
