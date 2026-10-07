@@ -988,3 +988,88 @@ color: var(--primary-hover) !important;
 .tarot-card-item.reversed .card-image {
     transform: rotate(180deg);
 }
+
+/* ============================================================
+   ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМОВ АСТРОЛОГИИ
+   ============================================================ */
+
+.astro-mode-toggle {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 450px;
+    margin: 0 auto 24px auto;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+}
+
+/* Кнопки переключения режимов */
+.btn-mode {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 10px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+}
+
+.btn-mode:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Активный выбранный режим */
+.btn-mode.active {
+    background: var(--card-bg); /* Матовое стекло */
+    border: 1px solid var(--card-border);
+    color: var(--primary-color) !important; /* Золотой текст */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+/* Оболочки блоков форм */
+.astro-form-block {
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+/* Новое текстовое поле для свободного вопроса астрологии */
+textarea#astro-free-question {
+    width: 100%;
+    max-width: 450px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    color: var(--text-main);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 15px;
+    resize: none;
+    outline: none;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: all 0.2s ease;
+}
+
+textarea#astro-free-question:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 12px var(--accent-glow);
+    background: rgba(255, 255, 255, 0.12);
+}
+.nav-buttons-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
