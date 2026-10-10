@@ -315,7 +315,7 @@
   }
 
 
-    function goHome() {
+  function goHome() {
     // 1. Очистка стандартного стейта гаданий Таро
     state.spreadType = null;
     state.threeType = null;
@@ -326,15 +326,15 @@
 
     // 🔑 2. ПРОДАКШН-ФИКС: Полное обнуление кэша Справочника при выходе в меню
     if (typeof currentCatalogData !== 'undefined') {
-        currentCatalogData.deckId = '';
-        currentCatalogData.deckName = '';
-        currentCatalogData.allCards = [];
+      currentCatalogData.deckId = '';
+      currentCatalogData.deckName = '';
+      currentCatalogData.allCards = [];
     }
 
     // 3. Очистка разметки контейнеров, чтобы старые картинки не «мигали» при новом входе
-    var dirDeckList = $('directory-deck-list');      if (dirDeckList) dirDeckList.innerHTML = '';
+    var dirDeckList = $('directory-deck-list'); if (dirDeckList) dirDeckList.innerHTML = '';
     var catContainer = $('deck-categories-container'); if (catContainer) catContainer.innerHTML = '';
-    var cardsGrid = $('directory-cards-grid');         if (cardsGrid) cardsGrid.innerHTML = '';
+    var cardsGrid = $('directory-cards-grid'); if (cardsGrid) cardsGrid.innerHTML = '';
 
     // 4. Восстановление кнопок перемешивания
     var shuffleBtn = $("shuffle-btn");
@@ -1200,16 +1200,28 @@
           // 🔑 ИСПРАВЛЕНО: Рендерим реальные поля, которые сервер извлек из файла deck.json вашей колоды
           var textHtml = '<h3>🎴 ' + esc(card.name) + '</h3>';
           textHtml += '<p style="color:var(--primary-color); margin-bottom:15px;">' + astro + keywords + '</p>';
-
+          if (card.description) {
+            textHtml += '<div style="margin-top:15px; padding-top:10px; border-top:1px solid var(--card-border);"><b>📖 Описание:</b><br>' + card.description + '</div>';
+          } else if (!card.upright && !card.advice) {
+            textHtml += '<strong>📖 Описание :</strong><br>Данный показатель кодирует фундаментальные качества проявления архетипа.';
+          }
           if (card.upright) textHtml += '<div style="margin-bottom:12px;"><b>✅ Общее значение:</b><br>' + card.upright + '</div>';
           if (card.reversed) textHtml += '<div style="margin-bottom:12px;"><b>🔻 Перевёрнутое положение:</b><br>' + card.reversed + '</div>';
           if (card.advice) textHtml += '<div style="margin-bottom:12px; color:var(--success-color);"><b>💡 Совет карты:</b><br>' + card.advice + '</div>';
           if (card.warning) textHtml += '<div style="margin-bottom:12px; color:var(--error-color);"><b>⚠️ Предупреждение:</b><br>' + card.warning + '</div>';
-          if (card.business) textHtml += '<div style="margin-bottom:12px;"><b>💼 В работе и бизнесе:</b><br>' + card.business + '</div>';
-          if (card.relationships) textHtml += '<div style="margin-bottom:12px;"><b>❤️ В отношениях:</b><br>' + card.relationships + '</div>';
+          //if (card.business) textHtml += '<div style="margin-bottom:12px;"><b>💼 В работе и бизнесе:</b><br>' + card.business + '</div>';
+          //if (card.relationships) textHtml += '<div style="margin-bottom:12px;"><b>❤️ В отношениях:</b><br>' + card.relationships + '</div>';
+          if (card.inspires) textHtml += '<div class="meaning-section" style="margin-bottom:12px; color: #9b59b6;"><b>🧬 Что вдохновляет / Совет:</b><br>' + card.inspires + '</div>';
+          if (card.warns) textHtml += '<div class="meaning-section" style="margin-bottom:12px; color: #e67e22;"><b>🛑 О чем предупреждает:</b><br>' + card.warns + '</div>';
+          if (card.advice) textHtml += '<div class="meaning-section" style="margin-bottom:12px; color:var(--success-color);"><b>💡 Совет:</b><br>' + card.advice + '</div>';
+          if (card.warning) textHtml += '<div class="meaning-section" style="margin-bottom:12px; color:var(--error-color);"><b>⚠️ Предупреждение:</b><br>' + card.warning + '</div>';
 
-          if (!card.upright && !card.advice) {
-            textHtml += '<strong>📖 Описание архетипа и символизма:</strong><br>Данный показатель кодирует фундаментальные качества проявления архетипа в рамках методологии Школы «12 Планет».';
+          // 4. Реальные сферы жизни из базы данных deck.json вашей Школы
+          if (card.business) textHtml += '<div class="meaning-section" style="margin-bottom:12px; color: #3498db;"><b>💼 В работе и бизнесе:</b><br>' + card.business + '</div>';
+          if (card.relationships) textHtml += '<div class="meaning-section" style="margin-bottom:12px; color: #e74c3c;"><b>❤️ В отношениях и любви:</b><br>' + card.relationships + '</div>';
+
+          if (card.day_meaning) {
+            textHtml += '<div style="margin-bottom:12px; color: #f3bc63;"><b>☀️ Значение Карты Дня:</b><br>' + card.day_meaning + '</div>';
           }
 
           box.className = 'interpretation-box';

@@ -173,6 +173,16 @@ async def api_draw_cards(request: web.Request) -> web.Response:
             "reversed": rev,
             "astrology": card.astrology or "",
             "keywords": card.keywords or [],
+            "description": getattr(card, "description", "") or "",
+            # 🔑 Направляем напрямую из json
+            "business": getattr(card, "business", "") or "",
+            # 🔑 Направляем напрямую из json
+            "relationships": getattr(card, "relationships", "") or "",
+            # 🔑 Вдохновение / Ключ
+            "inspires": getattr(card, "inspires", "") or "",
+            "warns": getattr(card, "warns", "") or "",
+            "day_meaning": getattr(card, "day_meaning", "") or "",
+
             "image_url": (f"/api/tarot/image/{deck.deck_id}/{card.image}"
                           if card.image else None),
         })
