@@ -68,7 +68,8 @@ async def get_tarot_ai_interpretation(
             f"{card.name} {card.astrology or ''}" for card, _ in drawn
         )
         if astro_retriever:
-            school_block = astro_retriever.build_authority_context(entities_src)
+            school_block = astro_retriever.build_authority_context(
+                entities_src)
         logger.info(
             f"🏫 Авторская колода «{deck_name}»: извлечено из карт: {entities_src[:120]}..."
         )
@@ -133,7 +134,8 @@ async def send_spread_cards_visual(msg: types.Message, deck, drawn, positions, b
     for it in items:
         if it["path"]:
             from aiogram.types import FSInputFile, InputMediaPhoto
-            media.append(InputMediaPhoto(media=FSInputFile(it["path"]), caption=it["caption"]))
+            media.append(InputMediaPhoto(media=FSInputFile(
+                it["path"]), caption=it["caption"]))
 
     sent = 0
     for i in range(0, len(media), 10):
