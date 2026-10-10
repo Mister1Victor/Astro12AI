@@ -34,9 +34,9 @@ def back_to_main_keyboard():
 # ================= НАСТРОЙКА ПЕРЕВЁРНУТЫХ КАРТ =================
 def reversed_setting_keyboard():
     kb = InlineKeyboardBuilder()
-    kb.button(text="✅ Да, использовать перевёрнутые",
+    kb.button(text="🔃 Использовать перевёрнутые",
               callback_data="reversed:yes")
-    kb.button(text="❌ Нет, только прямые", callback_data="reversed:no")
+    kb.button(text="⬆️ Только прямые", callback_data="reversed:no")
     kb.adjust(1)
     return kb.as_markup()
 
@@ -168,8 +168,6 @@ def tarot_question_menu_keyboard():
               callback_data="q_spread:plusminus")
     kb.button(text="💭 Мысли — Чувства — Действия",
               callback_data="q_spread:mindheart")
-    kb.button(text="🌀 Динамический триплет (Достоинства стихий)",
-              callback_data="q_spread:triplet")
     kb.button(text="✝️ Кельтский крест (10 карт)",
               callback_data="q_spread:celtic")
     kb.button(text="⚖️ Вариант выбора (два пути + совет)",
