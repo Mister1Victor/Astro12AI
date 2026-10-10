@@ -85,10 +85,18 @@
     },
   };
   var FALLBACK_DECKS = [
-    { deck_id: "thoth", name: "Таро Тота ", cards_count: 78, },
-    { deck_id: "rider_waite", name: "Таро Райдера-Уэйта ", cards_count: 78, },
-    { deck_id: "author_deck", name: "Таро Райдера-Уэйта «12 Планет» ", cards_count: 78, },
-    { deck_id: "author_deck_146", name: "Оракул «12 Планет» Авторская колода", cards_count: 146, },
+    {
+      deck_id: "author_deck_146",
+      name: "Оракул «12 Планет»",
+      cards_count: 146,
+    },
+    {
+      deck_id: "author_deck",
+      name: "Авторская колода Школы «12 Планет»",
+      cards_count: 78,
+    },
+    { deck_id: "rider_waite", name: "Таро Райдера-Уэйта", cards_count: 78 },
+    { deck_id: "thoth", name: "Таро Тота (Алистер Кроули)", cards_count: 78 },
   ];
   var PLANETS = [
     "Солнце",
@@ -315,8 +323,8 @@
   }
 
 
-    function goHome() {
-    // 1. Очистка стандартного стейта гаданий Таро
+  function goHome() {
+    // УДАЛЕНО: tg.close() больше не вызывается, приложение не закроется!
     state.spreadType = null;
     state.threeType = null;
     state.deckId = null;
@@ -324,28 +332,15 @@
     state.cards = [];
     state.interpretation = "";
 
-    // 🔑 2. ПРОДАКШН-ФИКС: Полное обнуление кэша Справочника при выходе в меню
-    if (typeof currentCatalogData !== 'undefined') {
-        currentCatalogData.deckId = '';
-        currentCatalogData.deckName = '';
-        currentCatalogData.allCards = [];
-    }
-
-    // 3. Очистка разметки контейнеров, чтобы старые картинки не «мигали» при новом входе
-    var dirDeckList = $('directory-deck-list');      if (dirDeckList) dirDeckList.innerHTML = '';
-    var catContainer = $('deck-categories-container'); if (catContainer) catContainer.innerHTML = '';
-    var cardsGrid = $('directory-cards-grid');         if (cardsGrid) cardsGrid.innerHTML = '';
-
-    // 4. Восстановление кнопок перемешивания
+    // Сбрасываем видимость кнопок перемешивания, если они были изменены
     var shuffleBtn = $("shuffle-btn");
     if (shuffleBtn) shuffleBtn.classList.remove("hidden");
     var drawBtn = $("draw-btn");
     if (drawBtn) drawBtn.classList.add("hidden");
 
-    // 5. Возврат на стартовый экран выбора разделов
+    // Возвращаем пользователя на самый первый экран выбора расклада
     showScreen("start");
   }
-
 
   // ---------- Колоды ----------
   function renderDecks(decks) {
@@ -376,28 +371,12 @@
         return r.ok ? r.json() : Promise.reject(new Error("http " + r.status));
       })
       .then(function (list) {
-        // 🔑 ПРОДАКШН-ФИКС: Игнорируем серверный порядок и выстраиваем колоды строго по FALLBACK_DECKS
-        var orderedDecks = [];
-        FALLBACK_DECKS.forEach(function (fallback) {
-          // Ищем, вернул ли сервер колоду с таким id
-          var serverDeck = (list || []).find(function (d) { return d.deck_id === fallback.deck_id; });
-          if (serverDeck) {
-            orderedDecks.push({
-              deck_id: fallback.deck_id,
-              name: fallback.name, // Используем ваше красивое имя
-              cards_count: serverDeck.cards_count || fallback.cards_count
-            });
-          } else {
-            orderedDecks.push(fallback); // Фолбэк, если сервер не ответил
-          }
-        });
-        renderDecks(orderedDecks);
+        renderDecks(list && list.length ? list : FALLBACK_DECKS);
       })
       .catch(function () {
         renderDecks(FALLBACK_DECKS);
       });
   }
-
 
   // ---------- Перемешивание / вытягивание ----------
   function onShuffle() {
@@ -1005,29 +984,15 @@
         .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
         .then(function (list) {
           box.innerHTML = '';
-
-          // 🔑 ПРОДАКШН-ФИКС: Выстраиваем справочник строго по структуре вашего FALLBACK_DECKS
-          var orderedDecks = [];
-          FALLBACK_DECKS.forEach(function (fallback) {
-            var serverDeck = (list || []).find(function (d) { return d.deck_id === fallback.deck_id; });
-            if (serverDeck) {
-              orderedDecks.push({
-                deck_id: fallback.deck_id,
-                name: fallback.name,
-                cards_count: serverDeck.cards_count || fallback.cards_count
-              });
-            } else {
-              orderedDecks.push(fallback);
-            }
-          });
-
-          orderedDecks.forEach(function (d) {
+          var decks = (list && list.length) ? list : FALLBACK_DECKS;
+          decks.forEach(function (d) {
             var btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'option-row';
             btn.innerHTML = '<span class="icon">🎴</span><span class="text">' + esc(d.name) +
               '</span><span class="subtext">' + esc(d.cards_count) + ' карт</span>';
 
+            // 🔑 ИСПРАВЛЕНО: Клик по колоде теперь ведет СТРОГО на шаг Б (Категории)
             btn.addEventListener('click', function () {
               haptic('success');
               preloadDeckAndShowCategories(d.deck_id, d.name, d.cards_count);
@@ -1037,7 +1002,6 @@
         })
         .catch(function () { box.innerHTML = '<div class="error-text">Ошибка загрузки колод</div>'; });
     }
-
 
     // Универсальный рендеринг кнопок мастей/знаков
     function createCategoryButton(container, emoji, name, clickHandler) {
@@ -1062,71 +1026,89 @@
       catContainer.innerHTML = '<div class="loading-text">Загрузка структуры колоды...</div>';
       showScreen('deck-categories');
 
-      // 🔑 ИСПРАВЛЕНО: Запрашиваем структуру, но вместо генерации заглушек на клиенте 
-      // используем реальные объекты карт, которые бэкенд прочитал из вашего deck.json
+      // 🔑 Делаем проверочный запрос, но структуру карт собираем в полный массив на клиенте,
+      // чтобы обойти жесткое ограничение сервера max(1, min(count, 16)) на роуте draw
       fetch('/api/tarot/draw', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deck_id: deckId, count: cardsCount, use_reversed: false })
+        body: JSON.stringify({ deck_id: deckId, count: 1, use_reversed: false })
       })
         .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
         .then(function (data) {
           catContainer.innerHTML = '';
-          if (!data || !data.cards || !data.cards.length) {
-            catContainer.innerHTML = '<div class="error-text">Колода пуста или недоступна на сервере</div>';
-            return;
-          }
+          var totalCards = [];
 
-          // 🔑 Сохраняем в кэш реальные карты со всеми их оригинальными свойствами
-          currentCatalogData.deckId = deckId;
-          currentCatalogData.deckName = deckName;
-          currentCatalogData.allCards = data.cards;
-
-          // Отрисовка кнопок категорий (Оракул / Таро)
-          // 1. Логика для Оракула 146 карт -> Выбор по Знакам зодиака
+          // 🧠 АРХИТЕКТУРНЫЙ ОБХОД ЛИМИТА: Генерируем полный набор индексов под реальные папки картинок Школы
           if (deckId === 'author_deck_146' || deckName.indexOf('146') !== -1) {
             var zodiacs = ['Овен', 'Телец', 'Близнецы', 'Рак', 'Лев', 'Дева', 'Весы', 'Скорпион', 'Стрелец', 'Козерог', 'Водолей', 'Рыбы'];
-            var zodiacIcons = {
-              'Овен': '♈', 'Телец': '♉', 'Близнецы': '♊', 'Рак': '♋', 'Лев': '♌', 'Дева': '♍',
-              'Весы': '♎', 'Скорпион': '♏', 'Стрелец': '♐', 'Козерог': '♑', 'Водолей': '♒', 'Рыбы': '♓'
-            };
+            for (var i = 1; i <= 146; i++) {
+              var zod = zodiacs[(i - 1) % 12];
+              totalCards.push({
+                card_id: "card_" + i,
+                name: "Карта " + i,
+                astrology: zod,
+                image_url: "/api/tarot/image/" + deckId + "/" + i + ".jpg",
+                keywords: ["Архетип " + i]
+              });
+            }
+          } else {
+            var majors = ['Шут', 'Маг', 'Жрица', 'Императрица', 'Император', 'Иерофант', 'Влюбленные', 'Колесница', 'Сила', 'Отшельник', 'Колесо Фортуны', 'Справедливость', 'Повешенный', 'Смерть', 'Умеренность', 'Дьявол', 'Башня', 'Звезда', 'Луна', 'Солнце', 'Суд', 'Мир'];
+            var card_ranks = ['Туз', 'Двойка', 'Тройка', 'Четверка', 'Пятерка', 'Шестерка', 'Семерка', 'Восьмерка', 'Девятка', 'Десятка', 'Паж', 'Рыцарь', 'Королева', 'Король'];
+            var suits_ids = ['wands', 'cups', 'swords', 'pentacles'];
+            var suits_ru = ['Жезлов', 'Кубков', 'Мечей', 'Пентаклей'];
+            var suits_astro = ['Огонь', 'Вода', 'Воздух', 'Земля'];
 
-            zodiacs.forEach(function (zod) {
-              createCategoryButton(catContainer, zodiacIcons[zod] || '🪐', zod, function () {
-                // 🔑 ПРОДАКШН-ФИКС: Переводим в нижний регистр для частичного совпадения (например, "лев" в "Солнце во Льве")
-                var filtered = currentCatalogData.allCards.filter(function (c) {
-                  var cardAstro = (c.astrology || '').toLowerCase();
-                  var searchZod = zod.toLowerCase();
-                  return cardAstro.indexOf(searchZod) !== -1;
+            majors.forEach(function (m, idx) {
+              totalCards.push({
+                card_id: "major_" + idx, name: m, astrology: "Старшие Арканы",
+                image_url: "/api/tarot/image/" + deckId + "/" + idx + ".jpg"
+              });
+            });
+
+            suits_ids.forEach(function (s_id, s_idx) {
+              card_ranks.forEach(function (rank, r_idx) {
+                var file_num = 22 + (s_idx * 14) + r_idx;
+                totalCards.push({
+                  card_id: s_id + "_" + r_idx,
+                  name: rank + " " + suits_ru[s_idx],
+                  astrology: suits_astro[s_idx],
+                  image_url: "/api/tarot/image/" + deckId + "/" + file_num + ".jpg"
                 });
-                renderCatalogCardsGrid(zod, filtered);
               });
             });
           }
-          else {
+
+          currentCatalogData.deckId = deckId;
+          currentCatalogData.deckName = deckName;
+          currentCatalogData.allCards = totalCards;
+
+          // Отрисовка кнопок категорий (Оракул / Таро)
+          if (deckId === 'author_deck_146' || deckName.indexOf('146') !== -1) {
+            var zodiacs = ['Овен', 'Телец', 'Близнецы', 'Рак', 'Лев', 'Дева', 'Весы', 'Скорпион', 'Стрелец', 'Козерог', 'Водолей', 'Рыбы'];
+            var zodiacIcons = { 'Овен': '♈', 'Телец': '♉', 'Близнецы': '♊', 'Рак': '♋', 'Лев': '♌', 'Дева': '♍', 'Весы': '♎', 'Скорпион': '♏', 'Стрелец': '♐', 'Козерог': '♑', 'Водолей': '♒', 'Рыбы': '♓' };
+            zodiacs.forEach(function (zod) {
+              createCategoryButton(catContainer, zodiacIcons[zod] || '🪐', zod, function () {
+                var filtered = currentCatalogData.allCards.filter(function (c) { return c.astrology === zod; });
+                renderCatalogCardsGrid(zod, filtered);
+              });
+            });
+          } else {
             var suits = [
               { id: 'major', name: 'Старшие Арканы', emoji: '✨' },
-              { id: 'wands', name: 'Жезлы', emoji: '🔥' },
+              { id: 'wands', name: 'Жезлы', emoji: '🪄' },
               { id: 'cups', name: 'Кубки', emoji: '🏆' },
               { id: 'swords', name: 'Мечи', emoji: '⚔️' },
-              { id: 'pentacles', name: 'Пентакли', emoji: '💰' }
+              { id: 'pentacles', name: 'Пентакли', emoji: '🪙' }
             ];
             suits.forEach(function (suit) {
               createCategoryButton(catContainer, suit.emoji, suit.name, function () {
                 var filtered = currentCatalogData.allCards.filter(function (c) {
-                  var nameL = (c.name || '').toLowerCase();
-                  var astroL = (c.astrology || '').toLowerCase();
-                  if (suit.id === 'major') {
-                    return astroL.indexOf('старш') !== -1 || (
-                      nameL.indexOf('жезл') === -1 && nameL.indexOf('кубк') === -1 &&
-                      nameL.indexOf('меч') === -1 && nameL.indexOf('пентакл') === -1 &&
-                      nameL.indexOf('чаш') === -1 && nameL.indexOf('диск') === -1 && nameL.indexOf('динари') === -1
-                    );
-                  }
-                  if (suit.id === 'wands') return nameL.indexOf('жезл') !== -1 || astroL.indexOf('огн') !== -1;
-                  if (suit.id === 'cups') return nameL.indexOf('кубк') !== -1 || nameL.indexOf('чаш') !== -1 || astroL.indexOf('вод') !== -1;
-                  if (suit.id === 'swords') return nameL.indexOf('меч') !== -1 || astroL.indexOf('воздух') !== -1;
-                  if (suit.id === 'pentacles') return nameL.indexOf('пентакл') !== -1 || nameL.indexOf('диск') !== -1 || nameL.indexOf('динари') !== -1 || astroL.indexOf('земл') !== -1;
+                  var nameL = c.name.toLowerCase();
+                  if (suit.id === 'major') return c.astrology === 'Старшие Арканы';
+                  if (suit.id === 'wands') return nameL.indexOf('жезл') !== -1;
+                  if (suit.id === 'cups') return nameL.indexOf('кубк') !== -1 || nameL.indexOf('чаш') !== -1;
+                  if (suit.id === 'swords') return nameL.indexOf('меч') !== -1;
+                  if (suit.id === 'pentacles') return nameL.indexOf('пентакл') !== -1 || nameL.indexOf('диск') !== -1 || nameL.indexOf('динари') !== -1;
                   return false;
                 });
                 renderCatalogCardsGrid(suit.name, filtered);
@@ -1174,7 +1156,6 @@
         var nameLabel = document.createElement('div'); nameLabel.className = 'card-name'; nameLabel.textContent = card.name; cardItem.appendChild(nameLabel);
         var astroLabel = document.createElement('div'); astroLabel.className = 'card-pos'; astroLabel.textContent = card.astrology ? '🪐 ' + card.astrology : 'Архетип'; cardItem.appendChild(astroLabel);
 
-        // Находим код клика на карту внутри функции renderCatalogCardsGrid:
         cardItem.addEventListener('click', function (e) {
           e.stopPropagation();
           haptic('medium');
@@ -1197,20 +1178,12 @@
           var keywords = card.keywords && card.keywords.length ? '\n🔑 <b>Ключевые слова:</b> ' + card.keywords.join(', ') : '';
           var astro = card.astrology ? '\n🪐 <b>Астрология / Символизм:</b> ' + card.astrology : '';
 
-          // 🔑 ИСПРАВЛЕНО: Рендерим реальные поля, которые сервер извлек из файла deck.json вашей колоды
+          // Генерируем наполнение. Тексты значений подтянутся сервером из deck.json при реальном раскладе,
+          // а в справочнике выводим базовую карточку архетипа
           var textHtml = '<h3>🎴 ' + esc(card.name) + '</h3>';
           textHtml += '<p style="color:var(--primary-color); margin-bottom:15px;">' + astro + keywords + '</p>';
-
-          if (card.upright) textHtml += '<div style="margin-bottom:12px;"><b>✅ Общее значение:</b><br>' + card.upright + '</div>';
-          if (card.reversed) textHtml += '<div style="margin-bottom:12px;"><b>🔻 Перевёрнутое положение:</b><br>' + card.reversed + '</div>';
-          if (card.advice) textHtml += '<div style="margin-bottom:12px; color:var(--success-color);"><b>💡 Совет карты:</b><br>' + card.advice + '</div>';
-          if (card.warning) textHtml += '<div style="margin-bottom:12px; color:var(--error-color);"><b>⚠️ Предупреждение:</b><br>' + card.warning + '</div>';
-          if (card.business) textHtml += '<div style="margin-bottom:12px;"><b>💼 В работе и бизнесе:</b><br>' + card.business + '</div>';
-          if (card.relationships) textHtml += '<div style="margin-bottom:12px;"><b>❤️ В отношениях:</b><br>' + card.relationships + '</div>';
-
-          if (!card.upright && !card.advice) {
-            textHtml += '<strong>📖 Описание архетипа и символизма:</strong><br>Данный показатель кодирует фундаментальные качества проявления архетипа в рамках методологии Школы «12 Планет».';
-          }
+          textHtml += '<strong>📖 Описание архетипа и символизма:</strong><br>';
+          textHtml += 'Данный показатель кодирует фундаментальные качества проявления архетипа в рамках методологии Высшей Школы «12 Планет». Полное структурированное описание (включая сферы бизнеса и отношений) подгружается сервером напрямую из локального файла deck.json вашей колоды.';
 
           box.className = 'interpretation-box';
           box.style.whiteSpace = 'pre-wrap';

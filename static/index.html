@@ -4,7 +4,7 @@
         <meta charset="UTF-8">
         <meta name="viewport"
             content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <title>«12 Планет»</title>
+        <title>«12 Планет ✨»</title>
         <script src="https://telegram.org/js/telegram-web-app.js"></script>
         <link rel="stylesheet" href="/static/css/mini-app.css">
     </head>
@@ -63,6 +63,14 @@
                                 class="label">Кельтский крест</span>
                         </button>
                     </div>
+                    <!-- 🔑 Новая кнопка справочника колод -->
+                    <div class="nav-buttons"
+                        style="margin-top: var(--spacing-lg);">
+                        <button type="button" class="btn-secondary"
+                            id="open-decks-directory-btn">📚 Просмотр
+                            колод</button>
+                    </div>
+
                     <div class="nav-buttons">
 
                         <button class="btn-secondary-small btn-home">
@@ -70,6 +78,68 @@
                         </button>
                     </div>
 
+                </div>
+
+                <!-- ============================================================
+   🔑 НОВЫЕ ЭКРАНЫ СПРАВОЧНИКА КОЛОД С КАТЕГОРИЯМИ
+   ============================================================ -->
+
+                <!-- ЭКРАН А: СПИСОК КОЛОД -->
+                <div id="screen-deck-directory" class="screen">
+                    <h2 class="screen-title">📚 Справочник колод</h2>
+                    <p class="description">Выберите колоду для изучения
+                        символизма и значений карт:</p>
+
+                    <div id="directory-deck-list" class="options-list"></div>
+
+                    <div class="nav-bottom">
+                        <button type="button"
+                            class="btn-secondary-small btn-home">🏠 Основное
+                            меню</button>
+                    </div>
+                </div>
+
+                <!-- ЭКРАН Б: ВЫБОР КАТЕГОРИИ (МАСТИ ТАРО ИЛИ ЗНАКИ ЗОДИАКА ОРАКУЛА) -->
+                <div id="screen-deck-categories" class="screen">
+                    <h2 class="screen-title"
+                        id="categories-deck-title">Категории колоды</h2>
+                    <p class="description">Выберите категорию или группу карт
+                        для изучения:</p>
+
+                    <div id="deck-categories-container"
+                        class="options-list"></div>
+
+                    <div class="nav-buttons" style="margin-top: 20px;">
+                        <button type="button" class="btn-secondary"
+                            id="back-to-decks-dir-btn">⬅️ К списку
+                            колод</button>
+                    </div>
+                    <div class="nav-bottom">
+                        <button type="button"
+                            class="btn-secondary-small btn-home">🏠 Основное
+                            меню</button>
+                    </div>
+                </div>
+
+                <!-- ЭКРАН В: СЕТКА КАРТ ФИЛЬТРА -->
+                <div id="screen-deck-cards-list" class="screen">
+                    <h2 class="screen-title" id="selected-deck-title">Колода
+                        карт</h2>
+                    <p class="description">Нажмите на карту, чтобы открыть её
+                        подробное описание:</p>
+
+                    <div id="directory-cards-grid" class="cards-display"></div>
+
+                    <div class="nav-buttons">
+                        <button type="button" class="btn-secondary"
+                            id="back-to-categories-btn">⬅️ К категориям
+                            колоды</button>
+                    </div>
+                    <div class="nav-bottom">
+                        <button type="button"
+                            class="btn-secondary-small btn-home">🏠 Основное
+                            меню</button>
+                    </div>
                 </div>
 
                 <!-- Экран 2: Тип трех карт -->
@@ -117,10 +187,11 @@
                     <p class="description">Использовать ли перевёрнутые карты в
                         раскладах?</p>
                     <div class="options-list">
-                        <button id="reverse-yes" class="btn-primary">✅ Да,
-                            использовать перевёрнутые</button>
-                        <button id="reverse-no" class="btn-secondary">❌ Нет,
-                            только прямые</button>
+                        <button id="reverse-yes" class="btn-primary">🔀
+                            Использовать перевёрнутые 🔄</button>
+                        <button id="reverse-no" class="btn-secondary"> ✅
+                            Только прямые 🔝</button>
+
                     </div>
                     <div class="nav-buttons">
                         <button class="btn-secondary btn-back">🔙 Назад</button>
@@ -208,6 +279,7 @@
                         <button class="btn-secondary-small btn-home">🏠 Основное
                             меню</button>
                     </div>
+
                 </div>
 
                 <!-- Экран 8: Толкование -->
@@ -237,6 +309,70 @@
 
                 </div>
 
+                <!-- 🔑 ЭКРАН 1: СПИСОК ДОСТУПНЫХ КОЛОД -->
+                <div id="screen-deck-directory" class="screen">
+                    <h2 class="screen-title">📚 Справочник колод</h2>
+                    <p class="description">Выберите колоду для изучения
+                        символизма и значений карт:</p>
+
+                    <div id="directory-deck-list" class="options-list"></div>
+
+                    <div class="nav-bottom">
+                        <button type="button"
+                            class="btn-secondary-small btn-home">🏠 Основное
+                            меню</button>
+                    </div>
+                </div>
+                <!-- 🔑 НОВЫЙ ЭКРАН: ВЫБОР КАТЕГОРИИ/ФИЛЬТРА ДЛЯ КОЛОДЫ -->
+                <div id="screen-deck-categories" class="screen">
+                    <h2 class="screen-title"
+                        id="categories-deck-title">Категории колоды</h2>
+                    <p class="description">Выберите категорию или группу карт
+                        для изучения:</p>
+
+                    <!-- Сюда JS будет вставлять кнопки: Арканы/Масти для Таро или Знаки для Оракула -->
+                    <div id="deck-categories-container"
+                        class="options-list"></div>
+
+                    <div class="nav-buttons" style="margin-top: 20px;">
+                        <button type="button" class="btn-secondary"
+                            id="back-to-decks-dir-btn">⬅️ К списку
+                            колод</button>
+                    </div>
+                    <div class="nav-bottom">
+                        <button type="button"
+                            class="btn-secondary-small btn-home">🏠 Основное
+                            меню</button>
+                    </div>
+                </div>
+
+                <!-- 🔑 ЭКРАН 2: ПРОСМОТР КАРТ ВЫБРАННОЙ КОЛОДЫ -->
+                <div id="screen-deck-cards-list" class="screen">
+                    <h2 class="screen-title" id="selected-deck-title">Колода
+                        карт</h2>
+                    <p class="description">Нажмите на карту, чтобы открыть её
+                        подробное описание:</p>
+
+                    <!-- Контейнер для сетки миниатюрных карточек -->
+                    <div id="directory-cards-grid" class="cards-display"></div>
+
+                    <div class="nav-buttons">
+                        <button type="button" class="btn-secondary"
+                            id="back-to-decks-list-btn">⬅️ К списку
+                            колод</button>
+                        <!-- Внутри screen-deck-cards-list измените кнопку на: -->
+                        <button type="button" class="btn-secondary"
+                            id="back-to-categories-btn">⬅️ К категориям
+                            колоды</button>
+
+                    </div>
+                    <div class="nav-bottom">
+                        <button type="button"
+                            class="btn-secondary-small btn-home">🏠 Основное
+                            меню</button>
+                    </div>
+                </div>
+
                 <!-- Экран 9: Астрология -->
                 <div id="screen-astro" class="screen">
                     <h2 class="screen-title">🪐 Астрология 12 планет</h2>
@@ -246,7 +382,7 @@
                     <!-- 1. Переключатель режимов ввода (Вкладки) -->
                     <div class="astro-mode-toggle">
                         <button type="button" class="btn-mode active"
-                            id="mode-params-btn">⚙️ По параметрам
+                            id="mode-params-btn">🌌 По параметрам
                             аспекта</button>
                         <button type="button" class="btn-mode"
                             id="mode-text-btn">✍️ Свободный вопрос</button>

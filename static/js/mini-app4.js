@@ -315,8 +315,8 @@
   }
 
 
-    function goHome() {
-    // 1. Очистка стандартного стейта гаданий Таро
+  function goHome() {
+    // УДАЛЕНО: tg.close() больше не вызывается, приложение не закроется!
     state.spreadType = null;
     state.threeType = null;
     state.deckId = null;
@@ -324,28 +324,15 @@
     state.cards = [];
     state.interpretation = "";
 
-    // 🔑 2. ПРОДАКШН-ФИКС: Полное обнуление кэша Справочника при выходе в меню
-    if (typeof currentCatalogData !== 'undefined') {
-        currentCatalogData.deckId = '';
-        currentCatalogData.deckName = '';
-        currentCatalogData.allCards = [];
-    }
-
-    // 3. Очистка разметки контейнеров, чтобы старые картинки не «мигали» при новом входе
-    var dirDeckList = $('directory-deck-list');      if (dirDeckList) dirDeckList.innerHTML = '';
-    var catContainer = $('deck-categories-container'); if (catContainer) catContainer.innerHTML = '';
-    var cardsGrid = $('directory-cards-grid');         if (cardsGrid) cardsGrid.innerHTML = '';
-
-    // 4. Восстановление кнопок перемешивания
+    // Сбрасываем видимость кнопок перемешивания, если они были изменены
     var shuffleBtn = $("shuffle-btn");
     if (shuffleBtn) shuffleBtn.classList.remove("hidden");
     var drawBtn = $("draw-btn");
     if (drawBtn) drawBtn.classList.add("hidden");
 
-    // 5. Возврат на стартовый экран выбора разделов
+    // Возвращаем пользователя на самый первый экран выбора расклада
     showScreen("start");
   }
-
 
   // ---------- Колоды ----------
   function renderDecks(decks) {
@@ -376,28 +363,12 @@
         return r.ok ? r.json() : Promise.reject(new Error("http " + r.status));
       })
       .then(function (list) {
-        // 🔑 ПРОДАКШН-ФИКС: Игнорируем серверный порядок и выстраиваем колоды строго по FALLBACK_DECKS
-        var orderedDecks = [];
-        FALLBACK_DECKS.forEach(function (fallback) {
-          // Ищем, вернул ли сервер колоду с таким id
-          var serverDeck = (list || []).find(function (d) { return d.deck_id === fallback.deck_id; });
-          if (serverDeck) {
-            orderedDecks.push({
-              deck_id: fallback.deck_id,
-              name: fallback.name, // Используем ваше красивое имя
-              cards_count: serverDeck.cards_count || fallback.cards_count
-            });
-          } else {
-            orderedDecks.push(fallback); // Фолбэк, если сервер не ответил
-          }
-        });
-        renderDecks(orderedDecks);
+        renderDecks(list && list.length ? list : FALLBACK_DECKS);
       })
       .catch(function () {
         renderDecks(FALLBACK_DECKS);
       });
   }
-
 
   // ---------- Перемешивание / вытягивание ----------
   function onShuffle() {
@@ -1005,29 +976,15 @@
         .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
         .then(function (list) {
           box.innerHTML = '';
-
-          // 🔑 ПРОДАКШН-ФИКС: Выстраиваем справочник строго по структуре вашего FALLBACK_DECKS
-          var orderedDecks = [];
-          FALLBACK_DECKS.forEach(function (fallback) {
-            var serverDeck = (list || []).find(function (d) { return d.deck_id === fallback.deck_id; });
-            if (serverDeck) {
-              orderedDecks.push({
-                deck_id: fallback.deck_id,
-                name: fallback.name,
-                cards_count: serverDeck.cards_count || fallback.cards_count
-              });
-            } else {
-              orderedDecks.push(fallback);
-            }
-          });
-
-          orderedDecks.forEach(function (d) {
+          var decks = (list && list.length) ? list : FALLBACK_DECKS;
+          decks.forEach(function (d) {
             var btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'option-row';
             btn.innerHTML = '<span class="icon">🎴</span><span class="text">' + esc(d.name) +
               '</span><span class="subtext">' + esc(d.cards_count) + ' карт</span>';
 
+            // 🔑 ИСПРАВЛЕНО: Клик по колоде теперь ведет СТРОГО на шаг Б (Категории)
             btn.addEventListener('click', function () {
               haptic('success');
               preloadDeckAndShowCategories(d.deck_id, d.name, d.cards_count);
@@ -1037,7 +994,6 @@
         })
         .catch(function () { box.innerHTML = '<div class="error-text">Ошибка загрузки колод</div>'; });
     }
-
 
     // Универсальный рендеринг кнопок мастей/знаков
     function createCategoryButton(container, emoji, name, clickHandler) {

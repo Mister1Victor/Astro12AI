@@ -155,7 +155,7 @@ async def api_draw_cards(request: web.Request) -> web.Response:
         count = int(data.get("count", 1))
     except (TypeError, ValueError):
         count = 1
-    count = max(1, min(count, 16))
+    count = max(1, min(count, 146))
     use_reversed = bool(data.get("use_reversed", True))
 
     deck = tarot_service.get_deck(deck_id)
