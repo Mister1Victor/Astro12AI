@@ -225,6 +225,12 @@ async def api_interpret_spread(request: web.Request) -> web.Response:
                           "positive", "negative", "neutral", "day"]
     elif spread_type == "one":
         position_kinds = ["day"]
+
+    elif spread_type == "celtic":
+        # 🔑 ПРОДАКШН-ФИКС: Передаем 10 позиций Кельтского креста, чтобы исключить IndexError
+        position_kinds = ["neutral", "negative", "positive", "neutral",
+                          "neutral", "neutral", "neutral", "neutral", "neutral", "neutral"]
+
     else:
         position_kinds = None
 
