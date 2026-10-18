@@ -401,20 +401,19 @@
 
   // ---------- Перемешивание / вытягивание ----------
   function onShuffle() {
-    haptic("medium");
-    var stack = document.querySelector(".card-stack");
-    var shuffleBtn = $("shuffle-btn"),
-      drawBtn = $("draw-btn");
+    haptic('medium');
+    var stack = document.querySelector('.card-stack');
+    var shuffleBtn = $('shuffle-btn');
     if (shuffleBtn) shuffleBtn.disabled = true;
-    if (stack) stack.classList.add("shuffling");
+    if (stack) stack.classList.add('shuffling');
     setTimeout(function () {
-      if (stack) stack.classList.remove("shuffling");
-      if (shuffleBtn) shuffleBtn.classList.add("hidden");
-      if (drawBtn) drawBtn.classList.remove("hidden");
-      if (shuffleBtn) shuffleBtn.disabled = false;
-      haptic("success");
+        if (stack) stack.classList.remove('shuffling');
+        if (shuffleBtn) shuffleBtn.disabled = false;
+        haptic('success');
+        // Сразу вытягиваем карты после перемешивания
+        performDraw();
     }, 900);
-  }
+}
   function performDraw() {
     var cfg = SPREADS[state.spreadType];
     if (!cfg || !state.deckId) {
