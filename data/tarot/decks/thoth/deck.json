@@ -8,7 +8,7 @@
       "id": "major_00",
       "name": "Шут (0)",
       "image": "major_00.jpg",
-      "astrology": "Стихия Воздуха (Уран)",
+      "astrology": "Уран",
       "keywords": [
         "невинность",
         "спонтанность",
@@ -92,7 +92,7 @@
       "id": "major_04",
       "name": "Император (IV)",
       "image": "major_04.jpg",
-      "astrology": "Овен / Марс",
+      "astrology": "Овен",
       "keywords": [
         "власть",
         "порядок",
@@ -111,7 +111,7 @@
     },
     {
       "id": "major_05",
-      "name": "Иерофант (Осирис) (V)",
+      "name": "Иерофант (V)",
       "image": "major_05.jpg",
       "astrology": "Телец",
       "keywords": [
@@ -258,9 +258,9 @@
     },
     {
       "id": "major_12",
-      "name": "Повешенный (Осирис) (XII)",
+      "name": "Повешенный (XII)",
       "image": "major_12.jpg",
-      "astrology": "Стихия Воды (Нептун)",
+      "astrology": "Нептун",
       "keywords": [
         "жертва",
         "переворот",
@@ -428,7 +428,7 @@
       "id": "major_20",
       "name": "Эон (XX)",
       "image": "major_20.jpg",
-      "astrology": "Стихия Огня (Плутон)",
+      "astrology": "Плутон",
       "keywords": [
         "возрождение",
         "новый эон",

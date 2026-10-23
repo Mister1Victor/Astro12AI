@@ -187,80 +187,96 @@ async def api_get_decks(request: web.Request) -> web.Response:
 
 
 async def api_get_deck_cards(request: web.Request) -> web.Response:
-    """Возвращает все карты колоды для справочника (строгая уникальность по ID)."""
+    """Возвращает все карты колоды для справочника."""
     tarot_service, _, _ = _get_services(request)
+
     if not tarot_service:
-        return web.json_response({"error": "tarot service unavailable"}, status=503)
+        return web.json_response(
+            {"error": "tarot service unavailable"},
+            status=503,
+        )
 
     deck_id = request.match_info["deck_id"]
     deck = tarot_service.get_deck(deck_id)
+
     if not deck or not deck.cards:
-        return web.json_response({"error": "deck not found or empty"}, status=404)
+        return web.json_response(
+            {"error": "deck not found or empty"},
+            status=404,
+        )
+
+    # Поддерживаем оба формата хранения карт.
+    if isinstance(deck.cards, dict):
+        card_items = list(deck.cards.items())
+    else:
+        card_items = [(None, card) for card in deck.cards]
 
     seen_ids = set()
     cards = []
 
-    # deck.cards может быть списком карт ИЛИ словарём {card_id: card}
-    if isinstance(deck.cards, dict):
-        # (cid, card) из ключей словаря
-        card_items = list(deck.cards.items())
-    else:
-        card_items = [(None, c) for c in deck.cards]
+    # Важно: цикл находится ВНЕ ветки else.
+    for dict_cid, card in card_items:
+        cid = (
+            getattr(card, "card_id", None)
+            or getattr(card, "id", None)
+            or dict_cid
+        )
 
-        for dict_cid, card in card_items:
-            cid = (
-                getattr(card, "card_id", None) or getattr(
-                    card, "id", None) or dict_cid
+        if not cid:
+            logger.warning(
+                "deck=%s: карта без id, name=%r — пропущена",
+                deck_id,
+                getattr(card, "name", None),
             )
-            if not cid:
-                logger.warning(
-                    "deck=%s: карта без id, name=%r — пропущена",
-                    deck_id,
-                    getattr(card, "name", None),
-                )
-                continue
-            if cid in seen_ids:
-                continue
-            seen_ids.add(cid)
+            continue
 
-            # Приоритет — поля модели, фолбэк — парсинг из card_id
-            arcana_fb, number_fb, suit_fb = _parse_card_identity(cid)
-            cards.append(
-                {
-                    "card_id": cid,
-                    "id": cid,
-                    "name": card.name,
-                    "astrology": getattr(card, "astrology", "") or "",
-                    "keywords": getattr(card, "keywords", []) or [],
-                    "description": getattr(card, "description", "") or "",
-                    "upright": getattr(card, "upright", "") or "",
-                    "reversed": getattr(card, "reversed", "") or "",
-                    "advice": getattr(card, "advice", "") or "",
-                    "warning": getattr(card, "warning", "") or "",
-                    "business": getattr(card, "business", "") or "",
-                    "relationships": getattr(card, "relationships", "") or "",
-                    "inspires": getattr(card, "inspires", "") or "",
-                    "warns": getattr(card, "warns", "") or "",
-                    "day_meaning": getattr(card, "day_meaning", "") or "",
-                    "arcana": getattr(card, "arcana", "") or arcana_fb,
-                    "number": getattr(card, "number", 0) or number_fb,
-                    "suit": getattr(card, "suit", "") or suit_fb,
-                    "image_url": (
-                        f"/api/tarot/image/{deck.deck_id}/{card.image}"
-                        if getattr(card, "image", None)
-                        else None
-                    ),
-                }
-            )
+        cid = str(cid)
 
-    return web.json_response(
-        {
-            "cards": cards,
-            "deck_id": deck.deck_id,
-            "deck_name": deck.name,
-            "total_unique": len(cards),
-        }
+        if cid in seen_ids:
+            continue
+
+        seen_ids.add(cid)
+
+        arcana_fb, number_fb, suit_fb = _parse_card_identity(cid)
+
+        cards.append({
+            "card_id": cid,
+            "id": cid,
+            "name": getattr(card, "name", "") or cid,
+            "astrology": getattr(card, "astrology", "") or "",
+            "keywords": getattr(card, "keywords", []) or [],
+            "description": getattr(card, "description", "") or "",
+            "upright": getattr(card, "upright", "") or "",
+            "reversed": getattr(card, "reversed", "") or "",
+            "advice": getattr(card, "advice", "") or "",
+            "warning": getattr(card, "warning", "") or "",
+            "business": getattr(card, "business", "") or "",
+            "relationships": getattr(card, "relationships", "") or "",
+            "inspires": getattr(card, "inspires", "") or "",
+            "warns": getattr(card, "warns", "") or "",
+            "day_meaning": getattr(card, "day_meaning", "") or "",
+            "arcana": getattr(card, "arcana", "") or arcana_fb,
+            "number": getattr(card, "number", 0) or number_fb,
+            "suit": getattr(card, "suit", "") or suit_fb,
+            "image_url": (
+                f"/api/tarot/image/{deck.deck_id}/{card.image}"
+                if getattr(card, "image", None)
+                else None
+            ),
+        })
+
+    logger.info(
+        "Справочник колоды %s: получено %s уникальных карт",
+        deck_id,
+        len(cards),
     )
+
+    return web.json_response({
+        "cards": cards,
+        "deck_id": deck.deck_id,
+        "deck_name": deck.name,
+        "total_unique": len(cards),
+    })
 
 
 # ============================================================
