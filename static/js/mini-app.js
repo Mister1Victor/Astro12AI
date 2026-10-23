@@ -407,13 +407,13 @@
     if (shuffleBtn) shuffleBtn.disabled = true;
     if (stack) stack.classList.add('shuffling');
     setTimeout(function () {
-        if (stack) stack.classList.remove('shuffling');
-        if (shuffleBtn) shuffleBtn.disabled = false;
-        haptic('success');
-        // Сразу вытягиваем карты после перемешивания
-        performDraw();
+      if (stack) stack.classList.remove('shuffling');
+      if (shuffleBtn) shuffleBtn.disabled = false;
+      haptic('success');
+      // Сразу вытягиваем карты после перемешивания
+      performDraw();
     }, 900);
-}
+  }
   function performDraw() {
     var cfg = SPREADS[state.spreadType];
     if (!cfg || !state.deckId) {
@@ -602,7 +602,66 @@
     if (drawBtn) drawBtn.classList.add("hidden");
     showScreen("shuffle");
   }
+  // ============================================================
+  // СОРТИРОВКА + ДЕДУПЛИКАЦИЯ КАРТ В СПРАВОЧНИКЕ
+  // Старшие: major 0..21 -> младшие: масти wands, cups, swords, pentacles,
+  // внутри масти: ace(1)..10, page(11), knight(12), queen(13), king(14).
+  // Фолбэк для оракулов — сохраняем исходный порядок deck.json.
+  // ============================================================
+  var SUIT_ORDER = { 'wands': 1, 'cups': 2, 'swords': 3, 'pentacles': 4 };
+  var RANK_ORDER = {
+    'ace': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
+    '8': 8, '9': 9, '10': 10, 'page': 11, 'knight': 12, 'queen': 13, 'king': 14
+  };
 
+  function cardSortKey(card, index) {
+    // Если сервер дал arcana/number/suit — сортируем по ним
+    var arcana = (card.arcana || '').toLowerCase();
+    var num = Number(card.number) || 0;
+    var suit = (card.suit || '').toLowerCase();
+
+    if (arcana === 'major') return [0, num, 0, index];
+    if (arcana === 'minor') return [1, SUIT_ORDER[suit] || 99, num, index];
+
+    // Фолбэк: парсим card_id ("major_17", "wands_king")
+    var id = String(card.card_id || card.id || '');
+    if (id.indexOf('major_') === 0) {
+      return [0, parseInt(id.split('_')[1], 10) || 0, 0, index];
+    }
+    var parts = id.split('_');
+    if (parts.length === 2 && SUIT_ORDER[parts[0]] !== undefined) {
+      return [1, SUIT_ORDER[parts[0]], RANK_ORDER[parts[1]] || 99, index];
+    }
+
+    // Оракул / нестандартная колода — оставляем порядок из deck.json
+    return [2, 0, 0, index];
+  }
+
+  function sortAndDeduplicateCards(cardsList) {
+    if (!cardsList || !cardsList.length) return [];
+
+    // 1. Дедупликация по id (card_id -> id -> name), сохраняем исходный индекс
+    var seen = Object.create(null);
+    var unique = [];
+    cardsList.forEach(function (card, index) {
+      var key = card.card_id || card.id || card.name;
+      if (!key || seen[key]) return;
+      seen[key] = true;
+      unique.push({ card: card, index: index });
+    });
+
+    // 2. Сортировка по составному ключу
+    unique.sort(function (a, b) {
+      var ka = cardSortKey(a.card, a.index);
+      var kb = cardSortKey(b.card, b.index);
+      for (var i = 0; i < 4; i++) {
+        if (ka[i] !== kb[i]) return ka[i] - kb[i];
+      }
+      return 0;
+    });
+
+    return unique.map(function (x) { return x.card; });
+  }
   // ---------- Астрология ----------
   function fillSelect(id, items) {
     var sel = $(id);
@@ -1063,23 +1122,26 @@
 
       // 🔑 ИСПРАВЛЕНО: Запрашиваем структуру, но вместо генерации заглушек на клиенте 
       // используем реальные объекты карт, которые бэкенд прочитал из вашего deck.json
-      fetch('/api/tarot/draw', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deck_id: deckId, count: cardsCount, use_reversed: false })
-      })
+      fetch('/api/tarot/deck/' + encodeURIComponent(deckId) + '/cards')
         .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
         .then(function (data) {
           catContainer.innerHTML = '';
-          if (!data || !data.cards || !data.cards.length) {
+          // data.cards — ВСЕ карты колоды в порядке deck.json
+          var allCards = sortAndDeduplicateCards(data.cards || []);
+          if (!allCards.length) {
             catContainer.innerHTML = '<div class="error-text">Колода пуста или недоступна на сервере</div>';
             return;
           }
-
-          // 🔑 Сохраняем в кэш реальные карты со всеми их оригинальными свойствами
           currentCatalogData.deckId = deckId;
           currentCatalogData.deckName = deckName;
-          currentCatalogData.allCards = data.cards;
+          currentCatalogData.allCards = allCards;
+          // проверка целостности старших арканов
+          var majors = allCards.filter(function (c) {
+            return (c.arcana || '').toLowerCase() === 'major';
+          });
+          console.log('Колода:', deckId, '| Старших арканов:', majors.length,
+            '| Всего карт:', allCards.length);
+
 
           // Отрисовка кнопок категорий (Оракул / Таро)
           // 1. Логика для Оракула 146 карт -> Выбор по Знакам зодиака

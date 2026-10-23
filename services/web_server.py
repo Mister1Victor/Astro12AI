@@ -7,12 +7,13 @@ services/web_server.py
   GET  /health                              — health check
   GET  /webapp                              — главная страница Mini App (static/index.html)
   GET  /static/{filepath}                   — статика Mini App (css/js)
-  GET  /api/tarot/image/{deck_id}/{file}    — КАРТИНКИ КАРТ из data/tarot/decks/<колода>/images/
+  GET  /api/tarot/image/{deck_id}/{file}    — КАРТИНКИ КАРТ из data/tarot/decks//images/
   GET  /api/tarot/decks                     — список колод (реальный TarotService)
   POST /api/tarot/draw                      — вытянуть карты (реальный TarotService)
   POST /api/tarot/interpret                 — РЕАЛЬНОЕ толкование LLM (как в боте)
   POST /api/webapp/data                     — резервный приём данных Mini App
 """
+
 import logging
 import time
 from pathlib import Path
@@ -39,6 +40,43 @@ CONTENT_TYPES = {
     ".woff": "font/woff",
     ".woff2": "font/woff2",
 }
+# ============================================================
+# ПАРСЕР ИДЕНТИФИКАТОРА КАРТЫ (для сортировки в справочнике)
+# ============================================================
+_RANK_NUMBERS = {
+    "ace": 1,
+    "2": 2,
+    "3": 3,
+    "4": 4,
+    "5": 5,
+    "6": 6,
+    "7": 7,
+    "8": 8,
+    "9": 9,
+    "10": 10,
+    "page": 11,
+    "knight": 12,
+    "queen": 13,
+    "king": 14,
+}
+
+
+def _parse_card_identity(card_id):
+    """Определяет аркан/номер/масть из card_id.
+    major_17   -> ("major", 17, "")
+    wands_king -> ("minor", 14, "wands")
+    Работает даже если в модели карты нет этих полей."""
+    if not card_id:
+        return "", 0, ""
+    if card_id.startswith("major_"):
+        try:
+            return "major", int(card_id.split("_", 1)[1]), ""
+        except (ValueError, IndexError):
+            return "major", 0, ""
+    suit, _, rank = card_id.partition("_")
+    if suit in ("wands", "cups", "swords", "pentacles"):
+        return "minor", _RANK_NUMBERS.get(rank, 0), suit
+    return "", 0, ""
 
 
 # ============================================================
@@ -60,8 +98,9 @@ async def handle_mini_app_index(request: web.Request) -> web.Response:
     index = STATIC_DIR / "index.html"
     if not index.is_file():
         return web.Response(status=404, text="Mini App not found: static/index.html")
-    return web.Response(text=index.read_text(encoding="utf-8"),
-                        content_type="text/html")
+    return web.Response(
+        text=index.read_text(encoding="utf-8"), content_type="text/html"
+    )
 
 
 async def handle_static_file(request: web.Request) -> web.Response:
@@ -104,6 +143,7 @@ def _get_services(request: web.Request):
     if tarot_service is None or llm is None or astro_retriever is None:
         try:  # main.py уже загружен к моменту запроса — берём его экземпляры
             import main as _main
+
             tarot_service = tarot_service or getattr(_main, "tarot", None)
             llm = llm or getattr(_main, "llm", None)
             astro_retriever = astro_retriever or getattr(
@@ -113,6 +153,7 @@ def _get_services(request: web.Request):
     if llm is None:
         try:
             from core.llm.model import create_llm
+
             llm = create_llm()
         except Exception:
             llm = None
@@ -129,18 +170,104 @@ async def api_get_decks(request: web.Request) -> web.Response:
     result = []
     for deck in tarot_service.list_decks():
         if deck.cards_count > 0:
-            result.append({
-                "deck_id": deck.deck_id,
-                "name": deck.name,
-                "cards_count": deck.cards_count,
-                "deck_type": deck.deck_type,
-            })
+            result.append(
+                {
+                    "deck_id": deck.deck_id,
+                    "name": deck.name,
+                    "cards_count": deck.cards_count,
+                    "deck_type": deck.deck_type,
+                }
+            )
     return web.json_response(result)
+
+
+# ============================================================
+# API: ВСЕ КАРТЫ КОЛОДЫ (ДЛЯ СПРАВОЧНИКА)
+# ============================================================
+
+
+async def api_get_deck_cards(request: web.Request) -> web.Response:
+    """Возвращает все карты колоды для справочника (строгая уникальность по ID)."""
+    tarot_service, _, _ = _get_services(request)
+    if not tarot_service:
+        return web.json_response({"error": "tarot service unavailable"}, status=503)
+
+    deck_id = request.match_info["deck_id"]
+    deck = tarot_service.get_deck(deck_id)
+    if not deck or not deck.cards:
+        return web.json_response({"error": "deck not found or empty"}, status=404)
+
+    seen_ids = set()
+    cards = []
+
+    # deck.cards может быть списком карт ИЛИ словарём {card_id: card}
+    if isinstance(deck.cards, dict):
+        # (cid, card) из ключей словаря
+        card_items = list(deck.cards.items())
+    else:
+        card_items = [(None, c) for c in deck.cards]
+
+        for dict_cid, card in card_items:
+            cid = (
+                getattr(card, "card_id", None) or getattr(
+                    card, "id", None) or dict_cid
+            )
+            if not cid:
+                logger.warning(
+                    "deck=%s: карта без id, name=%r — пропущена",
+                    deck_id,
+                    getattr(card, "name", None),
+                )
+                continue
+            if cid in seen_ids:
+                continue
+            seen_ids.add(cid)
+
+            # Приоритет — поля модели, фолбэк — парсинг из card_id
+            arcana_fb, number_fb, suit_fb = _parse_card_identity(cid)
+            cards.append(
+                {
+                    "card_id": cid,
+                    "id": cid,
+                    "name": card.name,
+                    "astrology": getattr(card, "astrology", "") or "",
+                    "keywords": getattr(card, "keywords", []) or [],
+                    "description": getattr(card, "description", "") or "",
+                    "upright": getattr(card, "upright", "") or "",
+                    "reversed": getattr(card, "reversed", "") or "",
+                    "advice": getattr(card, "advice", "") or "",
+                    "warning": getattr(card, "warning", "") or "",
+                    "business": getattr(card, "business", "") or "",
+                    "relationships": getattr(card, "relationships", "") or "",
+                    "inspires": getattr(card, "inspires", "") or "",
+                    "warns": getattr(card, "warns", "") or "",
+                    "day_meaning": getattr(card, "day_meaning", "") or "",
+                    "arcana": getattr(card, "arcana", "") or arcana_fb,
+                    "number": getattr(card, "number", 0) or number_fb,
+                    "suit": getattr(card, "suit", "") or suit_fb,
+                    "image_url": (
+                        f"/api/tarot/image/{deck.deck_id}/{card.image}"
+                        if getattr(card, "image", None)
+                        else None
+                    ),
+                }
+            )
+
+    return web.json_response(
+        {
+            "cards": cards,
+            "deck_id": deck.deck_id,
+            "deck_name": deck.name,
+            "total_unique": len(cards),
+        }
+    )
 
 
 # ============================================================
 # API: ВЫТЯНУТЬ КАРТЫ (реальное, с image_url на /api/tarot/image/...)
 # ============================================================
+
+
 async def api_draw_cards(request: web.Request) -> web.Response:
     tarot_service, _, _ = _get_services(request)
     if not tarot_service:
@@ -167,30 +294,36 @@ async def api_draw_cards(request: web.Request) -> web.Response:
     for card, rev in drawn:
         if not use_reversed:
             rev = False
-        cards.append({
-            "card_id": card.card_id,
-            "name": card.name,
-            "reversed": rev,
-            "astrology": card.astrology or "",
-            "keywords": card.keywords or [],
-            "description": getattr(card, "description", "") or "",
-            # 🔑 Направляем напрямую из json
-            "business": getattr(card, "business", "") or "",
-            # 🔑 Направляем напрямую из json
-            "relationships": getattr(card, "relationships", "") or "",
-            # 🔑 Вдохновение / Ключ
-            "inspires": getattr(card, "inspires", "") or "",
-            "warns": getattr(card, "warns", "") or "",
-            "day_meaning": getattr(card, "day_meaning", "") or "",
-
-            "image_url": (f"/api/tarot/image/{deck.deck_id}/{card.image}"
-                          if card.image else None),
-        })
-    return web.json_response({
-        "cards": cards,
-        "deck_id": deck.deck_id,
-        "deck_name": deck.name,
-    })
+        cards.append(
+            {
+                "card_id": card.card_id,
+                "name": card.name,
+                "reversed": rev,
+                "astrology": card.astrology or "",
+                "keywords": card.keywords or [],
+                "description": getattr(card, "description", "") or "",
+                # 🔑 Направляем напрямую из json
+                "business": getattr(card, "business", "") or "",
+                # 🔑 Направляем напрямую из json
+                "relationships": getattr(card, "relationships", "") or "",
+                # 🔑 Вдохновение / Ключ
+                "inspires": getattr(card, "inspires", "") or "",
+                "warns": getattr(card, "warns", "") or "",
+                "day_meaning": getattr(card, "day_meaning", "") or "",
+                "image_url": (
+                    f"/api/tarot/image/{deck.deck_id}/{card.image}"
+                    if card.image
+                    else None
+                ),
+            }
+        )
+    return web.json_response(
+        {
+            "cards": cards,
+            "deck_id": deck.deck_id,
+            "deck_name": deck.name,
+        }
+    )
 
 
 # ============================================================
@@ -231,23 +364,41 @@ async def api_interpret_spread(request: web.Request) -> web.Response:
     if spread_type == "three" and three_card_type == "plus-minus-result":
         position_kinds = ["positive", "negative", "neutral"]
     elif spread_type == "choice":
-        position_kinds = ["positive", "negative", "neutral",
-                          "positive", "negative", "neutral", "day"]
+        position_kinds = [
+            "positive",
+            "negative",
+            "neutral",
+            "positive",
+            "negative",
+            "neutral",
+            "day",
+        ]
     elif spread_type == "one":
         position_kinds = ["day"]
 
     elif spread_type == "celtic":
         # 🔑 ПРОДАКШН-ФИКС: Передаем 10 позиций Кельтского креста, чтобы исключить IndexError
-        position_kinds = ["neutral", "negative", "positive", "neutral",
-                          "neutral", "neutral", "neutral", "neutral", "neutral", "neutral"]
+        position_kinds = [
+            "neutral",
+            "negative",
+            "positive",
+            "neutral",
+            "neutral",
+            "neutral",
+            "neutral",
+            "neutral",
+            "neutral",
+            "neutral",
+        ]
 
     else:
         position_kinds = None
 
     if not question:
-        question = ("Интерпретируй расклад в контексте вопроса пользователя.")
+        question = "Интерпретируй расклад в контексте вопроса пользователя."
 
     from handlers.tarot import get_tarot_ai_interpretation
+
     interpretation = await get_tarot_ai_interpretation(
         question=question,
         drawn=drawn,
@@ -260,8 +411,10 @@ async def api_interpret_spread(request: web.Request) -> web.Response:
     if not interpretation:
         return web.json_response(
             {"error": "ИИ временно недоступен. Попробуйте через 1–2 минуты."},
-            status=503)
+            status=503,
+        )
     return web.json_response({"interpretation": interpretation, "success": True})
+
 
 # ============================================================
 # API: АСТРОЛОГИЯ (интерпретация в Mini App)
@@ -300,6 +453,7 @@ async def api_interpret_astro(request: web.Request) -> web.Response:
         logger.error(f"Ошибка api_interpret_astro: {e}")
         return web.json_response({"error": str(e)}, status=500)
 
+
 # ============================================================
 # РЕЗЕРВНЫЙ ПРИЁМ ДАННЫХ MINI APP
 # ============================================================
@@ -328,8 +482,9 @@ def _root_registered(app: web.Application) -> bool:
     return False
 
 
-def setup_web_server_routes(app: web.Application, tarot_service=None,
-                            astro_retriever=None, llm=None):
+def setup_web_server_routes(
+    app: web.Application, tarot_service=None, astro_retriever=None, llm=None
+):
     """Регистрация маршрутов Mini App и API. Вызывается из main.py."""
     if tarot_service is not None:
         app["tarot_service"] = tarot_service
@@ -347,11 +502,13 @@ def setup_web_server_routes(app: web.Application, tarot_service=None,
     app.router.add_get(
         "/api/tarot/image/{deck_id}/{filename}", handle_deck_image)
     app.router.add_get("/api/tarot/decks", api_get_decks)
+    app.router.add_get("/api/tarot/deck/{deck_id}/cards", api_get_deck_cards)
     app.router.add_post("/api/tarot/draw", api_draw_cards)
     app.router.add_post("/api/tarot/interpret", api_interpret_spread)
     app.router.add_post("/api/webapp/data", handle_webapp_data)
-    app.router.add_post("/api/tarot/interpret", api_interpret_spread)
     app.router.add_post("/api/astro/interpret", api_interpret_astro)
-    app.router.add_post("/api/webapp/data", handle_webapp_data)
-    logger.info("✅ Маршруты Mini App и API зарегистрированы "
-                "(картинки /api/tarot/image/..., толкование /api/tarot/interpret)")
+
+    logger.info(
+        "✅ Маршруты Mini App и API зарегистрированы "
+        "(картинки /api/tarot/image/..., толкование /api/tarot/interpret)"
+    )

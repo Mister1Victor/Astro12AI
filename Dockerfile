@@ -1,14 +1,16 @@
-FROM python:3.9
+FROM python:3.10-slim
 
-ENV PYTHONUNBUFFERED=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=on
+WORKDIR /code
 
-WORKDIR /app
+# Установка зависимостей
+COPY ./requirements.txt /code/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
-COPY requirements.txt /app/requirements.txt
+# Копирование проекта (включая knowledge_base, data и т.д.)
+COPY . .
 
-RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+# Открываем порт для HF
+EXPOSE 7860
 
-COPY . /app
-
+# Запуск модифицированного main.py
 CMD ["python", "main.py"]
